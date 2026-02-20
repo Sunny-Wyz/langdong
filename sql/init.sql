@@ -9,6 +9,21 @@ CREATE TABLE IF NOT EXISTS `user` (
     UNIQUE KEY uk_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
+CREATE TABLE IF NOT EXISTS `spare_part` (
+    id         BIGINT         NOT NULL AUTO_INCREMENT COMMENT '主键',
+    name       VARCHAR(100)   NOT NULL COMMENT '备件名称',
+    model      VARCHAR(100)   DEFAULT NULL COMMENT '型号规格',
+    quantity   INT            NOT NULL DEFAULT 0 COMMENT '库存数量',
+    unit       VARCHAR(20)    DEFAULT '个' COMMENT '单位',
+    price      DECIMAL(10, 2) DEFAULT NULL COMMENT '单价（元）',
+    category   VARCHAR(50)    DEFAULT NULL COMMENT '类别',
+    supplier   VARCHAR(100)   DEFAULT NULL COMMENT '供应商',
+    remark     TEXT           DEFAULT NULL COMMENT '备注',
+    created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备件表';
+
 -- 初始账号：admin / 123456
 INSERT INTO `user` (username, password) VALUES (
     'admin',
