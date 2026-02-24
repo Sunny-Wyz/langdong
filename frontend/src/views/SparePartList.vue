@@ -26,6 +26,11 @@
           {{ formatDate(row.createdAt) }}
         </template>
       </el-table-column>
+      <el-table-column label="操作" width="100" align="center">
+        <template slot-scope="{ row }">
+          <el-button type="danger" size="mini" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <!-- 增加备件对话框 -->
@@ -137,6 +142,21 @@ export default {
     resetForm() {
       this.$refs.spareForm && this.$refs.spareForm.resetFields()
       this.form = { name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplier: '', remark: '' }
+    },
+    handleDelete(row) {
+      this.$confirm(`确定要删除备件"${row.name}"吗？此操作不可恢复。`, '提示', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          await request.delete(`/spare-parts/${row.id}`)
+          this.$message.success('删除成功')
+          this.fetchList()
+        } catch (e) {
+          this.$message.error('删除失败，请重试')
+        }
+      }).catch(() => {})
     },
     formatDate(val) {
       if (!val) return '—'

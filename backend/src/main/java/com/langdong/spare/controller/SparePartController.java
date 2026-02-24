@@ -36,4 +36,13 @@ public class SparePartController {
         sparePartMapper.insert(sparePart);
         return ResponseEntity.ok(sparePart);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        int rows = sparePartMapper.deleteById(id);
+        if (rows == 0) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok().build();
+    }
 }

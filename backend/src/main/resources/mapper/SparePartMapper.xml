@@ -34,4 +34,8 @@
         VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark})
     </insert>
 
+    <delete id="deleteById">
+        DELETE FROM spare_part WHERE id = #{id}
+    </delete>
+
 </mapper>
