@@ -89,3 +89,6 @@ cd backend && mvn test
 - All API routes (except `/api/auth/**`) require authentication
 - The frontend dev server proxies `/api` to `http://localhost:8080`
 - Do not commit real DB passwords — `application.yml` contains a placeholder
+
+## AI Assistant Guidelines (Memory)
+- **Language Preference**: 以后的所有工作计划 (工作计划, implementation plans, tasks) 都必须用中文写。
