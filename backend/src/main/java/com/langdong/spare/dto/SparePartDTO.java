@@ -13,4 +13,5 @@ public class SparePartDTO {
     private String category;
     private String supplier;
     private String remark;
+    private Long locationId;
 }

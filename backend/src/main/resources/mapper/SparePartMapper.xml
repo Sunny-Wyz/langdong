@@ -13,25 +13,26 @@
         <result property="category" column="category"/>
         <result property="supplier" column="supplier"/>
         <result property="remark" column="remark"/>
+        <result property="locationId" column="location_id"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <select id="findAll" resultMap="SparePartResultMap">
-        SELECT id, name, model, quantity, unit, price, category, supplier, remark, created_at, updated_at
+        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, created_at, updated_at
         FROM spare_part
         ORDER BY created_at DESC
     </select>
 
     <select id="findById" resultMap="SparePartResultMap">
-        SELECT id, name, model, quantity, unit, price, category, supplier, remark, created_at, updated_at
+        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, created_at, updated_at
         FROM spare_part
         WHERE id = #{id}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO spare_part (name, model, quantity, unit, price, category, supplier, remark)
-        VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark})
+        INSERT INTO spare_part (name, model, quantity, unit, price, category, supplier, remark, location_id)
+        VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark}, #{locationId})
     </insert>
 
     <update id="update">
@@ -45,6 +46,7 @@
             <if test="category != null">category = #{category},</if>
             <if test="supplier != null">supplier = #{supplier},</if>
             <if test="remark != null">remark = #{remark},</if>
+            <if test="locationId != null">location_id = #{locationId},</if>
         </set>
         WHERE id = #{id}
     </update>

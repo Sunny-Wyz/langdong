@@ -19,10 +19,24 @@ CREATE TABLE IF NOT EXISTS `spare_part` (
     category   VARCHAR(50)    DEFAULT NULL COMMENT '类别',
     supplier   VARCHAR(100)   DEFAULT NULL COMMENT '供应商',
     remark     TEXT           DEFAULT NULL COMMENT '备注',
+    location_id BIGINT        DEFAULT NULL COMMENT '所属货位ID',
     created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备件表';
+
+CREATE TABLE IF NOT EXISTS `location` (
+    id         BIGINT         NOT NULL AUTO_INCREMENT COMMENT '主键',
+    code       VARCHAR(50)    NOT NULL COMMENT '货位编码',
+    name       VARCHAR(100)   NOT NULL COMMENT '货位名称',
+    zone       VARCHAR(50)    NOT NULL COMMENT '所属专区(1-12)',
+    capacity   VARCHAR(50)    DEFAULT NULL COMMENT '容量',
+    remark     TEXT           DEFAULT NULL COMMENT '备注',
+    created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='货位档案表';
 
 -- 初始账号：admin / 123456
 INSERT INTO `user` (username, password) VALUES (

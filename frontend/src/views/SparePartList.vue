@@ -20,6 +20,11 @@
         </template>
       </el-table-column>
       <el-table-column prop="supplier" label="供应商" min-width="120" />
+      <el-table-column prop="locationId" label="所属货位" min-width="120" show-overflow-tooltip>
+        <template slot-scope="{ row }">
+          {{ getLocationName(row.locationId) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
       <el-table-column prop="createdAt" label="创建时间" width="160">
         <template slot-scope="{ row }">
@@ -67,9 +72,21 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="供应商" prop="supplier">
-          <el-input v-model="form.supplier" placeholder="请输入供应商名称" />
-        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="供应商" prop="supplier">
+              <el-input v-model="form.supplier" placeholder="请输入供应商名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="所属货位" prop="locationId">
+              <el-select v-model="form.locationId" placeholder="请选择分配货位" clearable style="width: 100%">
+                <el-option v-for="loc in locations" :key="loc.id" :label="loc.name + ' (' + loc.zone + ')'"
+                  :value="loc.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注信息" />
         </el-form-item>
@@ -90,6 +107,7 @@ export default {
   data() {
     return {
       list: [],
+      locations: [],
       loading: false,
       dialogVisible: false,
       submitting: false,
@@ -102,7 +120,8 @@ export default {
         price: null,
         category: '',
         supplier: '',
-        remark: ''
+        remark: '',
+        locationId: null
       },
       rules: {
         name: [{ required: true, message: '请输入备件名称', trigger: 'blur' }],
@@ -112,8 +131,22 @@ export default {
   },
   created() {
     this.fetchList()
+    this.fetchLocations()
   },
   methods: {
+    async fetchLocations() {
+      try {
+        const res = await request.get('/locations')
+        this.locations = res.data
+      } catch (e) {
+        console.error('获取货位失败', e)
+      }
+    },
+    getLocationName(id) {
+      if (!id) return '—'
+      const loc = this.locations.find(l => l.id === id)
+      return loc ? loc.name : id
+    },
     async fetchList() {
       this.loading = true
       try {
@@ -148,7 +181,7 @@ export default {
     },
     resetForm() {
       this.$refs.spareForm && this.$refs.spareForm.resetFields()
-      this.form = { id: null, name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplier: '', remark: '' }
+      this.form = { id: null, name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplier: '', remark: '', locationId: null }
     },
     handleEdit(row) {
       this.form = { ...row }
@@ -167,7 +200,7 @@ export default {
         } catch (e) {
           this.$message.error('删除失败，请重试')
         }
-      }).catch(() => {})
+      }).catch(() => { })
     },
     formatDate(val) {
       if (!val) return '—'
@@ -181,12 +214,14 @@ export default {
 .spare-part-container {
   padding: 24px;
 }
+
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
 }
+
 .title {
   font-size: 18px;
   font-weight: 600;

@@ -12,7 +12,23 @@
           </template>
           <el-menu-item index="/home/spare-parts">
             <i class="el-icon-s-order"></i>
-            <span>备件管理</span>
+            <span>备件档案管理</span>
+          </el-menu-item>
+          <el-menu-item index="/home/location-profiles">
+            <i class="el-icon-location-outline"></i>
+            <span>货位档案管理</span>
+          </el-menu-item>
+          <el-menu-item index="/home/equipment-profiles">
+            <i class="el-icon-setting"></i>
+            <span>设备档案管理</span>
+          </el-menu-item>
+          <el-menu-item index="/home/supplier-profiles">
+            <i class="el-icon-truck"></i>
+            <span>供应商档案管理</span>
+          </el-menu-item>
+          <el-menu-item index="/home/users">
+            <i class="el-icon-user"></i>
+            <span>用户与权限管理</span>
           </el-menu-item>
         </el-submenu>
 

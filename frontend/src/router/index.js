@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 import Login from '../views/Login.vue'
 import Home from '../views/Home.vue'
 import SparePartList from '../views/SparePartList.vue'
+import LocationProfile from '../views/LocationProfile.vue'
 
 Vue.use(VueRouter)
 
@@ -26,7 +27,8 @@ const router = new VueRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', redirect: 'spare-parts' },
-        { path: 'spare-parts', component: SparePartList, meta: { requiresAuth: true } }
+        { path: 'spare-parts', component: SparePartList, meta: { requiresAuth: true } },
+        { path: 'location-profiles', component: LocationProfile, meta: { requiresAuth: true } }
       ]
     }
   ]

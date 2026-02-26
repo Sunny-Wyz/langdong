@@ -15,6 +15,7 @@ public class SparePart {
     private String category;
     private String supplier;
     private String remark;
+    private Long locationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

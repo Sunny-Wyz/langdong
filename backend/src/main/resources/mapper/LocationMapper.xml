@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.LocationMapper">
+
+    <resultMap id="LocationResultMap" type="com.langdong.spare.entity.Location">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="zone" column="zone"/>
+        <result property="capacity" column="capacity"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="LocationResultMap">
+        SELECT id, code, name, zone, capacity, remark, created_at, updated_at
+        FROM location
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findById" resultMap="LocationResultMap">
+        SELECT id, code, name, zone, capacity, remark, created_at, updated_at
+        FROM location
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO location (code, name, zone, capacity, remark)
+        VALUES (#{code}, #{name}, #{zone}, #{capacity}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE location
+        <set>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="zone != null and zone != ''">zone = #{zone},</if>
+            <if test="capacity != null">capacity = #{capacity},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM location WHERE id = #{id}
+    </delete>
+
+</mapper>
