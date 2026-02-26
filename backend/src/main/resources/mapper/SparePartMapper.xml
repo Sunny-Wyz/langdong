@@ -34,6 +34,21 @@
         VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark})
     </insert>
 
+    <update id="update">
+        UPDATE spare_part
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="model != null">model = #{model},</if>
+            <if test="quantity != null">quantity = #{quantity},</if>
+            <if test="unit != null">unit = #{unit},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="supplier != null">supplier = #{supplier},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
     <delete id="deleteById">
         DELETE FROM spare_part WHERE id = #{id}
     </delete>

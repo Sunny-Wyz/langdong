@@ -8,7 +8,12 @@ import java.util.List;
 @Mapper
 public interface SparePartMapper {
     List<SparePart> findAll();
+
     SparePart findById(Long id);
+
     int insert(SparePart sparePart);
+
+    int update(SparePart sparePart);
+
     int deleteById(Long id);
 }

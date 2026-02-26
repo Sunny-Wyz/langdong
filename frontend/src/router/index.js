@@ -6,6 +6,16 @@ import SparePartList from '../views/SparePartList.vue'
 
 Vue.use(VueRouter)
 
+// Fix 'Avoided redundant navigation to current location' warning
+const originalPush = VueRouter.prototype.push
+VueRouter.prototype.push = function push(location) {
+  return originalPush.call(this, location).catch(err => Object.assign({}, err, { isNavigationFailure: true }))
+}
+const originalReplace = VueRouter.prototype.replace
+VueRouter.prototype.replace = function replace(location) {
+  return originalReplace.call(this, location).catch(err => Object.assign({}, err, { isNavigationFailure: true }))
+}
+
 const router = new VueRouter({
   routes: [
     { path: '/', redirect: '/login' },

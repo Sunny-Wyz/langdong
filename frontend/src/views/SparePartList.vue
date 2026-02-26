@@ -28,13 +28,14 @@
       </el-table-column>
       <el-table-column label="操作" width="100" align="center">
         <template slot-scope="{ row }">
+          <el-button type="primary" size="mini" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
           <el-button type="danger" size="mini" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 增加备件对话框 -->
-    <el-dialog title="增加备件" :visible.sync="dialogVisible" width="560px" @close="resetForm">
+    <!-- 增加/修改备件对话框 -->
+    <el-dialog :title="form.id ? '修改备件' : '增加备件'" :visible.sync="dialogVisible" width="560px" @close="resetForm">
       <el-form :model="form" :rules="rules" ref="spareForm" label-width="90px">
         <el-form-item label="备件名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入备件名称" />
@@ -93,6 +94,7 @@ export default {
       dialogVisible: false,
       submitting: false,
       form: {
+        id: null,
         name: '',
         model: '',
         quantity: 0,
@@ -128,8 +130,13 @@ export default {
         if (!valid) return
         this.submitting = true
         try {
-          await request.post('/spare-parts', this.form)
-          this.$message.success('备件添加成功')
+          if (this.form.id) {
+            await request.put(`/spare-parts/${this.form.id}`, this.form)
+            this.$message.success('备件修改成功')
+          } else {
+            await request.post('/spare-parts', this.form)
+            this.$message.success('备件添加成功')
+          }
           this.dialogVisible = false
           this.fetchList()
         } catch (e) {
@@ -141,7 +148,11 @@ export default {
     },
     resetForm() {
       this.$refs.spareForm && this.$refs.spareForm.resetFields()
-      this.form = { name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplier: '', remark: '' }
+      this.form = { id: null, name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplier: '', remark: '' }
+    },
+    handleEdit(row) {
+      this.form = { ...row }
+      this.dialogVisible = true
     },
     handleDelete(row) {
       this.$confirm(`确定要删除备件"${row.name}"吗？此操作不可恢复。`, '提示', {

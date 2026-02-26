@@ -27,5 +27,5 @@ CREATE TABLE IF NOT EXISTS `spare_part` (
 -- 初始账号：admin / 123456
 INSERT INTO `user` (username, password) VALUES (
     'admin',
-    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBpwTTyU.VW7WS'
+    '$2a$10$LaRzdak9/Sl0Y2xLhKTXoel1q2FACT0T1g5XEcjFV4QWqrmIz2Rxa'
 );
