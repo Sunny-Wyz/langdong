@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.RoleMapper">
+
+    <resultMap id="RoleResultMap" type="Role">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="RoleResultMap">
+        SELECT id, code, name, remark, created_at, updated_at
+        FROM role
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findById" resultMap="RoleResultMap">
+        SELECT id, code, name, remark, created_at, updated_at
+        FROM role
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" resultMap="RoleResultMap">
+        SELECT id, code, name, remark, created_at, updated_at
+        FROM role
+        WHERE code = #{code}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO role (code, name, remark)
+        VALUES (#{code}, #{name}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE role
+        <set>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM role WHERE id = #{id}
+    </delete>
+
+    <select id="findRolesByUserId" resultMap="RoleResultMap">
+        SELECT r.id, r.code, r.name, r.remark, r.created_at, r.updated_at
+        FROM role r
+        INNER JOIN user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+    </select>
+
+</mapper>

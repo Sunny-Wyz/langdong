@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.MenuMapper">
+
+    <resultMap id="MenuResultMap" type="Menu">
+        <id property="id" column="id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="name" column="name"/>
+        <result property="path" column="path"/>
+        <result property="component" column="component"/>
+        <result property="permission" column="permission"/>
+        <result property="type" column="type"/>
+        <result property="icon" column="icon"/>
+        <result property="sort" column="sort"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="MenuResultMap">
+        SELECT id, parent_id, name, path, component, permission, type, icon, sort, created_at, updated_at
+        FROM menu
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="findById" resultMap="MenuResultMap">
+        SELECT id, parent_id, name, path, component, permission, type, icon, sort, created_at, updated_at
+        FROM menu
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO menu (parent_id, name, path, component, permission, type, icon, sort)
+        VALUES (#{parentId}, #{name}, #{path}, #{component}, #{permission}, #{type}, #{icon}, #{sort})
+    </insert>
+
+    <update id="update">
+        UPDATE menu
+        <set>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="path != null">path = #{path},</if>
+            <if test="component != null">component = #{component},</if>
+            <if test="permission != null">permission = #{permission},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="icon != null">icon = #{icon},</if>
+            <if test="sort != null">sort = #{sort},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM menu WHERE id = #{id}
+    </delete>
+
+    <select id="findMenusByUserId" resultMap="MenuResultMap">
+        SELECT DISTINCT m.id, m.parent_id, m.name, m.path, m.component, m.permission, m.type, m.icon, m.sort, m.created_at, m.updated_at
+        FROM menu m
+        INNER JOIN role_menu rm ON m.id = rm.menu_id
+        INNER JOIN user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        ORDER BY m.sort ASC, m.id ASC
+    </select>
+
+</mapper>

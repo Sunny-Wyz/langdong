@@ -7,6 +7,8 @@ import LocationProfile from '../views/LocationProfile.vue'
 import EquipmentProfile from '../views/EquipmentProfile.vue'
 import SupplierProfile from '../views/SupplierProfile.vue'
 import SupplyCategory from '../views/SupplyCategory.vue'
+import UserManage from '../views/sys/UserManage.vue'
+import RoleManage from '../views/sys/RoleManage.vue'
 
 Vue.use(VueRouter)
 
@@ -35,6 +37,15 @@ const router = new VueRouter({
         { path: 'equipment-profiles', component: EquipmentProfile, meta: { requiresAuth: true } },
         { path: 'supplier-profiles', component: SupplierProfile, meta: { requiresAuth: true } },
         { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } }
+      ]
+    },
+    {
+      path: '/sys',
+      component: Home,
+      meta: { requiresAuth: true },
+      children: [
+        { path: 'users', component: UserManage, meta: { requiresAuth: true } },
+        { path: 'roles', component: RoleManage, meta: { requiresAuth: true } }
       ]
     }
   ]

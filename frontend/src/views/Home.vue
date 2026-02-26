@@ -5,81 +5,31 @@
       <div class="logo">备件管理系统</div>
       <el-menu :default-active="$route.path" router background-color="#304156" text-color="#bfcbd9"
         active-text-color="#409EFF">
-        <el-submenu index="base-data">
-          <template slot="title">
-            <i class="el-icon-suitcase-1"></i>
-            <span>基础数据管理</span>
-          </template>
-          <el-menu-item index="/home/spare-parts">
-            <i class="el-icon-s-order"></i>
-            <span>备件档案管理</span>
+        <template v-for="menu in menus">
+
+          <!-- 有子菜单的呈现为 el-submenu -->
+          <el-submenu v-if="menu.children && menu.children.length > 0" :index="menu.id.toString()"
+            :key="'sub-' + menu.id">
+            <template slot="title">
+              <i :class="menu.icon || 'el-icon-folder'"></i>
+              <span>{{ menu.name }}</span>
+            </template>
+            <!-- 第二级 -->
+            <template v-for="child in menu.children">
+              <el-menu-item v-if="child.type === 2" :index="child.path" :key="'child-' + child.id">
+                <i :class="child.icon || 'el-icon-document'"></i>
+                <span>{{ child.name }}</span>
+              </el-menu-item>
+            </template>
+          </el-submenu>
+
+          <!-- 没子菜单的是直接的 el-menu-item 根节点 -->
+          <el-menu-item v-else-if="menu.type === 2" :index="menu.path" :key="'menu-' + menu.id">
+            <i :class="menu.icon || 'el-icon-document'"></i>
+            <span slot="title">{{ menu.name }}</span>
           </el-menu-item>
-          <el-menu-item index="/home/location-profiles">
-            <i class="el-icon-location-information"></i>
-            <span slot="title">货位档案管理</span>
-          </el-menu-item>
-          <el-menu-item index="/home/equipment-profiles">
-            <i class="el-icon-odometer"></i>
-            <span slot="title">设备档案管理</span>
-          </el-menu-item>
-          <el-menu-item index="/home/supplier-profiles">
-            <i class="el-icon-truck"></i>
-            <span>供应商档案管理</span>
-          </el-menu-item>
-          <el-menu-item index="/home/users">
-            <i class="el-icon-user"></i>
-            <span>用户与权限管理</span>
-          </el-menu-item>
-        </el-submenu>
 
-        <el-submenu index="smart-classification">
-          <template slot="title">
-            <i class="el-icon-collection"></i>
-            <span>备件智能分类模块</span>
-          </template>
-        </el-submenu>
-
-        <el-submenu index="warehouse-management">
-          <template slot="title">
-            <i class="el-icon-box"></i>
-            <span>仓储管理模块</span>
-          </template>
-        </el-submenu>
-
-        <el-submenu index="requisition-management">
-          <template slot="title">
-            <i class="el-icon-sell"></i>
-            <span>领用管理模块</span>
-          </template>
-        </el-submenu>
-
-        <el-submenu index="maintenance-orders">
-          <template slot="title">
-            <i class="el-icon-s-tools"></i>
-            <span>维修工单管理模块</span>
-          </template>
-        </el-submenu>
-
-        <el-submenu index="procurement-management">
-          <template slot="title">
-            <i class="el-icon-shopping-cart-full"></i>
-            <span>采购管理模块</span>
-          </template>
-        </el-submenu>
-
-        <el-submenu index="ai-analysis">
-          <template slot="title">
-            <i class="el-icon-cpu"></i>
-            <span>AI智能分析模块</span>
-          </template>
-        </el-submenu>
-
-        <el-submenu index="reports-dashboard">
-          <template slot="title">
-            <i class="el-icon-data-board"></i>
-            <span>报表与看板模块</span>
-          </template>
-        </el-submenu>
+        </template>
       </el-menu>
     </el-aside>
 
@@ -104,9 +54,42 @@ export default {
   computed: {
     username() {
       return this.$store.state.username
+    },
+    menus() {
+      return this.$store.state.menus
     }
   },
+  created() {
+    this.fetchMenus()
+  },
   methods: {
+    async fetchMenus() {
+      try {
+        const res = await this.$http.get('/menus/my')
+        const menus = res.data || []
+
+        // 解析所有的按钮级别权限 (type === 3) 提取 permission 字符串注入到 local state
+        const permissions = []
+        const extractPerms = (nodes) => {
+          nodes.forEach(n => {
+            if (n.type === 3 && n.permission) {
+              permissions.push(n.permission)
+            }
+            if (n.children && n.children.length > 0) {
+              extractPerms(n.children)
+            }
+          })
+        }
+        extractPerms(menus)
+
+        this.$store.commit('SET_MENUS_AND_PERMISSIONS', { menus, permissions })
+      } catch (e) {
+        console.error('动态拉取菜单失败', e)
+        if (e.response && e.response.status === 401) {
+          this.logout()
+        }
+      }
+    },
     logout() {
       this.$store.commit('LOGOUT')
       this.$router.push('/login')
