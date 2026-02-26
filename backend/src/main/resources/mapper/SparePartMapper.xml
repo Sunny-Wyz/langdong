@@ -55,4 +55,12 @@
         DELETE FROM spare_part WHERE id = #{id}
     </delete>
 
+    <select id="findByEquipmentId" resultMap="SparePartResultMap">
+        SELECT sp.id, sp.name, sp.model, sp.quantity, sp.unit, sp.price, sp.category, sp.supplier, sp.remark, sp.location_id, sp.created_at, sp.updated_at
+        FROM spare_part sp
+        INNER JOIN equipment_spare_part esp ON sp.id = esp.spare_part_id
+        WHERE esp.equipment_id = #{equipmentId}
+        ORDER BY esp.created_at DESC
+    </select>
+
 </mapper>

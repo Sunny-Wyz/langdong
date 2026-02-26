@@ -16,4 +16,6 @@ public interface SparePartMapper {
     int update(SparePart sparePart);
 
     int deleteById(Long id);
+
+    List<SparePart> findByEquipmentId(Long equipmentId);
 }

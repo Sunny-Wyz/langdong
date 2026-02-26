@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.EquipmentMapper">
+
+    <resultMap id="EquipmentResultMap" type="com.langdong.spare.entity.Equipment">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="model" column="model"/>
+        <result property="department" column="department"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="EquipmentResultMap">
+        SELECT id, code, name, model, department, status, remark, created_at, updated_at
+        FROM equipment
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findById" resultMap="EquipmentResultMap">
+        SELECT id, code, name, model, department, status, remark, created_at, updated_at
+        FROM equipment
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO equipment (code, name, model, department, status, remark)
+        VALUES (#{code}, #{name}, #{model}, #{department}, #{status}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE equipment
+        <set>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="model != null">model = #{model},</if>
+            <if test="department != null">department = #{department},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM equipment WHERE id = #{id}
+    </delete>
+
+</mapper>

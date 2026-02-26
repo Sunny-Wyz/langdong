@@ -38,6 +38,30 @@ CREATE TABLE IF NOT EXISTS `location` (
     UNIQUE KEY uk_code (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='货位档案表';
 
+CREATE TABLE IF NOT EXISTS `equipment` (
+    id         BIGINT         NOT NULL AUTO_INCREMENT COMMENT '主键',
+    code       VARCHAR(50)    NOT NULL COMMENT '设备编码',
+    name       VARCHAR(100)   NOT NULL COMMENT '设备名称',
+    model      VARCHAR(100)   DEFAULT NULL COMMENT '规格型号',
+    department VARCHAR(100)   DEFAULT NULL COMMENT '所属部门/产线',
+    status     VARCHAR(50)    DEFAULT '正常' COMMENT '设备状态',
+    remark     TEXT           DEFAULT NULL COMMENT '备注',
+    created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备档案表';
+
+CREATE TABLE IF NOT EXISTS `equipment_spare_part` (
+    id             BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    equipment_id   BIGINT   NOT NULL COMMENT '设备ID',
+    spare_part_id  BIGINT   NOT NULL COMMENT '备件ID',
+    quantity       INT      DEFAULT 1 COMMENT '配套数量',
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '关联时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_eq_sp (equipment_id, spare_part_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备备件配套关联表';
+
 -- 初始账号：admin / 123456
 INSERT INTO `user` (username, password) VALUES (
     'admin',

@@ -15,12 +15,12 @@
             <span>备件档案管理</span>
           </el-menu-item>
           <el-menu-item index="/home/location-profiles">
-            <i class="el-icon-location-outline"></i>
-            <span>货位档案管理</span>
+            <i class="el-icon-location-information"></i>
+            <span slot="title">货位档案管理</span>
           </el-menu-item>
           <el-menu-item index="/home/equipment-profiles">
-            <i class="el-icon-setting"></i>
-            <span>设备档案管理</span>
+            <i class="el-icon-odometer"></i>
+            <span slot="title">设备档案管理</span>
           </el-menu-item>
           <el-menu-item index="/home/supplier-profiles">
             <i class="el-icon-truck"></i>
