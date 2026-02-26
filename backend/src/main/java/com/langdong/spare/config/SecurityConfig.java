@@ -42,22 +42,23 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil, UserMapper userMapper, MenuMapper menuMapper) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configure(http)) // 启用默认 CORS 配置
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(org.springframework.web.bind.annotation.RequestMethod.OPTIONS.name()).permitAll() // 尝试放行所有 OPTIONS
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll()) // 临时放行所有请求
                 .addFilterBefore(new OncePerRequestFilter() {
                     @Override
                     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws ServletException, IOException {
                         String path = req.getRequestURI();
-                        // 调试日志：打印所有进入过滤器的请求路径
-                        if (path.startsWith("/api")) {
-                            System.out.println("Spring Security 拦截到请求: " + path);
-                        }
-                        
                         String header = req.getHeader("Authorization");
+                        
+                        if (path.startsWith("/api/auth")) {
+                            chain.doFilter(req, res);
+                            return;
+                        }
+
                         if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
                             String token = header.substring(7);
                             if (jwtUtil.validate(token)) {
@@ -69,8 +70,13 @@ public class SecurityConfig {
                                             .filter(m -> m.getPermission() != null && !m.getPermission().isEmpty())
                                             .map(m -> new SimpleGrantedAuthority(m.getPermission()))
                                             .toList();
+                                            
                                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-                                    SecurityContextHolder.getContext().setAuthentication(auth);
+                                    auth.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(req));
+                                    
+                                    org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+                                    context.setAuthentication(auth);
+                                    org.springframework.security.core.context.SecurityContextHolder.setContext(context);
                                 }
                             }
                         }
@@ -78,6 +84,18 @@ public class SecurityConfig {
                     }
                 }, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOriginPattern("*");
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
 }

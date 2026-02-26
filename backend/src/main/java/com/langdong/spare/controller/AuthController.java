@@ -24,16 +24,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        System.out.println(">>> 登录流程开始: " + req.getUsername());
         User user = userMapper.findByUsername(req.getUsername());
-        System.out.println(">>> 数据库查询完成, 是否找到用户: " + (user != null));
         
         if (user == null || !passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            System.out.println(">>> 认证失败");
             return ResponseEntity.status(401).body(Map.of("message", "用户名或密码错误"));
         }
         
-        System.out.println(">>> 认证成功, 生成Token中");
         String token = jwtUtil.generate(user.getUsername());
         return ResponseEntity.ok(new LoginResponse(token, user.getUsername()));
     }

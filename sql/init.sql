@@ -109,6 +109,43 @@ CREATE TABLE IF NOT EXISTS `equipment` (
     UNIQUE KEY uk_code (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备档案表';
 
+CREATE TABLE IF NOT EXISTS `supply_category` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `code` VARCHAR(50) NOT NULL COMMENT '品类编码',
+    `name` VARCHAR(100) NOT NULL COMMENT '品类名称',
+    `description` VARCHAR(255) DEFAULT NULL COMMENT '描述',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_supply_category_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供货品类字典表';
+
+CREATE TABLE IF NOT EXISTS `supplier` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `code` VARCHAR(50) NOT NULL COMMENT '供应商编码',
+    `name` VARCHAR(100) NOT NULL COMMENT '供应商名称',
+    `unified_social_credit_code` VARCHAR(50) DEFAULT NULL COMMENT '统一社会信用代码',
+    `bank_account_info` VARCHAR(255) DEFAULT NULL COMMENT '银行账户信息',
+    `contact_person` VARCHAR(50) DEFAULT NULL COMMENT '联系人',
+    `phone` VARCHAR(30) DEFAULT NULL COMMENT '联系电话',
+    `address` VARCHAR(255) DEFAULT NULL COMMENT '地址',
+    `status` VARCHAR(20) DEFAULT '正常' COMMENT '状态',
+    `remark` TEXT DEFAULT NULL COMMENT '备注',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_supplier_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商档案表';
+
+CREATE TABLE IF NOT EXISTS `supplier_category_relation` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `supplier_id` BIGINT NOT NULL COMMENT '供应商ID',
+    `supply_category_id` BIGINT NOT NULL COMMENT '供货品类ID',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_supplier_category` (`supplier_id`, `supply_category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商品类关联表';
+
 CREATE TABLE IF NOT EXISTS `equipment_spare_part` (
     id             BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
     equipment_id   BIGINT   NOT NULL COMMENT '设备ID',
