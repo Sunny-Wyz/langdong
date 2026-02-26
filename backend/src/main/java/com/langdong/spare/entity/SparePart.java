@@ -20,4 +20,7 @@ public class SparePart {
     private Long supplierId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer leadTime;
+    private String criticality;
+    private String substitutionDifficulty;
 }

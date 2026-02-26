@@ -10,6 +10,11 @@ import SupplyCategory from '../views/SupplyCategory.vue'
 import UserManage from '../views/sys/UserManage.vue'
 import RoleManage from '../views/sys/RoleManage.vue'
 
+// --- Smart Classification Views ---
+import StrategyConfig from '../views/smart/StrategyConfig.vue'
+import ClassificationDashboard from '../views/smart/ClassificationDashboard.vue'
+import AdjustmentApproval from '../views/smart/AdjustmentApproval.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -36,7 +41,11 @@ const router = new VueRouter({
         { path: 'location-profiles', component: LocationProfile, meta: { requiresAuth: true } },
         { path: 'equipment-profiles', component: EquipmentProfile, meta: { requiresAuth: true } },
         { path: 'supplier-profiles', component: SupplierProfile, meta: { requiresAuth: true } },
-        { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } }
+        { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } },
+        // --- Smart Classification Routes ---
+        { path: 'smart/strategies', component: StrategyConfig, meta: { requiresAuth: true } },
+        { path: 'smart/dashboard', component: ClassificationDashboard, meta: { requiresAuth: true } },
+        { path: 'smart/approvals', component: AdjustmentApproval, meta: { requiresAuth: true } }
       ]
     },
     {

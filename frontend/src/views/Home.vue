@@ -29,6 +29,12 @@
             <span slot="title">{{ menu.name }}</span>
           </el-menu-item>
 
+          <!-- 目录类型但暂无子菜单（模块待开发）-->
+          <el-menu-item v-else-if="menu.type === 1" :index="menu.id.toString()" :key="'dir-' + menu.id" disabled>
+            <i :class="menu.icon || 'el-icon-folder'"></i>
+            <span slot="title">{{ menu.name }} <el-tag size="mini" type="info">开发中</el-tag></span>
+          </el-menu-item>
+
         </template>
       </el-menu>
     </el-aside>

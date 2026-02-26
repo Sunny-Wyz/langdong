@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.ClassificationStrategyMapper">
+
+    <resultMap id="StrategyResultMap" type="com.langdong.spare.entity.ClassificationStrategy">
+        <id property="id" column="id"/>
+        <result property="combinationCode" column="combination_code"/>
+        <result property="abcCategory" column="abc_category"/>
+        <result property="xyzCategory" column="xyz_category"/>
+        <result property="safetyStockMultiplier" column="safety_stock_multiplier"/>
+        <result property="replenishmentCycle" column="replenishment_cycle"/>
+        <result property="approvalLevel" column="approval_level"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="StrategyResultMap">
+        SELECT * FROM classification_strategy ORDER BY combination_code ASC
+    </select>
+
+    <select id="findByCombinationCode" resultMap="StrategyResultMap">
+        SELECT * FROM classification_strategy WHERE combination_code = #{combinationCode}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO classification_strategy (combination_code, abc_category, xyz_category, safety_stock_multiplier, replenishment_cycle, approval_level)
+        VALUES (#{combinationCode}, #{abcCategory}, #{xyzCategory}, #{safetyStockMultiplier}, #{replenishmentCycle}, #{approvalLevel})
+    </insert>
+
+    <update id="update">
+        UPDATE classification_strategy
+        <set>
+            <if test="safetyStockMultiplier != null">safety_stock_multiplier = #{safetyStockMultiplier},</if>
+            <if test="replenishmentCycle != null">replenishment_cycle = #{replenishmentCycle},</if>
+            <if test="approvalLevel != null">approval_level = #{approvalLevel},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM classification_strategy WHERE id = #{id}
+    </delete>
+
+</mapper>
