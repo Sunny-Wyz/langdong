@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.SparePartCategoryMapper">
+
+    <resultMap id="CategoryResultMap" type="com.langdong.spare.entity.SparePartCategory">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="CategoryResultMap">
+        SELECT id, code, name, parent_id, created_at, updated_at
+        FROM spare_part_category
+        ORDER BY code ASC
+    </select>
+
+    <select id="findById" resultMap="CategoryResultMap">
+        SELECT id, code, name, parent_id, created_at, updated_at
+        FROM spare_part_category
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" resultMap="CategoryResultMap">
+        SELECT id, code, name, parent_id, created_at, updated_at
+        FROM spare_part_category
+        WHERE code = #{code}
+    </select>
+
+</mapper>

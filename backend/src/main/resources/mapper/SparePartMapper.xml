@@ -5,12 +5,13 @@
 
     <resultMap id="SparePartResultMap" type="com.langdong.spare.entity.SparePart">
         <id property="id" column="id"/>
+        <result property="code" column="code"/>
         <result property="name" column="name"/>
         <result property="model" column="model"/>
         <result property="quantity" column="quantity"/>
         <result property="unit" column="unit"/>
         <result property="price" column="price"/>
-        <result property="category" column="category"/>
+        <result property="categoryId" column="category_id"/>
         <result property="supplier" column="supplier"/>
         <result property="remark" column="remark"/>
         <result property="locationId" column="location_id"/>
@@ -20,20 +21,20 @@
     </resultMap>
 
     <select id="findAll" resultMap="SparePartResultMap">
-        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, supplier_id, created_at, updated_at
+        SELECT id, code, name, model, quantity, unit, price, category_id, supplier, remark, location_id, supplier_id, created_at, updated_at
         FROM spare_part
         ORDER BY created_at DESC
     </select>
 
     <select id="findById" resultMap="SparePartResultMap">
-        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, supplier_id, created_at, updated_at
+        SELECT id, code, name, model, quantity, unit, price, category_id, supplier, remark, location_id, supplier_id, created_at, updated_at
         FROM spare_part
         WHERE id = #{id}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO spare_part (name, model, quantity, unit, price, category, supplier, remark, location_id, supplier_id)
-        VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark}, #{locationId}, #{supplierId})
+        INSERT INTO spare_part (code, name, model, quantity, unit, price, category_id, supplier, remark, location_id, supplier_id)
+        VALUES (#{code}, #{name}, #{model}, #{quantity}, #{unit}, #{price}, #{categoryId}, #{supplier}, #{remark}, #{locationId}, #{supplierId})
     </insert>
 
     <update id="update">
@@ -44,7 +45,7 @@
             <if test="quantity != null">quantity = #{quantity},</if>
             <if test="unit != null">unit = #{unit},</if>
             <if test="price != null">price = #{price},</if>
-            <if test="category != null">category = #{category},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
             <if test="supplier != null">supplier = #{supplier},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="locationId != null">location_id = #{locationId},</if>
@@ -58,11 +59,15 @@
     </delete>
 
     <select id="findByEquipmentId" resultMap="SparePartResultMap">
-        SELECT sp.id, sp.name, sp.model, sp.quantity, sp.unit, sp.price, sp.category, sp.supplier, sp.remark, sp.location_id, sp.supplier_id, sp.created_at, sp.updated_at
+        SELECT sp.id, sp.code, sp.name, sp.model, sp.quantity, sp.unit, sp.price, sp.category_id, sp.supplier, sp.remark, sp.location_id, sp.supplier_id, sp.created_at, sp.updated_at
         FROM spare_part sp
         INNER JOIN equipment_spare_part esp ON sp.id = esp.spare_part_id
         WHERE esp.equipment_id = #{equipmentId}
         ORDER BY esp.created_at DESC
+    </select>
+
+    <select id="findMaxCodeByPrefix" resultType="java.lang.String">
+        SELECT MAX(code) FROM spare_part WHERE code LIKE CONCAT(#{prefix}, '%')
     </select>
 
 </mapper>

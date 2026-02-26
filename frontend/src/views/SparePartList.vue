@@ -9,9 +9,14 @@
     <!-- 备件表格 -->
     <el-table :data="list" border stripe v-loading="loading" style="width: 100%">
       <el-table-column prop="id" label="ID" width="60" />
+      <el-table-column prop="code" label="备件编码" width="100" />
       <el-table-column prop="name" label="备件名称" min-width="120" />
       <el-table-column prop="model" label="型号规格" min-width="120" />
-      <el-table-column prop="category" label="类别" width="100" />
+      <el-table-column prop="categoryId" label="类别" width="120" show-overflow-tooltip>
+        <template slot-scope="{ row }">
+          {{ getCategoryName(row.categoryId) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="quantity" label="库存数量" width="90" align="center" />
       <el-table-column prop="unit" label="单位" width="70" align="center" />
       <el-table-column prop="price" label="单价（元）" width="110" align="right">
@@ -46,6 +51,9 @@
     <!-- 增加/修改备件对话框 -->
     <el-dialog :title="form.id ? '修改备件' : '增加备件'" :visible.sync="dialogVisible" width="560px" @close="resetForm">
       <el-form :model="form" :rules="rules" ref="spareForm" label-width="90px">
+        <el-form-item label="备件编码" prop="code" v-if="form.id">
+          <el-input v-model="form.code" disabled />
+        </el-form-item>
         <el-form-item label="备件名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入备件名称" />
         </el-form-item>
@@ -71,8 +79,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="类别" prop="category">
-              <el-input v-model="form.category" placeholder="请输入类别" />
+            <el-form-item label="类别" prop="categoryId">
+              <el-select v-model="form.categoryId" placeholder="请选择类别" style="width: 100%" filterable>
+                <el-option-group v-for="group in categoryOptions" :key="group.id" :label="group.name">
+                  <el-option v-for="item in group.children" :key="item.id" :label="item.name" :value="item.id">
+                    <span style="float: left">{{ item.name }}</span>
+                    <span style="float: right; color: #8492a6; font-size: 13px">{{ item.code }}</span>
+                  </el-option>
+                </el-option-group>
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -115,31 +130,44 @@ export default {
       list: [],
       locations: [],
       suppliers: [],
+      categories: [],
       loading: false,
       dialogVisible: false,
       submitting: false,
       form: {
         id: null,
+        code: '',
         name: '',
         model: '',
         quantity: 0,
         unit: '个',
         price: null,
-        category: '',
+        categoryId: null,
         supplierId: null,
         remark: '',
         locationId: null
       },
       rules: {
         name: [{ required: true, message: '请输入备件名称', trigger: 'blur' }],
+        categoryId: [{ required: true, message: '请选择分类', trigger: 'change' }],
         quantity: [{ required: true, message: '请输入库存数量', trigger: 'blur' }]
       }
+    }
+  },
+  computed: {
+    categoryOptions() {
+      const topLevel = this.categories.filter(c => !c.parentId)
+      return topLevel.map(parent => ({
+        ...parent,
+        children: this.categories.filter(c => c.parentId === parent.id)
+      }))
     }
   },
   created() {
     this.fetchList()
     this.fetchLocations()
     this.fetchSuppliers()
+    this.fetchCategories()
   },
   methods: {
     async fetchLocations() {
@@ -158,6 +186,14 @@ export default {
         console.error('获取供应商失败', e)
       }
     },
+    async fetchCategories() {
+      try {
+        const res = await request.get('/spare-categories')
+        this.categories = res.data
+      } catch (e) {
+        console.error('获取分类失败', e)
+      }
+    },
     getLocationName(id) {
       if (!id) return '—'
       const loc = this.locations.find(l => l.id === id)
@@ -167,6 +203,11 @@ export default {
       if (!id) return '—'
       const sup = this.suppliers.find(s => s.id === id)
       return sup ? sup.name : id
+    },
+    getCategoryName(id) {
+      if (!id) return '—'
+      const cat = this.categories.find(c => c.id === id)
+      return cat ? cat.name : id
     },
     async fetchList() {
       this.loading = true
@@ -202,7 +243,7 @@ export default {
     },
     resetForm() {
       this.$refs.spareForm && this.$refs.spareForm.resetFields()
-      this.form = { id: null, name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplierId: null, remark: '', locationId: null }
+      this.form = { id: null, code: '', name: '', model: '', quantity: 0, unit: '个', price: null, categoryId: null, supplierId: null, remark: '', locationId: null }
     },
     handleEdit(row) {
       this.form = { ...row }

@@ -9,22 +9,35 @@ CREATE TABLE IF NOT EXISTS `user` (
     UNIQUE KEY uk_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
+CREATE TABLE IF NOT EXISTS `spare_part_category` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `code` VARCHAR(4) NOT NULL COMMENT '分类编码(大类占1位，小类加3位)',
+    `name` VARCHAR(100) NOT NULL COMMENT '分类名称',
+    `parent_id` BIGINT DEFAULT NULL COMMENT '父类ID(大类为空)',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_category_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备件分类字典表';
+
 CREATE TABLE IF NOT EXISTS `spare_part` (
     id         BIGINT         NOT NULL AUTO_INCREMENT COMMENT '主键',
+    code       VARCHAR(8)     NOT NULL COMMENT '备件统一8位编码',
     name       VARCHAR(100)   NOT NULL COMMENT '备件名称',
     model      VARCHAR(100)   DEFAULT NULL COMMENT '型号规格',
     quantity   INT            NOT NULL DEFAULT 0 COMMENT '库存数量',
     unit       VARCHAR(20)    DEFAULT '个' COMMENT '单位',
-    price      DECIMAL(10, 2) DEFAULT NULL COMMENT '单价（元）',
-    category   VARCHAR(50)    DEFAULT NULL COMMENT '类别',
+    price      DECIMAL(10, 2) DEFAULT NULL COMMENT '单价',
+    category_id BIGINT        NOT NULL COMMENT '所属分类ID',
     supplier   VARCHAR(100)   DEFAULT NULL COMMENT '供应商',
     remark     TEXT           DEFAULT NULL COMMENT '备注',
     location_id BIGINT        DEFAULT NULL COMMENT '所属货位ID',
     supplier_id BIGINT        DEFAULT NULL COMMENT '供应商ID',
     created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备件表';
+    PRIMARY KEY (id),
+    UNIQUE KEY `uk_spare_part_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备件档案表';
 
 CREATE TABLE IF NOT EXISTS `location` (
     id         BIGINT         NOT NULL AUTO_INCREMENT COMMENT '主键',
