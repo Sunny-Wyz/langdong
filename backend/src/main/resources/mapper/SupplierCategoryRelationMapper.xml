@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.SupplierCategoryRelationMapper">
+
+    <resultMap id="RelationResultMap" type="com.langdong.spare.entity.SupplierCategoryRelation">
+        <id property="id" column="id"/>
+        <result property="supplierId" column="supplier_id"/>
+        <result property="supplyCategoryId" column="supply_category_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findBySupplierId" resultMap="RelationResultMap">
+        SELECT id, supplier_id, supply_category_id, created_at
+        FROM supplier_category_relation
+        WHERE supplier_id = #{supplierId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT IGNORE INTO supplier_category_relation (supplier_id, supply_category_id)
+        VALUES (#{supplierId}, #{supplyCategoryId})
+    </insert>
+
+    <delete id="deleteBySupplierId">
+        DELETE FROM supplier_category_relation WHERE supplier_id = #{supplierId}
+    </delete>
+
+    <delete id="deleteBySupAndCatId">
+        DELETE FROM supplier_category_relation 
+        WHERE supplier_id = #{supplierId} AND supply_category_id = #{categoryId}
+    </delete>
+
+</mapper>

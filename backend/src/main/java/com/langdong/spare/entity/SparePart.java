@@ -16,6 +16,7 @@ public class SparePart {
     private String supplier;
     private String remark;
     private Long locationId;
+    private Long supplierId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

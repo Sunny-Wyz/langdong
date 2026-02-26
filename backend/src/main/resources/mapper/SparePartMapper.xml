@@ -14,25 +14,26 @@
         <result property="supplier" column="supplier"/>
         <result property="remark" column="remark"/>
         <result property="locationId" column="location_id"/>
+        <result property="supplierId" column="supplier_id"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <select id="findAll" resultMap="SparePartResultMap">
-        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, created_at, updated_at
+        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, supplier_id, created_at, updated_at
         FROM spare_part
         ORDER BY created_at DESC
     </select>
 
     <select id="findById" resultMap="SparePartResultMap">
-        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, created_at, updated_at
+        SELECT id, name, model, quantity, unit, price, category, supplier, remark, location_id, supplier_id, created_at, updated_at
         FROM spare_part
         WHERE id = #{id}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO spare_part (name, model, quantity, unit, price, category, supplier, remark, location_id)
-        VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark}, #{locationId})
+        INSERT INTO spare_part (name, model, quantity, unit, price, category, supplier, remark, location_id, supplier_id)
+        VALUES (#{name}, #{model}, #{quantity}, #{unit}, #{price}, #{category}, #{supplier}, #{remark}, #{locationId}, #{supplierId})
     </insert>
 
     <update id="update">
@@ -47,6 +48,7 @@
             <if test="supplier != null">supplier = #{supplier},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="locationId != null">location_id = #{locationId},</if>
+            <if test="supplierId != null">supplier_id = #{supplierId},</if>
         </set>
         WHERE id = #{id}
     </update>
@@ -56,7 +58,7 @@
     </delete>
 
     <select id="findByEquipmentId" resultMap="SparePartResultMap">
-        SELECT sp.id, sp.name, sp.model, sp.quantity, sp.unit, sp.price, sp.category, sp.supplier, sp.remark, sp.location_id, sp.created_at, sp.updated_at
+        SELECT sp.id, sp.name, sp.model, sp.quantity, sp.unit, sp.price, sp.category, sp.supplier, sp.remark, sp.location_id, sp.supplier_id, sp.created_at, sp.updated_at
         FROM spare_part sp
         INNER JOIN equipment_spare_part esp ON sp.id = esp.spare_part_id
         WHERE esp.equipment_id = #{equipmentId}

@@ -19,7 +19,11 @@
           {{ row.price != null ? Number(row.price).toFixed(2) : '—' }}
         </template>
       </el-table-column>
-      <el-table-column prop="supplier" label="供应商" min-width="120" />
+      <el-table-column prop="supplierId" label="供应商" min-width="120" show-overflow-tooltip>
+        <template slot-scope="{ row }">
+          {{ getSupplierName(row.supplierId) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="locationId" label="所属货位" min-width="120" show-overflow-tooltip>
         <template slot-scope="{ row }">
           {{ getLocationName(row.locationId) }}
@@ -74,8 +78,10 @@
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="供应商" prop="supplier">
-              <el-input v-model="form.supplier" placeholder="请输入供应商名称" />
+            <el-form-item label="供应商" prop="supplierId">
+              <el-select v-model="form.supplierId" placeholder="请选择供应商" filterable clearable style="width: 100%">
+                <el-option v-for="sup in suppliers" :key="sup.id" :label="sup.name" :value="sup.id" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -108,6 +114,7 @@ export default {
     return {
       list: [],
       locations: [],
+      suppliers: [],
       loading: false,
       dialogVisible: false,
       submitting: false,
@@ -119,7 +126,7 @@ export default {
         unit: '个',
         price: null,
         category: '',
-        supplier: '',
+        supplierId: null,
         remark: '',
         locationId: null
       },
@@ -132,6 +139,7 @@ export default {
   created() {
     this.fetchList()
     this.fetchLocations()
+    this.fetchSuppliers()
   },
   methods: {
     async fetchLocations() {
@@ -142,10 +150,23 @@ export default {
         console.error('获取货位失败', e)
       }
     },
+    async fetchSuppliers() {
+      try {
+        const res = await request.get('/suppliers')
+        this.suppliers = res.data
+      } catch (e) {
+        console.error('获取供应商失败', e)
+      }
+    },
     getLocationName(id) {
       if (!id) return '—'
       const loc = this.locations.find(l => l.id === id)
       return loc ? loc.name : id
+    },
+    getSupplierName(id) {
+      if (!id) return '—'
+      const sup = this.suppliers.find(s => s.id === id)
+      return sup ? sup.name : id
     },
     async fetchList() {
       this.loading = true
@@ -181,7 +202,7 @@ export default {
     },
     resetForm() {
       this.$refs.spareForm && this.$refs.spareForm.resetFields()
-      this.form = { id: null, name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplier: '', remark: '', locationId: null }
+      this.form = { id: null, name: '', model: '', quantity: 0, unit: '个', price: null, category: '', supplierId: null, remark: '', locationId: null }
     },
     handleEdit(row) {
       this.form = { ...row }

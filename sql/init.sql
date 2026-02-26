@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `spare_part` (
     supplier   VARCHAR(100)   DEFAULT NULL COMMENT '供应商',
     remark     TEXT           DEFAULT NULL COMMENT '备注',
     location_id BIGINT        DEFAULT NULL COMMENT '所属货位ID',
+    supplier_id BIGINT        DEFAULT NULL COMMENT '供应商ID',
     created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id)

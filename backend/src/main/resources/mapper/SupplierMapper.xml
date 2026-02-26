@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.SupplierMapper">
+
+    <resultMap id="SupplierResultMap" type="com.langdong.spare.entity.Supplier">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="unifiedSocialCreditCode" column="unified_social_credit_code"/>
+        <result property="bankAccountInfo" column="bank_account_info"/>
+        <result property="contactPerson" column="contact_person"/>
+        <result property="phone" column="phone"/>
+        <result property="address" column="address"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="SupplierResultMap">
+        SELECT id, code, name, unified_social_credit_code, bank_account_info, contact_person, phone, address, status, remark, created_at, updated_at
+        FROM supplier
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findById" resultMap="SupplierResultMap">
+        SELECT id, code, name, unified_social_credit_code, bank_account_info, contact_person, phone, address, status, remark, created_at, updated_at
+        FROM supplier
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO supplier (code, name, unified_social_credit_code, bank_account_info, contact_person, phone, address, status, remark)
+        VALUES (#{code}, #{name}, #{unifiedSocialCreditCode}, #{bankAccountInfo}, #{contactPerson}, #{phone}, #{address}, #{status}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE supplier
+        <set>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="unifiedSocialCreditCode != null">unified_social_credit_code = #{unifiedSocialCreditCode},</if>
+            <if test="bankAccountInfo != null">bank_account_info = #{bankAccountInfo},</if>
+            <if test="contactPerson != null">contact_person = #{contactPerson},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM supplier WHERE id = #{id}
+    </delete>
+
+</mapper>

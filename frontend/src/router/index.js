@@ -5,6 +5,8 @@ import Home from '../views/Home.vue'
 import SparePartList from '../views/SparePartList.vue'
 import LocationProfile from '../views/LocationProfile.vue'
 import EquipmentProfile from '../views/EquipmentProfile.vue'
+import SupplierProfile from '../views/SupplierProfile.vue'
+import SupplyCategory from '../views/SupplyCategory.vue'
 
 Vue.use(VueRouter)
 
@@ -30,7 +32,9 @@ const router = new VueRouter({
         { path: '', redirect: 'spare-parts' },
         { path: 'spare-parts', component: SparePartList, meta: { requiresAuth: true } },
         { path: 'location-profiles', component: LocationProfile, meta: { requiresAuth: true } },
-        { path: 'equipment-profiles', component: EquipmentProfile, meta: { requiresAuth: true } }
+        { path: 'equipment-profiles', component: EquipmentProfile, meta: { requiresAuth: true } },
+        { path: 'supplier-profiles', component: SupplierProfile, meta: { requiresAuth: true } },
+        { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } }
       ]
     }
   ]
