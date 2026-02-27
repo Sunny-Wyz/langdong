@@ -12,6 +12,7 @@ import RoleManage from '../views/sys/RoleManage.vue'
 
 import StockInManage from '../views/warehouse/StockInManage.vue'
 import StockLedger from '../views/warehouse/StockLedger.vue'
+import LocationShelving from '../views/warehouse/LocationShelving.vue'
 
 Vue.use(VueRouter)
 
@@ -41,7 +42,8 @@ const router = new VueRouter({
         { path: 'supplier-profiles', component: SupplierProfile, meta: { requiresAuth: true } },
         { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } },
         { path: 'stock-in', component: StockInManage, meta: { requiresAuth: true } },
-        { path: 'stock-ledger', component: StockLedger, meta: { requiresAuth: true } }
+        { path: 'stock-ledger', component: StockLedger, meta: { requiresAuth: true } },
+        { path: 'shelving', component: LocationShelving, meta: { requiresAuth: true } }
       ]
     },
     {

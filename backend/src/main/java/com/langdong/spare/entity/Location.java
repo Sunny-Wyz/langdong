@@ -9,7 +9,7 @@ public class Location {
     private String code;
     private String name;
     private String zone;
-    private String capacity;
+    private Integer capacity;
     private String remark;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
