@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.RequisitionItemMapper">
+
+    <insert id="insertBatch">
+        INSERT INTO biz_requisition_item (req_id, spare_part_id, apply_qty)
+        VALUES 
+        <foreach collection="items" item="item" separator=",">
+            (#{item.reqId}, #{item.sparePartId}, #{item.applyQty})
+        </foreach>
+    </insert>
+
+    <select id="findByReqId" resultType="com.langdong.spare.entity.RequisitionItem">
+        SELECT 
+            i.id, i.req_id as reqId, i.spare_part_id as sparePartId, 
+            i.apply_qty as applyQty, i.out_qty as outQty, 
+            i.install_loc as installLoc, i.install_time as installTime, 
+            i.installer_id as installerId, i.created_at as createdAt, i.updated_at as updatedAt,
+            sp.code as sparePartCode,
+            sp.name as sparePartName,
+            u.name as installerName
+        FROM biz_requisition_item i
+        LEFT JOIN spare_part sp ON i.spare_part_id = sp.id
+        LEFT JOIN user u ON i.installer_id = u.id
+        WHERE i.req_id = #{reqId}
+    </select>
+
+    <update id="updateOutbound">
+        UPDATE biz_requisition_item SET out_qty = #{outQty} WHERE id = #{id}
+    </update>
+
+    <update id="updateInstallInfo">
+        UPDATE biz_requisition_item 
+        SET installer_id = #{installerId}, install_loc = #{installLoc}, install_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

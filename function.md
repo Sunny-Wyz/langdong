@@ -35,5 +35,40 @@
 ---
 
 ### F6: 仓储管理 - 库存台账货位明细看板
-- **功能描述**：在现有的库存备件总台账基础上，扩充了“双栏视界”。引入“货位明细看板”页签，允许仓管员直观穿透至货架颗粒度，查看大区、具体货架、备件名录及相应的实时存放数量。
-- **落实情况**：底层扩写 `SparePartLocationStockMapper` 及对应 XML，通过 `LEFT JOIN` 联合查询拼装冗余展现字段；前台将原有的 `StockLedger.vue` 升级改造为基于 `el-tabs` 的双面板结构，并提供了独立的“大区过滤”和“综合关键词检索”功能。
+- **功能描述**：在现有的库存备件总台账基础上，扩充了”双栏视界”。引入”货位明细看板”页签，允许仓管员直观穿透至货架颗粒度，查看大区、具体货架、备件名录及相应的实时存放数量。
+- **落实情况**：底层扩写 `SparePartLocationStockMapper` 及对应 XML，通过 `LEFT JOIN` 联合查询拼装冗余展现字段；前台将原有的 `StockLedger.vue` 升级改造为基于 `el-tabs` 的双面板结构，并提供了独立的”大区过滤”和”综合关键词检索”功能。
+
+---
+
+### F7: 领用管理模块 - 5个子模块全流程实现
+- **功能描述**：依据参考文档 3.4 章节，实现”草稿→待审批→审批通过→已出库→已安装”全流程领用管控。具体包含：①发起领用申请（含库存充足性校验、紧急工单快速通道标记）；②审批领用申请（含审批路由提示：A类/贵重→设备主管，普通→仓库管理员）；③扫码出库确认（按FIFO原则扣减库存台账）；④安装登记（录入安装位置、时间、安装人）；⑤查询领用记录（按备件/申请人/工单号/时间范围/状态多维查询并支持详情下钻）。
+- **落实情况**：
+  - **数据库**：新增 `biz_requisition`（领用申请主表）、`biz_requisition_item`（领用申请明细表），及菜单记录 id=18~22（挂载在领用管理模块目录 id=13 下），执行脚本 `sql/requisition_module.sql`。
+  - **后端 Entity**：`Requisition.java`、`RequisitionItem.java`；**DTO**：`RequisitionCreateDTO`、`RequisitionApproveDTO`、`RequisitionOutboundDTO`、`RequisitionInstallDTO`；**Mapper**：`RequisitionMapper.java` + `RequisitionItemMapper.java` + 对应 XML；**Service**：`RequisitionService.java`（事务性业务逻辑）；**Controller**：`RequisitionController.java`（REST 接口，权限注解对应 `req:apply:add` / `req:approve:list` / `req:outbound:confirm` / `req:install:edit` / `req:record:list`）。
+  - **前端**：新建 `frontend/src/views/requisition/` 目录，包含 `RequisitionApply.vue`、`RequisitionApproval.vue`、`RequisitionOutbound.vue`、`RequisitionInstall.vue`、`RequisitionQuery.vue`；更新 `router/index.js` 注册 5 条路由。
+
+---
+
+### F8: 维修工单管理模块（M5）完整实现
+- **功能描述**：维修工单管理模块（M5）完整实现 - 已落实
+
+按照《备件管理系统_系统建设参考文档》M5模块要求，以领用管理模块为参考，构建了从故障报修到完工归档的全流程维修工单管理功能。
+
+新增文件：
+- sql/work_order_module.sql：biz_work_order 建表语句 + 菜单授权（menu id=23~27，parent_id=14）
+- backend entity: WorkOrder.java（19字段 + 4个JOIN展示字段）
+- backend dto: WorkOrderReportDTO / WorkOrderAssignDTO / WorkOrderProcessDTO / WorkOrderCompleteDTO
+- backend mapper: WorkOrderMapper.java + WorkOrderMapper.xml（含 sumPartCostByWorkOrderNo 跨表查询）
+- backend service: WorkOrderService.java（工单编号自动生成 WO+时间戳，MTTR自动计算，备件费自动汇总）
+- backend controller: WorkOrderController.java（POST /report, GET /, GET /{id}, PUT /assign/process/complete）
+- frontend: views/workorder/WorkOrderReport.vue（故障报修表单）
+- frontend: views/workorder/WorkOrderAssign.vue（在线派工，el-drawer）
+- frontend: views/workorder/WorkOrderProcess.vue（维修过程记录，el-drawer）
+- frontend: views/workorder/WorkOrderComplete.vue（完工确认，逾期标记，el-drawer）
+- frontend: views/workorder/WorkOrderQuery.vue（多维查询 + 费用汇总详情弹窗）
+
+修改文件：
+- frontend/src/router/index.js：追加 5 条 work-order-* 路由
+
+状态流转：报修 → 已派工 → 维修中 → 完工（每步均有数据库层 AND order_status 幂等保护）
+- **落实情况**：已落实

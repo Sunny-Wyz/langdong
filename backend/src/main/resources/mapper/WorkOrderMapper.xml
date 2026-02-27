@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.WorkOrderMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_work_order (
+            work_order_no, device_id, reporter_id, fault_desc, fault_level,
+            order_status, report_time
+        ) VALUES (
+            #{workOrderNo}, #{deviceId}, #{reporterId}, #{faultDesc}, #{faultLevel},
+            #{orderStatus}, #{reportTime}
+        )
+    </insert>
+
+    <select id="findById" resultType="com.langdong.spare.entity.WorkOrder">
+        SELECT
+            w.id, w.work_order_no as workOrderNo, w.device_id as deviceId,
+            w.reporter_id as reporterId, w.fault_desc as faultDesc, w.fault_level as faultLevel,
+            w.order_status as orderStatus, w.assignee_id as assigneeId,
+            w.plan_finish as planFinish, w.actual_finish as actualFinish,
+            w.fault_cause as faultCause, w.repair_method as repairMethod,
+            w.mttr_minutes as mttrMinutes, w.part_cost as partCost,
+            w.labor_cost as laborCost, w.outsource_cost as outsourceCost,
+            w.report_time as reportTime, w.created_at as createdAt, w.updated_at as updatedAt,
+            u1.name as reporterName,
+            u2.name as assigneeName,
+            e.name as deviceName,
+            e.code as deviceCode
+        FROM biz_work_order w
+        LEFT JOIN user u1 ON w.reporter_id = u1.id
+        LEFT JOIN user u2 ON w.assignee_id = u2.id
+        LEFT JOIN equipment e ON w.device_id = e.id
+        WHERE w.id = #{id}
+    </select>
+
+    <select id="findList" resultType="com.langdong.spare.entity.WorkOrder">
+        SELECT
+            w.id, w.work_order_no as workOrderNo, w.device_id as deviceId,
+            w.reporter_id as reporterId, w.fault_desc as faultDesc, w.fault_level as faultLevel,
+            w.order_status as orderStatus, w.assignee_id as assigneeId,
+            w.plan_finish as planFinish, w.actual_finish as actualFinish,
+            w.fault_cause as faultCause, w.repair_method as repairMethod,
+            w.mttr_minutes as mttrMinutes, w.part_cost as partCost,
+            w.labor_cost as laborCost, w.outsource_cost as outsourceCost,
+            w.report_time as reportTime, w.created_at as createdAt, w.updated_at as updatedAt,
+            u1.name as reporterName,
+            u2.name as assigneeName,
+            e.name as deviceName,
+            e.code as deviceCode
+        FROM biz_work_order w
+        LEFT JOIN user u1 ON w.reporter_id = u1.id
+        LEFT JOIN user u2 ON w.assignee_id = u2.id
+        LEFT JOIN equipment e ON w.device_id = e.id
+        <where>
+            <if test="orderStatus != null and orderStatus != ''">
+                AND w.order_status = #{orderStatus}
+            </if>
+            <if test="deviceId != null">
+                AND w.device_id = #{deviceId}
+            </if>
+            <if test="faultLevel != null and faultLevel != ''">
+                AND w.fault_level = #{faultLevel}
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND w.report_time >= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND w.report_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY
+            CASE w.fault_level WHEN '紧急' THEN 0 WHEN '一般' THEN 1 ELSE 2 END,
+            w.report_time DESC
+    </select>
+
+    <update id="updateAssign">
+        UPDATE biz_work_order
+        SET assignee_id = #{assigneeId}, plan_finish = #{planFinish}, order_status = '已派工'
+        WHERE id = #{id} AND order_status = '报修'
+    </update>
+
+    <update id="updateProcess">
+        UPDATE biz_work_order
+        SET fault_cause = #{faultCause}, repair_method = #{repairMethod}, order_status = '维修中'
+        WHERE id = #{id} AND order_status = '已派工'
+    </update>
+
+    <update id="updateComplete">
+        UPDATE biz_work_order
+        SET actual_finish = #{actualFinish}, labor_cost = #{laborCost},
+            outsource_cost = #{outsourceCost}, mttr_minutes = #{mttrMinutes},
+            part_cost = #{partCost}, order_status = '完工'
+        WHERE id = #{id}
+    </update>
+
+    <!-- 汇总该工单关联领用单中已出库备件的费用 -->
+    <select id="sumPartCostByWorkOrderNo" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(sp.price * ri.out_qty), 0)
+        FROM biz_requisition r
+        JOIN biz_requisition_item ri ON ri.req_id = r.id
+        JOIN spare_part sp ON sp.id = ri.spare_part_id
+        WHERE r.work_order_no = #{workOrderNo}
+          AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+          AND ri.out_qty IS NOT NULL
+          AND ri.out_qty > 0
+          AND sp.price IS NOT NULL
+    </select>
+
+</mapper>

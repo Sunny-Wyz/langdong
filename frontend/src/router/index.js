@@ -54,7 +54,19 @@ const router = new VueRouter({
         // --- Warehouse Routes ---
         { path: 'warehouse/stock-in', component: StockInManage, meta: { requiresAuth: true } },
         { path: 'warehouse/shelving', component: LocationShelving, meta: { requiresAuth: true } },
-        { path: 'warehouse/ledger', component: StockLedger, meta: { requiresAuth: true } }
+        { path: 'warehouse/ledger', component: StockLedger, meta: { requiresAuth: true } },
+        // --- Requisition Routes (from master) ---
+        { path: 'requisition-apply', component: () => import('../views/requisition/RequisitionApply.vue'), meta: { requiresAuth: true } },
+        { path: 'requisition-approval', component: () => import('../views/requisition/RequisitionApproval.vue'), meta: { requiresAuth: true } },
+        { path: 'requisition-outbound', component: () => import('../views/requisition/RequisitionOutbound.vue'), meta: { requiresAuth: true } },
+        { path: 'requisition-install', component: () => import('../views/requisition/RequisitionInstall.vue'), meta: { requiresAuth: true } },
+        { path: 'requisition-query', component: () => import('../views/requisition/RequisitionQuery.vue'), meta: { requiresAuth: true } },
+        // --- Work Order Routes (from master) ---
+        { path: 'work-order-report', component: () => import('../views/workorder/WorkOrderReport.vue'), meta: { requiresAuth: true } },
+        { path: 'work-order-assign', component: () => import('../views/workorder/WorkOrderAssign.vue'), meta: { requiresAuth: true } },
+        { path: 'work-order-process', component: () => import('../views/workorder/WorkOrderProcess.vue'), meta: { requiresAuth: true } },
+        { path: 'work-order-complete', component: () => import('../views/workorder/WorkOrderComplete.vue'), meta: { requiresAuth: true } },
+        { path: 'work-order-query', component: () => import('../views/workorder/WorkOrderQuery.vue'), meta: { requiresAuth: true } }
       ]
     },
     {

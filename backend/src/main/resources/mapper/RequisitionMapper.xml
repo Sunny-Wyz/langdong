@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.RequisitionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_requisition (
+            req_no, applicant_id, work_order_no, device_id, req_status, is_urgent, remark
+        ) VALUES (
+            #{reqNo}, #{applicantId}, #{workOrderNo}, #{deviceId}, #{reqStatus}, #{isUrgent}, #{remark}
+        )
+    </insert>
+
+    <select id="findById" resultType="com.langdong.spare.entity.Requisition">
+        SELECT 
+            id, req_no as reqNo, applicant_id as applicantId, work_order_no as workOrderNo,
+            device_id as deviceId, req_status as reqStatus, is_urgent as isUrgent,
+            approve_id as approveId, approve_time as approveTime, approve_remark as approveRemark,
+            apply_time as applyTime, remark, created_at as createdAt, updated_at as updatedAt
+        FROM biz_requisition WHERE id = #{id}
+    </select>
+
+    <select id="findWithDetailsById" resultType="com.langdong.spare.entity.Requisition">
+        SELECT 
+            r.id, r.req_no as reqNo, r.applicant_id as applicantId, r.work_order_no as workOrderNo,
+            r.device_id as deviceId, r.req_status as reqStatus, r.is_urgent as isUrgent,
+            r.approve_id as approveId, r.approve_time as approveTime, r.approve_remark as approveRemark,
+            r.apply_time as applyTime, r.remark, r.created_at as createdAt, r.updated_at as updatedAt,
+            u.name as applicantName,
+            a.name as approverName,
+            e.name as deviceName,
+            e.code as deviceCode
+        FROM biz_requisition r
+        LEFT JOIN user u ON r.applicant_id = u.id
+        LEFT JOIN user a ON r.approve_id = a.id
+        LEFT JOIN equipment e ON r.device_id = e.id
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="findList" resultType="com.langdong.spare.entity.Requisition">
+        SELECT 
+            r.id, r.req_no as reqNo, r.applicant_id as applicantId, r.work_order_no as workOrderNo,
+            r.device_id as deviceId, r.req_status as reqStatus, r.is_urgent as isUrgent,
+            r.approve_id as approveId, r.approve_time as approveTime, r.approve_remark as approveRemark,
+            r.apply_time as applyTime, r.remark, r.created_at as createdAt, r.updated_at as updatedAt,
+            u.name as applicantName,
+            a.name as approverName,
+            e.name as deviceName,
+            e.code as deviceCode
+        FROM biz_requisition r
+        LEFT JOIN user u ON r.applicant_id = u.id
+        LEFT JOIN user a ON r.approve_id = a.id
+        LEFT JOIN equipment e ON r.device_id = e.id
+        <where>
+            <if test="status != null and status != ''">
+                AND r.req_status = #{status}
+            </if>
+            <if test="applicantId != null">
+                AND r.applicant_id = #{applicantId}
+            </if>
+        </where>
+        ORDER BY r.is_urgent DESC, r.created_at DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE biz_requisition SET req_status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="updateApprovalInfo">
+        UPDATE biz_requisition 
+        SET req_status = #{status}, approve_id = #{approveId}, approve_remark = #{approveRemark}, approve_time = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper>
