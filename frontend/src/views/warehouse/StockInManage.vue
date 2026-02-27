@@ -94,6 +94,7 @@ export default {
         },
         async submitStockIn() {
             const submitItems = this.items.map(i => ({
+                poItemId: i.id,          // 采购单明细行ID，用于后端精确匹配
                 sparePartId: i.sparePartId,
                 actualQuantity: i.actualQuantity,
                 remark: i.remark

@@ -8,7 +8,7 @@
         <template v-for="menu in menus">
 
           <!-- 有子菜单的呈现为 el-submenu -->
-          <el-submenu v-if="menu.children && menu.children.length > 0" :index="menu.id.toString()"
+          <el-submenu v-if="menu.children && menu.children.some(c => c.type === 2)" :index="menu.id.toString()"
             :key="'sub-' + menu.id">
             <template slot="title">
               <i :class="menu.icon || 'el-icon-folder'"></i>
@@ -16,7 +16,20 @@
             </template>
             <!-- 第二级 -->
             <template v-for="child in menu.children">
-              <el-menu-item v-if="child.type === 2" :index="child.path" :key="'child-' + child.id">
+              <!-- 如果子项还有可导航的三级菜单，渲染为二级submenu -->
+              <el-submenu v-if="child.type === 2 && child.children && child.children.some(c => c.type === 2)"
+                :index="child.id.toString()" :key="'child-sub-' + child.id">
+                <template slot="title">
+                  <i :class="child.icon || 'el-icon-document'"></i>
+                  <span>{{ child.name }}</span>
+                </template>
+                <el-menu-item v-for="grandchild in child.children" v-if="grandchild.type === 2" :index="grandchild.path"
+                  :key="'gc-' + grandchild.id">
+                  <span>{{ grandchild.name }}</span>
+                </el-menu-item>
+              </el-submenu>
+              <!-- 否则直接渲染为菜单项 -->
+              <el-menu-item v-else-if="child.type === 2" :index="child.path" :key="'child-' + child.id">
                 <i :class="child.icon || 'el-icon-document'"></i>
                 <span>{{ child.name }}</span>
               </el-menu-item>
