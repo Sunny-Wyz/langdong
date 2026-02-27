@@ -36,13 +36,31 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('sys:user:list')")
-    public ResponseEntity<?> create(@RequestBody User user) {
-        if (userMapper.findByUsername(user.getUsername()) != null) {
+    @PreAuthorize("hasAuthority('sys:user:add')")
+    @Transactional
+    public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {
+        String username = (String) body.get("username");
+        String name = (String) body.get("name");
+        Integer status = body.containsKey("status") ? (Integer) body.get("status") : 1;
+        List<?> roleIds = (List<?>) body.get("roleIds");
+
+        if (userMapper.findByUsername(username) != null) {
             return ResponseEntity.badRequest().body("用户名已存在");
         }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setName(name);
+        user.setStatus(status);
         user.setPassword(passwordEncoder.encode("123456")); // 默认密码
         userMapper.insert(user);
+
+        if (roleIds != null && !roleIds.isEmpty()) {
+            for (Object roleIdObj : roleIds) {
+                userRoleMapper.insert(user.getId(), ((Number) roleIdObj).longValue());
+            }
+        }
+
         return ResponseEntity.ok(user);
     }
 
@@ -76,12 +94,12 @@ public class UserController {
     @PostMapping("/{id}/roles")
     @PreAuthorize("hasAuthority('sys:user:list')")
     @Transactional
-    public ResponseEntity<?> assignRoles(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
-        List<Long> roleIds = body.get("roleIds");
+    public ResponseEntity<?> assignRoles(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {
+        List<?> roleIds = body.get("roleIds");
         userRoleMapper.deleteByUserId(id);
         if (roleIds != null && !roleIds.isEmpty()) {
-            for (Long roleId : roleIds) {
-                userRoleMapper.insert(id, roleId);
+            for (Object roleIdObj : roleIds) {
+                userRoleMapper.insert(id, ((Number) roleIdObj).longValue());
             }
         }
         return ResponseEntity.ok().build();

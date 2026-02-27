@@ -39,18 +39,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil,
+            UserMapper userMapper, MenuMapper menuMapper) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtFilter(jwtUtil,
-                        http.getSharedObject(org.springframework.context.ApplicationContext.class)
-                                .getBean(UserMapper.class),
-                        http.getSharedObject(org.springframework.context.ApplicationContext.class)
-                                .getBean(MenuMapper.class)),
+                .addFilterBefore(jwtFilter(jwtUtil, userMapper, menuMapper),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

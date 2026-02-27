@@ -39,11 +39,16 @@
                 <el-form-item label="姓名" prop="name">
                     <el-input v-model="form.name"></el-input>
                 </el-form-item>
-                <el-form-item label="状态" prop="status">
-                    <el-switch v-model="form.status" :active-value="1" :inactive-value="0"></el-switch>
-                </el-form-item>
                 <el-form-item label="密码" prop="password">
                     <el-input v-model="form.password" placeholder="留空则不修改，新增默认123456"></el-input>
+                </el-form-item>
+                <el-form-item label="角色分配" prop="roleIds" v-if="dialogType === 'add'">
+                    <el-select v-model="form.roleIds" multiple placeholder="请选择角色 (可多选)" style="width: 100%">
+                        <el-option v-for="role in allRoles" :key="role.id" :label="role.name" :value="role.id"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="状态" prop="status">
+                    <el-switch v-model="form.status" :active-value="1" :inactive-value="0"></el-switch>
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
@@ -53,7 +58,7 @@
         </el-dialog>
 
         <!-- Assign Roles Dialog -->
-        <el-dialog title="分配角色" :visible.sync="roleDialogVisible" width="400px">
+        <el-dialog title="单独分配角色" :visible.sync="roleDialogVisible" width="400px">
             <el-checkbox-group v-model="selectedRoleIds">
                 <el-checkbox v-for="role in allRoles" :label="role.id" :key="role.id">{{ role.name }}</el-checkbox>
             </el-checkbox-group>
@@ -73,7 +78,7 @@ export default {
             dialogVisible: false,
             roleDialogVisible: false,
             dialogType: 'add',
-            form: { id: null, username: '', name: '', password: '', status: 1 },
+            form: { id: null, username: '', name: '', password: '', status: 1, roleIds: [] },
             allRoles: [],
             selectedRoleIds: [],
             currentUserId: null
@@ -81,6 +86,7 @@ export default {
     },
     created() {
         this.fetchData()
+        this.fetchAllRoles()
     },
     methods: {
         hasPerm(p) {
@@ -90,9 +96,13 @@ export default {
             const res = await this.$http.get('/users')
             this.tableData = res.data
         },
+        async fetchAllRoles() {
+            const res = await this.$http.get('/roles')
+            this.allRoles = res.data
+        },
         handleAdd() {
             this.dialogType = 'add'
-            this.form = { id: null, username: '', name: '', password: '', status: 1 }
+            this.form = { id: null, username: '', name: '', password: '', status: 1, roleIds: [] }
             this.dialogVisible = true
         },
         handleEdit(row) {

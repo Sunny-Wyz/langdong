@@ -92,3 +92,5 @@ cd backend && mvn test
 
 ## AI Assistant Guidelines (Memory)
 - **Language Preference**: 以后的所有工作计划 (工作计划, implementation plans, tasks) 都必须用中文写。
+- **记录问答与解决方案**: 遇到报错、Bug 排查及问题解决时，自动使用 `Q - 问题 - 解决方案` 的格式将记录写入到 `/Users/weiyaozhou/Documents/langdong/ QA.md` 中。
+- **记录新增功能点**: 开发、修改或增强新的业务功能时，自动使用 `F - 功能描述 - 落实情况` 的格式将记录补充写入到 `/Users/weiyaozhou/Documents/langdong/function.md` 中。

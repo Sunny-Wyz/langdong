@@ -2,6 +2,7 @@ package com.langdong.spare.entity;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class Supplier {
@@ -17,4 +18,7 @@ public class Supplier {
     private String remark;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // 非数据库映射字段，用于前端展示关联的品类
+    private List<SupplyCategory> categories;
 }

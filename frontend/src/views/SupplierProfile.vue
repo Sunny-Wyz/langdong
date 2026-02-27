@@ -14,6 +14,14 @@
                 <el-table-column prop="contactPerson" label="联系人" width="100" />
                 <el-table-column prop="phone" label="联系电话" width="120" />
                 <el-table-column prop="unifiedSocialCreditCode" label="统一社会信用代码" width="180" show-overflow-tooltip />
+                <el-table-column label="供货品类" min-width="200">
+                    <template slot-scope="{row}">
+                        <el-tag v-for="cat in row.categories" :key="cat.id" size="small"
+                            style="margin-right: 5px; margin-bottom: 5px;">
+                            {{ cat.name }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
                 <el-table-column prop="status" label="状态" width="80" align="center">
                     <template slot-scope="{row}">
                         <el-tag :type="row.status === '正常' ? 'success' : 'danger'">{{ row.status }}</el-tag>
@@ -78,7 +86,8 @@
             </el-form>
             <div slot="footer" class="dialog-footer">
                 <el-button @click="dialogFormVisible = false">取消</el-button>
-                <el-button type="primary" @click="dialogStatus === 'create' ? createData() : updateData()">确定</el-button>
+                <el-button type="primary"
+                    @click="dialogStatus === 'create' ? createData() : updateData()">确定</el-button>
             </div>
         </el-dialog>
 
@@ -182,6 +191,8 @@ export default {
                     this.getList()
                     this.$message.success('删除成功')
                 })
+            }).catch(() => {
+                this.$message.info('已取消删除')
             })
         },
         handleCategories(row) {
@@ -195,6 +206,7 @@ export default {
             request.post(`/suppliers/${this.currentSupplier.id}/categories`, { categoryIds: this.selectedCategories }).then(() => {
                 this.$message.success('关联保存成功')
                 this.categoryDialogVisible = false
+                this.getList() // Refresh the table so tags appear reactively
             })
         }
     }

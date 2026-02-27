@@ -10,6 +10,8 @@ import SupplyCategory from '../views/SupplyCategory.vue'
 import UserManage from '../views/sys/UserManage.vue'
 import RoleManage from '../views/sys/RoleManage.vue'
 
+import StockInManage from '../views/warehouse/StockInManage.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -36,7 +38,8 @@ const router = new VueRouter({
         { path: 'location-profiles', component: LocationProfile, meta: { requiresAuth: true } },
         { path: 'equipment-profiles', component: EquipmentProfile, meta: { requiresAuth: true } },
         { path: 'supplier-profiles', component: SupplierProfile, meta: { requiresAuth: true } },
-        { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } }
+        { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } },
+        { path: 'stock-in', component: StockInManage, meta: { requiresAuth: true } }
       ]
     },
     {

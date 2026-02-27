@@ -30,7 +30,18 @@ public class SupplierController {
 
     @GetMapping
     public List<Supplier> getAll() {
-        return supplierMapper.findAll();
+        List<Supplier> suppliers = supplierMapper.findAll();
+        List<SupplyCategory> allCategories = categoryMapper.findAll();
+        for (Supplier supplier : suppliers) {
+            List<SupplierCategoryRelation> relations = relationMapper.findBySupplierId(supplier.getId());
+            List<Long> categoryIds = relations.stream().map(SupplierCategoryRelation::getSupplyCategoryId)
+                    .collect(Collectors.toList());
+            List<SupplyCategory> linked = allCategories.stream()
+                    .filter(c -> categoryIds.contains(c.getId()))
+                    .collect(Collectors.toList());
+            supplier.setCategories(linked);
+        }
+        return suppliers;
     }
 
     @GetMapping("/{id}")
@@ -91,22 +102,22 @@ public class SupplierController {
     }
 
     @PostMapping("/{id}/categories")
-    public ResponseEntity<?> linkCategories(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
+    public ResponseEntity<?> linkCategories(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {
         Supplier existing = supplierMapper.findById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
-        List<Long> categoryIds = body.get("categoryIds");
+        List<?> categoryIds = body.get("categoryIds");
         if (categoryIds == null) {
             return ResponseEntity.badRequest().build();
         }
 
         // 全量替换：先删后加
         relationMapper.deleteBySupplierId(id);
-        for (Long catId : categoryIds) {
+        for (Object catIdObj : categoryIds) {
             SupplierCategoryRelation rel = new SupplierCategoryRelation();
             rel.setSupplierId(id);
-            rel.setSupplyCategoryId(catId);
+            rel.setSupplyCategoryId(((Number) catIdObj).longValue());
             relationMapper.insert(rel);
         }
         return ResponseEntity.ok().build();
