@@ -9,6 +9,14 @@
         WHERE spare_part_id = #{sparePartId}
     </select>
 
+    <select id="findAll" resultType="com.langdong.spare.entity.SparePartStock">
+        SELECT s.id, s.spare_part_id as sparePartId, s.quantity, s.updated_at as updatedAt,
+               sp.code as sparePartCode, sp.name as sparePartName
+        FROM spare_part_stock s
+        LEFT JOIN spare_part sp ON s.spare_part_id = sp.id
+        ORDER BY s.updated_at DESC
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO spare_part_stock (spare_part_id, quantity)
         VALUES (#{sparePartId}, #{quantity})

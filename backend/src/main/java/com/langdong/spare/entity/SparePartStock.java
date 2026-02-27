@@ -9,4 +9,7 @@ public class SparePartStock {
     private Long sparePartId;
     private Integer quantity;
     private LocalDateTime updatedAt;
+    // 联查字段
+    private String sparePartCode;
+    private String sparePartName;
 }
