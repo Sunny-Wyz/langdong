@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.StockInItemMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stock_in_item (stock_in_receipt_id, purchase_order_item_id, spare_part_id, 
+                                   expected_quantity, actual_quantity, shelved_quantity, location_id, remark)
+        VALUES (#{stockInReceiptId}, #{purchaseOrderItemId}, #{sparePartId}, 
+                #{expectedQuantity}, #{actualQuantity}, #{shelvedQuantity}, #{locationId}, #{remark})
+    </insert>
+
+    <select id="findPendingShelving" resultType="com.langdong.spare.entity.StockInItem">
+        SELECT 
+            i.id,
+            i.stock_in_receipt_id as stockInReceiptId,
+            r.receipt_code as receiptCode,
+            i.spare_part_id as sparePartId,
+            sp.code as sparePartCode,
+            sp.name as sparePartName,
+            i.expected_quantity as expectedQuantity,
+            i.actual_quantity as actualQuantity,
+            i.shelved_quantity as shelvedQuantity
+        FROM stock_in_item i
+        LEFT JOIN stock_in_receipt r ON i.stock_in_receipt_id = r.id
+        LEFT JOIN spare_part sp ON i.spare_part_id = sp.id
+        WHERE i.actual_quantity > 0
+        ORDER BY r.created_at DESC
+    </select>
+
+    <update id="updateShelvedQuantity">
+        UPDATE stock_in_item
+        SET shelved_quantity = shelved_quantity + #{addedQuantity}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.PurchaseOrderItemMapper">
+
+    <select id="findByPurchaseOrderId" resultType="com.langdong.spare.entity.PurchaseOrderItem">
+        SELECT poi.id, poi.purchase_order_id as purchaseOrderId, poi.spare_part_id as sparePartId, 
+               poi.quantity, poi.unit_price as unitPrice, poi.received_quantity as receivedQuantity, poi.remark,
+               sp.code as sparePartCode, sp.name as sparePartName
+        FROM purchase_order_item poi
+        LEFT JOIN spare_part sp ON poi.spare_part_id = sp.id
+        WHERE poi.purchase_order_id = #{purchaseOrderId}
+    </select>
+
+    <update id="updateReceivedQuantity">
+        UPDATE purchase_order_item 
+        SET received_quantity = received_quantity + #{addedQuantity} 
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_order_item (purchase_order_id, spare_part_id, quantity, unit_price)
+        VALUES (#{purchaseOrderId}, #{sparePartId}, #{quantity}, #{unitPrice})
+    </insert>
+
+</mapper>
