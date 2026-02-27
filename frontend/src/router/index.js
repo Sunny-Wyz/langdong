@@ -14,6 +14,12 @@ import StockInManage from '../views/warehouse/StockInManage.vue'
 import StockLedger from '../views/warehouse/StockLedger.vue'
 import LocationShelving from '../views/warehouse/LocationShelving.vue'
 
+import RequisitionApply from '../views/requisition/RequisitionApply.vue'
+import RequisitionApproval from '../views/requisition/RequisitionApproval.vue'
+import RequisitionOutbound from '../views/requisition/RequisitionOutbound.vue'
+import RequisitionInstall from '../views/requisition/RequisitionInstall.vue'
+import RequisitionQuery from '../views/requisition/RequisitionQuery.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -43,7 +49,13 @@ const router = new VueRouter({
         { path: 'supply-categories', component: SupplyCategory, meta: { requiresAuth: true } },
         { path: 'stock-in', component: StockInManage, meta: { requiresAuth: true } },
         { path: 'stock-ledger', component: StockLedger, meta: { requiresAuth: true } },
-        { path: 'shelving', component: LocationShelving, meta: { requiresAuth: true } }
+        { path: 'shelving', component: LocationShelving, meta: { requiresAuth: true } },
+        // 领用管理模块 - 5个子模块
+        { path: 'requisition-apply', component: RequisitionApply, meta: { requiresAuth: true } },
+        { path: 'requisition-approval', component: RequisitionApproval, meta: { requiresAuth: true } },
+        { path: 'requisition-outbound', component: RequisitionOutbound, meta: { requiresAuth: true } },
+        { path: 'requisition-install', component: RequisitionInstall, meta: { requiresAuth: true } },
+        { path: 'requisition-query', component: RequisitionQuery, meta: { requiresAuth: true } }
       ]
     },
     {
