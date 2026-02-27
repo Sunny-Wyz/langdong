@@ -20,6 +20,12 @@ import RequisitionOutbound from '../views/requisition/RequisitionOutbound.vue'
 import RequisitionInstall from '../views/requisition/RequisitionInstall.vue'
 import RequisitionQuery from '../views/requisition/RequisitionQuery.vue'
 
+import WorkOrderReport from '../views/workorder/WorkOrderReport.vue'
+import WorkOrderAssign from '../views/workorder/WorkOrderAssign.vue'
+import WorkOrderProcess from '../views/workorder/WorkOrderProcess.vue'
+import WorkOrderComplete from '../views/workorder/WorkOrderComplete.vue'
+import WorkOrderQuery from '../views/workorder/WorkOrderQuery.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -55,7 +61,13 @@ const router = new VueRouter({
         { path: 'requisition-approval', component: RequisitionApproval, meta: { requiresAuth: true } },
         { path: 'requisition-outbound', component: RequisitionOutbound, meta: { requiresAuth: true } },
         { path: 'requisition-install', component: RequisitionInstall, meta: { requiresAuth: true } },
-        { path: 'requisition-query', component: RequisitionQuery, meta: { requiresAuth: true } }
+        { path: 'requisition-query', component: RequisitionQuery, meta: { requiresAuth: true } },
+        // 维修工单管理模块 - 5个子模块
+        { path: 'work-order-report',   component: WorkOrderReport,   meta: { requiresAuth: true } },
+        { path: 'work-order-assign',   component: WorkOrderAssign,   meta: { requiresAuth: true } },
+        { path: 'work-order-process',  component: WorkOrderProcess,  meta: { requiresAuth: true } },
+        { path: 'work-order-complete', component: WorkOrderComplete, meta: { requiresAuth: true } },
+        { path: 'work-order-query',    component: WorkOrderQuery,    meta: { requiresAuth: true } }
       ]
     },
     {
