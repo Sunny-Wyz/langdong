@@ -196,3 +196,103 @@ CREATE TABLE IF NOT EXISTS classification_adjustment_record ( id BIGINT NOT NULL
 INSERT IGNORE INTO classification_strategy (combination_code, abc_category, xyz_category, safety_stock_multiplier, replenishment_cycle, approval_level) VALUES ('AX', 'A', 'X', 1.50, 7, '经理审批'), ('AY', 'A', 'Y', 1.80, 14, '经理审批'), ('AZ', 'A', 'Z', 2.50, 21, '总监审批'), ('BX', 'B', 'X', 1.20, 14, '主管审批'), ('BY', 'B', 'Y', 1.50, 21, '主管审批'), ('BZ', 'B', 'Z', 1.80, 30, '经理审批'), ('CX', 'C', 'X', 1.00, 30, '系统自动'), ('CY', 'C', 'Y', 1.20, 60, '主管审批'), ('CZ', 'C', 'Z', 1.50, 90, '主管审批');
 INSERT INTO menu (id, parent_id, name, path, component, permission, type, icon, sort) VALUES (18, 11, '策略配置', '/home/smart/strategies', 'smart/StrategyConfig', 'smart:strategy:list', 2, 'el-icon-setting', 1), (19, 11, '分类结果看板', '/home/smart/dashboard', 'smart/ClassificationDashboard', 'smart:dashboard:list', 2, 'el-icon-data-analysis', 2), (20, 11, '调整审批', '/home/smart/approvals', 'smart/AdjustmentApproval', 'smart:approval:list', 2, 'el-icon-s-check', 3); INSERT INTO role_menu (role_id, menu_id) VALUES (1, 18), (1, 19), (1, 20);
 
+USE `spare_db`;
+
+-- 閲囪喘鍗曚富琛?
+CREATE TABLE IF NOT EXISTS `purchase_order` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '涓婚敭ID',
+  `po_code` varchar(50) NOT NULL COMMENT '閲囪喘鍗曞彿',
+  `supplier_id` bigint(20) NOT NULL COMMENT '渚涘簲鍟咺D',
+  `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '鐘舵�?PENDING, RECEIVED, COMPLETED)',
+  `total_amount` decimal(10,2) DEFAULT NULL COMMENT '鎬婚噾棰?,
+  `expected_delivery_date` date DEFAULT NULL COMMENT '棰勮浜よ揣鏃ユ湡',
+  `remark` varchar(255) DEFAULT NULL COMMENT '澶囨敞',
+  `created_by` bigint(20) DEFAULT NULL COMMENT '鍒涘缓浜?,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_po_code` (`po_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='閲囪喘鍗曚富琛?;
+
+-- 閲囪喘鍗曟槑缁嗚〃
+CREATE TABLE IF NOT EXISTS `purchase_order_item` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '涓婚敭ID',
+  `purchase_order_id` bigint(20) NOT NULL COMMENT '閲囪喘鍗旾D',
+  `spare_part_id` bigint(20) NOT NULL COMMENT '澶囦欢ID',
+  `quantity` int(11) NOT NULL COMMENT '閲囪喘鏁伴噺',
+  `unit_price` decimal(10,2) DEFAULT NULL COMMENT '鍗曚环',
+  `received_quantity` int(11) NOT NULL DEFAULT '0' COMMENT '宸叉敹璐ф暟閲?,
+  `remark` varchar(255) DEFAULT NULL COMMENT '澶囨敞',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='閲囪喘鍗曟槑缁嗚〃';
+
+-- 鍏ュ簱鍗曚富琛?
+CREATE TABLE IF NOT EXISTS `stock_in_receipt` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '涓婚敭ID',
+  `receipt_code` varchar(50) NOT NULL COMMENT '鍏ュ簱鍗曞彿',
+  `purchase_order_id` bigint(20) DEFAULT NULL COMMENT '鍏宠仈閲囪喘鍗旾D',
+  `receipt_date` datetime NOT NULL COMMENT '鍏ュ簱鏃堕棿',
+  `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '鐘舵�?,
+  `handler_id` bigint(20) DEFAULT NULL COMMENT '澶勭悊浜?,
+  `remark` varchar(255) DEFAULT NULL COMMENT '澶囨敞',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_receipt_code` (`receipt_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='鍏ュ簱鍗曚富琛?;
+
+-- 鍏ュ簱鍗曟槑缁嗚〃
+CREATE TABLE IF NOT EXISTS `stock_in_item` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '涓婚敭ID',
+  `stock_in_receipt_id` bigint(20) NOT NULL COMMENT '鍏ュ簱鍗旾D',
+  `purchase_order_item_id` bigint(20) DEFAULT NULL COMMENT '鍏宠仈閲囪喘鏄庣粏ID',
+  `spare_part_id` bigint(20) NOT NULL COMMENT '澶囦欢ID',
+  `expected_quantity` int(11) NOT NULL COMMENT '棰勮鍏ュ簱鏁伴噺',
+  `actual_quantity` int(11) NOT NULL COMMENT '瀹為檯鍏ュ簱鏁伴噺',
+  `shelved_quantity` int(11) NOT NULL DEFAULT '0' COMMENT '宸蹭笂鏋舵暟閲?,
+  `location_id` bigint(20) DEFAULT NULL COMMENT '榛樿璐т綅',
+  `remark` varchar(255) DEFAULT NULL COMMENT '澶囨敞',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='鍏ュ簱鍗曟槑缁嗚〃';
+
+-- 澶囦欢鎬诲簱瀛樿〃
+CREATE TABLE IF NOT EXISTS `spare_part_stock` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '涓婚敭ID',
+  `spare_part_id` bigint(20) NOT NULL COMMENT '澶囦欢ID',
+  `quantity` int(11) NOT NULL DEFAULT '0' COMMENT '鎬绘暟閲?,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_spare_part_id` (`spare_part_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='澶囦欢鎬诲簱瀛樿〃';
+
+-- 澶囦欢璐т綅搴撳瓨琛紙鍙拌处锛?
+CREATE TABLE IF NOT EXISTS `spare_part_location_stock` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '涓婚敭ID',
+  `location_id` bigint(20) NOT NULL COMMENT '璐т綅ID',
+  `spare_part_id` bigint(20) NOT NULL COMMENT '澶囦欢ID',
+  `quantity` int(11) NOT NULL DEFAULT '0' COMMENT '鏁伴噺',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '鏇存柊鏃堕棿',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_location_spare` (`location_id`, `spare_part_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='璐т綅搴撳瓨鍙拌处琛?;
+USE spare_db;
+
+-- 浠撳偍绠＄悊鐩綍
+INSERT INTO `menu` (`id`, `parent_id`, `name`, `path`, `type`, `icon`, `sort`) VALUES
+(21, 0, '浠撳偍绠＄悊', NULL, 1, 'el-icon-box', 5);
+
+-- 鍏ュ簱绠＄悊
+INSERT INTO `menu` (`id`, `parent_id`, `name`, `path`, `type`, `icon`, `sort`) VALUES
+(22, 21, '鍏ュ簱绠＄悊', '/home/warehouse/stock-in', 2, 'el-icon-goods', 1);
+
+-- 璐т綅涓婃灦
+INSERT INTO `menu` (`id`, `parent_id`, `name`, `path`, `type`, `icon`, `sort`) VALUES
+(23, 21, '璐т綅涓婃灦', '/home/warehouse/shelving', 2, 'el-icon-receiving', 2);
+
+-- 搴撳瓨鍙拌处
+INSERT INTO `menu` (`id`, `parent_id`, `name`, `path`, `type`, `icon`, `sort`) VALUES
+(24, 21, '搴撳瓨鍙拌处', '/home/warehouse/ledger', 2, 'el-icon-data-line', 3);
+
+-- 缁?admin 瑙掕壊(id=1) 鍏宠仈浠ヤ笂涓変釜鏂拌彍鍗?
+INSERT INTO `role_menu` (`role_id`, `menu_id`) VALUES
+(1, 21), (1, 22), (1, 23), (1, 24);

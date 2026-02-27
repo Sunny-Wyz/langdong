@@ -48,11 +48,17 @@ public class ShelvingService {
                 if (loc == null) {
                     throw new RuntimeException("货位不存在，ID=" + dist.getLocationId());
                 }
-                if (loc.getCapacity() != null) {
-                    int currentLoad = sparePartLocationStockMapper.sumQuantityByLocationId(dist.getLocationId());
-                    if (currentLoad + dist.getPutQty() > loc.getCapacity()) {
-                        throw new RuntimeException(String.format("货位 %s 容量不足！（当前量:%d, 拟放入:%d, 最大容量:%d）",
-                                loc.getName(), currentLoad, dist.getPutQty(), loc.getCapacity()));
+                if (loc.getCapacity() != null && !loc.getCapacity().trim().isEmpty()) {
+                    try {
+                        int maxCapacity = Integer.parseInt(loc.getCapacity());
+                        Integer load = sparePartLocationStockMapper.sumQuantityByLocationId(dist.getLocationId());
+                        int currentLoad = load == null ? 0 : load;
+                        if (currentLoad + dist.getPutQty() > maxCapacity) {
+                            throw new RuntimeException(String.format("货位 %s 容量不足！（当前量:%d, 拟放入:%d, 最大容量:%d）",
+                                    loc.getName(), currentLoad, dist.getPutQty(), maxCapacity));
+                        }
+                    } catch (NumberFormatException e) {
+                        // ignore non-integer capacity or handle properly
                     }
                 }
 

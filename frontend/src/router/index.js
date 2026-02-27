@@ -15,6 +15,11 @@ import StrategyConfig from '../views/smart/StrategyConfig.vue'
 import ClassificationDashboard from '../views/smart/ClassificationDashboard.vue'
 import AdjustmentApproval from '../views/smart/AdjustmentApproval.vue'
 
+// --- Warehouse Views ---
+import StockInManage from '../views/warehouse/StockInManage.vue'
+import LocationShelving from '../views/warehouse/LocationShelving.vue'
+import StockLedger from '../views/warehouse/StockLedger.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -45,7 +50,11 @@ const router = new VueRouter({
         // --- Smart Classification Routes ---
         { path: 'smart/strategies', component: StrategyConfig, meta: { requiresAuth: true } },
         { path: 'smart/dashboard', component: ClassificationDashboard, meta: { requiresAuth: true } },
-        { path: 'smart/approvals', component: AdjustmentApproval, meta: { requiresAuth: true } }
+        { path: 'smart/approvals', component: AdjustmentApproval, meta: { requiresAuth: true } },
+        // --- Warehouse Routes ---
+        { path: 'warehouse/stock-in', component: StockInManage, meta: { requiresAuth: true } },
+        { path: 'warehouse/shelving', component: LocationShelving, meta: { requiresAuth: true } },
+        { path: 'warehouse/ledger', component: StockLedger, meta: { requiresAuth: true } }
       ]
     },
     {
