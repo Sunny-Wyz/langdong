@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.ReportMapper">
+
+    <!-- ================================================================
+         Dashboard KPI Summary
+         ================================================================ -->
+    <select id="getKpiSummary" resultType="com.langdong.spare.dto.KpiSummaryDTO">
+        SELECT
+            /* 1. 库存总金额 = SUM(quantity * price) */
+            (SELECT COALESCE(SUM(sp.quantity * sp.price), 0)
+             FROM spare_part sp WHERE sp.price IS NOT NULL) AS totalInventoryAmount,
+
+            /* 2. 库存周转率 = 本月领用件数 / 平均库存数量 * 12
+                 简化公式：当月消耗总量 / 当前库存总量 * 12 */
+            (SELECT ROUND(
+                COALESCE(SUM(ri.apply_qty), 0) /
+                NULLIF((SELECT SUM(ss.quantity) FROM spare_part_stock ss), 0)
+             * 12, 2)
+             FROM biz_requisition_item ri
+             JOIN biz_requisition r ON ri.req_id = r.id
+             WHERE DATE_FORMAT(r.created_at, '%Y-%m') = #{yearMonth}
+               AND r.req_status IN ('OUTBOUND','INSTALLED')
+            ) AS inventoryTurnoverRate,
+
+            /* 3. 本月采购额 */
+            (SELECT COALESCE(SUM(po.total_amount), 0)
+             FROM biz_purchase_order po
+             WHERE DATE_FORMAT(po.created_at, '%Y-%m') = #{yearMonth}
+            ) AS monthPurchaseAmount,
+
+            /* 4. 本月维修费用 = 备件费 + 人工费 + 外协费 */
+            (SELECT COALESCE(
+                SUM(COALESCE(wo.part_cost,0) + COALESCE(wo.labor_cost,0) + COALESCE(wo.outsource_cost,0)),
+             0)
+             FROM biz_work_order wo
+             WHERE DATE_FORMAT(wo.report_time, '%Y-%m') = #{yearMonth}
+            ) AS monthRepairCost,
+
+            /* 5. 设备可用率 = (已完成工单的设备 / 全部设备) * 100
+                 简化：非报修状态工单占比 */
+            (SELECT ROUND(
+                COALESCE(
+                    SUM(CASE WHEN wo.order_status = '已完成' THEN 1 ELSE 0 END) /
+                    NULLIF(COUNT(*), 0),
+                0) * 100, 1)
+             FROM biz_work_order wo
+             WHERE DATE_FORMAT(wo.report_time, '%Y-%m') = #{yearMonth}
+            ) AS equipmentAvailability
+    </select>
+
+    <!-- ================================================================
+         库存分析：ABC 分类分布
+         ================================================================ -->
+    <select id="getAbcDistribution" resultType="java.util.Map">
+        SELECT
+            COALESCE(bc.classify_level, '未分类') AS classLevel,
+            COUNT(sp.id)                           AS partCount,
+            COALESCE(SUM(sp.quantity * sp.price), 0) AS totalAmount
+        FROM spare_part sp
+        LEFT JOIN biz_part_classify bc ON sp.id = bc.spare_part_id
+        GROUP BY COALESCE(bc.classify_level, '未分类')
+        ORDER BY totalAmount DESC
+    </select>
+
+    <!-- ================================================================
+         滞库备件清单（超过 N 天无领用记录）
+         ================================================================ -->
+    <select id="getStagnantParts" resultType="java.util.Map">
+        SELECT
+            sp.id,
+            sp.code         AS partCode,
+            sp.name         AS partName,
+            sp.quantity     AS currentStock,
+            sp.price        AS unitPrice,
+            COALESCE(sp.quantity * sp.price, 0) AS stockAmount,
+            COALESCE(MAX(r.created_at), sp.created_at) AS lastMovementTime,
+            DATEDIFF(NOW(), COALESCE(MAX(r.created_at), sp.created_at)) AS stagnantDays
+        FROM spare_part sp
+        LEFT JOIN biz_requisition_item ri ON sp.id = ri.spare_part_id
+        LEFT JOIN biz_requisition r ON ri.req_id = r.id
+        GROUP BY sp.id, sp.code, sp.name, sp.quantity, sp.price, sp.created_at
+        HAVING stagnantDays >= #{thresholdDays} AND sp.quantity > 0
+        ORDER BY stagnantDays DESC
+        LIMIT 50
+    </select>
+
+    <!-- ================================================================
+         库存周转分析（按分类分组）
+         ================================================================ -->
+    <select id="getInventoryTurnoverByCategory" resultType="java.util.Map">
+        SELECT
+            sc.name         AS categoryName,
+            COUNT(sp.id)    AS partCount,
+            SUM(sp.quantity) AS totalQty,
+            COALESCE(SUM(sp.quantity * sp.price), 0) AS totalAmount
+        FROM spare_part sp
+        LEFT JOIN spare_part_category sc ON sp.category_id = sc.id
+        GROUP BY sc.id, sc.name
+        ORDER BY totalAmount DESC
+    </select>
+
+    <!-- ================================================================
+         消耗趋势（最近 N 个月，每月消耗件数）
+         ================================================================ -->
+    <select id="getConsumptionTrend" resultType="java.util.Map">
+        SELECT
+            DATE_FORMAT(r.created_at, '%Y-%m') AS month,
+            COUNT(ri.id)                        AS orderCount,
+            COALESCE(SUM(ri.apply_qty), 0)      AS totalQty
+        FROM biz_requisition r
+        JOIN biz_requisition_item ri ON r.id = ri.req_id
+        WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+          AND r.req_status IN ('OUTBOUND','INSTALLED')
+        GROUP BY DATE_FORMAT(r.created_at, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- ================================================================
+         Top 10 高消耗备件（指定月份）
+         ================================================================ -->
+    <select id="getTop10ConsumptionParts" resultType="java.util.Map">
+        SELECT
+            sp.code         AS partCode,
+            sp.name         AS partName,
+            SUM(ri.apply_qty) AS totalQty
+        FROM biz_requisition_item ri
+        JOIN spare_part sp ON ri.spare_part_id = sp.id
+        JOIN biz_requisition r ON ri.req_id = r.id
+        WHERE r.req_status IN ('OUTBOUND','INSTALLED')
+          AND (#{yearMonth} IS NULL OR #{yearMonth} = ''
+               OR DATE_FORMAT(r.created_at, '%Y-%m') = #{yearMonth})
+        GROUP BY sp.id, sp.code, sp.name
+        ORDER BY totalQty DESC
+        LIMIT 10
+    </select>
+
+    <!-- ================================================================
+         供应商绩效报告
+         ================================================================ -->
+    <select id="getSupplierPerformance" resultType="java.util.Map">
+        SELECT
+            s.id                                            AS supplierId,
+            s.name                                          AS supplierName,
+            COUNT(po.id)                                    AS totalOrders,
+            SUM(CASE WHEN po.order_status = '验收通过' THEN 1 ELSE 0 END) AS passOrders,
+            SUM(CASE WHEN po.order_status = '验收失败' THEN 1 ELSE 0 END) AS failOrders,
+            /* 质量合格率 */
+            ROUND(SUM(CASE WHEN po.order_status = '验收通过' THEN 1 ELSE 0 END)
+                  / NULLIF(SUM(CASE WHEN po.order_status IN ('验收通过','验收失败') THEN 1 ELSE 0 END), 0)
+                  * 100, 1)                                 AS qualityRate,
+            /* 准时交货率：actual_date &lt;= expected_date */
+            ROUND(SUM(CASE WHEN po.actual_date IS NOT NULL
+                           AND po.actual_date &lt;= po.expected_date THEN 1 ELSE 0 END)
+                  / NULLIF(SUM(CASE WHEN po.actual_date IS NOT NULL THEN 1 ELSE 0 END), 0)
+                  * 100, 1)                                 AS onTimeRate,
+            COALESCE(AVG(po.unit_price), 0)                 AS avgUnitPrice
+        FROM supplier s
+        LEFT JOIN biz_purchase_order po ON s.id = po.supplier_id
+        GROUP BY s.id, s.name
+        ORDER BY qualityRate DESC
+    </select>
+
+    <!-- ================================================================
+         维修费用月度汇总（最近 N 个月）
+         ================================================================ -->
+    <select id="getMaintenanceCostByMonth" resultType="java.util.Map">
+        SELECT
+            DATE_FORMAT(wo.report_time, '%Y-%m')        AS month,
+            COALESCE(SUM(wo.part_cost), 0)              AS partCost,
+            COALESCE(SUM(wo.labor_cost), 0)             AS laborCost,
+            COALESCE(SUM(wo.outsource_cost), 0)         AS outsourceCost,
+            COALESCE(SUM(
+                COALESCE(wo.part_cost,0) +
+                COALESCE(wo.labor_cost,0) +
+                COALESCE(wo.outsource_cost,0)
+            ), 0)                                       AS totalCost
+        FROM biz_work_order wo
+        WHERE wo.report_time >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+        GROUP BY DATE_FORMAT(wo.report_time, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- ================================================================
+         设备维修成本排名
+         ================================================================ -->
+    <select id="getMaintenanceCostByDevice" resultType="java.util.Map">
+        SELECT
+            e.name                                      AS deviceName,
+            e.code                                      AS deviceCode,
+            COUNT(wo.id)                                AS repairCount,
+            COALESCE(SUM(
+                COALESCE(wo.part_cost,0) +
+                COALESCE(wo.labor_cost,0) +
+                COALESCE(wo.outsource_cost,0)
+            ), 0)                                       AS totalCost
+        FROM biz_work_order wo
+        JOIN equipment e ON wo.device_id = e.id
+        GROUP BY e.id, e.name, e.code
+        ORDER BY totalCost DESC
+        LIMIT 10
+    </select>
+
+</mapper>

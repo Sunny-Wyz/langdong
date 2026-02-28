@@ -21,6 +21,10 @@
         <result property="substitutionDifficulty" column="substitution_difficulty"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
+        <!-- 分类模块扩展字段 -->
+        <result property="isCritical" column="is_critical"/>
+        <result property="replaceDiff" column="replace_diff"/>
+        <result property="leadTime" column="lead_time"/>
     </resultMap>
 
     <select id="findAll" resultMap="SparePartResultMap">
@@ -74,6 +78,36 @@
 
     <select id="findMaxCodeByPrefix" resultType="java.lang.String">
         SELECT MAX(code) FROM spare_part WHERE code LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <!-- ================================================================
+         分类模块专用查询
+         ================================================================ -->
+
+    <!-- 查询所有备件档案（含分类计算所需字段） -->
+    <select id="findAllForClassify" resultMap="SparePartResultMap">
+        SELECT id, code, name, price, is_critical, replace_diff, lead_time
+        FROM spare_part
+        ORDER BY code
+    </select>
+
+    <!-- 查询所有备件近12个月的月度消耗汇总
+         数据来源：领用出库记录（req_status = OUTBOUND 或 INSTALLED 表示已实际出库）
+         注意：out_qty 为 NULL 或 0 的明细不计入 -->
+    <select id="findAllMonthlyConsumption" resultType="com.langdong.spare.dto.MonthlyConsumptionVO">
+        SELECT
+            sp.code                                     AS partCode,
+            DATE_FORMAT(r.approve_time, '%Y-%m')        AS month,
+            CAST(COALESCE(SUM(ri.out_qty), 0) AS SIGNED) AS qty
+        FROM biz_requisition_item ri
+        INNER JOIN biz_requisition r  ON ri.req_id = r.id
+        INNER JOIN spare_part      sp ON ri.spare_part_id = sp.id
+        WHERE r.req_status IN ('OUTBOUND', 'INSTALLED')
+          AND ri.out_qty IS NOT NULL
+          AND ri.out_qty > 0
+          AND r.approve_time &gt;= #{fromMonth}
+        GROUP BY sp.code, DATE_FORMAT(r.approve_time, '%Y-%m')
+        ORDER BY sp.code, month
     </select>
 
 </mapper>

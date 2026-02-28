@@ -116,7 +116,7 @@ public class StockInService {
             }
         }
 
-        // 5. 更新采购单状态
-        purchaseOrderMapper.updateStatus(po.getId(), allCompleted ? "COMPLETED" : "PARTIAL");
+        // 5. 更新采购单状态（老表 purchase_order）
+        purchaseOrderMapper.updateLegacyStatus(po.getId(), allCompleted ? "COMPLETED" : "PARTIAL");
     }
 }

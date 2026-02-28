@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.AiDeviceFeatureMapper">
+
+    <resultMap id="AiDeviceFeatureMap" type="com.langdong.spare.entity.AiDeviceFeature">
+        <id property="id"             column="id"/>
+        <result property="deviceId"          column="device_id"/>
+        <result property="statMonth"         column="stat_month"/>
+        <result property="runHours"          column="run_hours"/>
+        <result property="faultCount"        column="fault_count"/>
+        <result property="workOrderCount"    column="work_order_count"/>
+        <result property="partReplaceQty"    column="part_replace_qty"/>
+    </resultMap>
+
+    <!-- 批量查询多台设备的特征数据（一次 SQL，禁止 for 循环单条查询） -->
+    <select id="findByDeviceIds" resultMap="AiDeviceFeatureMap">
+        SELECT id, device_id, stat_month, run_hours, fault_count, work_order_count, part_replace_qty
+        FROM ai_device_feature
+        WHERE device_id IN
+        <foreach collection="deviceIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND stat_month &gt;= #{fromMonth}
+        ORDER BY device_id, stat_month ASC
+    </select>
+
+    <!-- 幂等写入：REPLACE INTO（先删除同 UK 行再插入） -->
+    <insert id="insertOrReplace">
+        REPLACE INTO ai_device_feature (device_id, stat_month, run_hours, fault_count, work_order_count, part_replace_qty)
+        VALUES (
+            #{deviceId}, #{statMonth}, #{runHours}, #{faultCount}, #{workOrderCount}, #{partReplaceQty}
+        )
+    </insert>
+
+</mapper>

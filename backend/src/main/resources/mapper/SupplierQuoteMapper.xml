@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.SupplierQuoteMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_supplier_quote (
+            order_no, supplier_id, spare_part_id, quote_price, delivery_days, is_selected
+        ) VALUES (
+            #{orderNo}, #{supplierId}, #{sparePartId}, #{quotePrice}, #{deliveryDays}, 0
+        )
+    </insert>
+
+    <select id="findByOrderNo" resultType="com.langdong.spare.entity.SupplierQuote">
+        SELECT
+            q.id, q.order_no as orderNo, q.supplier_id as supplierId,
+            q.spare_part_id as sparePartId, q.quote_price as quotePrice,
+            q.quote_time as quoteTime, q.delivery_days as deliveryDays,
+            q.is_selected as isSelected, q.created_at as createdAt,
+            s.name as supplierName,
+            sp.name as sparePartName
+        FROM biz_supplier_quote q
+        LEFT JOIN supplier s ON q.supplier_id = s.id
+        LEFT JOIN spare_part sp ON q.spare_part_id = sp.id
+        WHERE q.order_no = #{orderNo}
+        ORDER BY q.quote_price ASC
+    </select>
+
+    <update id="clearSelections">
+        UPDATE biz_supplier_quote SET is_selected = 0 WHERE order_no = #{orderNo}
+    </update>
+
+    <update id="selectQuote">
+        UPDATE biz_supplier_quote SET is_selected = 1 WHERE id = #{id}
+    </update>
+
+</mapper>
