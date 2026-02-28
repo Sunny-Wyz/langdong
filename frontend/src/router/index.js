@@ -26,6 +26,12 @@ import WorkOrderProcess from '../views/workorder/WorkOrderProcess.vue'
 import WorkOrderComplete from '../views/workorder/WorkOrderComplete.vue'
 import WorkOrderQuery from '../views/workorder/WorkOrderQuery.vue'
 
+import PurchaseSuggestions from '../views/purchase/PurchaseSuggestions.vue'
+import PurchaseApply from '../views/purchase/PurchaseApply.vue'
+import PurchaseQuote from '../views/purchase/PurchaseQuote.vue'
+import PurchaseOrders from '../views/purchase/PurchaseOrders.vue'
+import PurchaseAcceptance from '../views/purchase/PurchaseAcceptance.vue'
+
 // 备件智能分类模块
 import ClassifyResult from '../views/classify/ClassifyResult.vue'
 
@@ -66,11 +72,17 @@ const router = new VueRouter({
         { path: 'requisition-install', component: RequisitionInstall, meta: { requiresAuth: true } },
         { path: 'requisition-query', component: RequisitionQuery, meta: { requiresAuth: true } },
         // 维修工单管理模块 - 5个子模块
-        { path: 'work-order-report',   component: WorkOrderReport,   meta: { requiresAuth: true } },
-        { path: 'work-order-assign',   component: WorkOrderAssign,   meta: { requiresAuth: true } },
-        { path: 'work-order-process',  component: WorkOrderProcess,  meta: { requiresAuth: true } },
+        { path: 'work-order-report', component: WorkOrderReport, meta: { requiresAuth: true } },
+        { path: 'work-order-assign', component: WorkOrderAssign, meta: { requiresAuth: true } },
+        { path: 'work-order-process', component: WorkOrderProcess, meta: { requiresAuth: true } },
         { path: 'work-order-complete', component: WorkOrderComplete, meta: { requiresAuth: true } },
-        { path: 'work-order-query',    component: WorkOrderQuery,    meta: { requiresAuth: true } }
+        { path: 'work-order-query', component: WorkOrderQuery, meta: { requiresAuth: true } },
+        // 采购管理模块 - 5个子模块
+        { path: 'purchase-suggestions', component: PurchaseSuggestions, meta: { requiresAuth: true } },
+        { path: 'purchase-apply', component: PurchaseApply, meta: { requiresAuth: true } },
+        { path: 'purchase-quote', component: PurchaseQuote, meta: { requiresAuth: true } },
+        { path: 'purchase-orders', component: PurchaseOrders, meta: { requiresAuth: true } },
+        { path: 'purchase-acceptance', component: PurchaseAcceptance, meta: { requiresAuth: true } }
       ]
     },
     // 备件智能分类模块（对应菜单 id=11，path=/smart）

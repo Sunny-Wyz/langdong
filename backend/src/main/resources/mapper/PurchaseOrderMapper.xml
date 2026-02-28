@@ -3,23 +3,91 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.langdong.spare.mapper.PurchaseOrderMapper">
 
-    <select id="findByCode" resultType="com.langdong.spare.entity.PurchaseOrder">
-        SELECT id, po_code as poCode, supplier_id as supplierId, status, 
-               total_amount as totalAmount, expected_delivery_date as expectedDeliveryDate, 
-               remark, created_at as createdAt, updated_at as updatedAt, created_by as createdBy
-        FROM purchase_order
-        WHERE po_code = #{poCode}
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_purchase_order (
+            order_no, spare_part_id, supplier_id, order_qty, order_status,
+            expected_date, reorder_suggest_id, purchaser_id, remark
+        ) VALUES (
+            #{orderNo}, #{sparePartId}, #{supplierId}, #{orderQty}, #{orderStatus},
+            #{expectedDate}, #{reorderSuggestId}, #{purchaserId}, #{remark}
+        )
+    </insert>
+
+    <select id="findById" resultType="com.langdong.spare.entity.PurchaseOrder">
+        SELECT
+            o.id, o.order_no as orderNo, o.spare_part_id as sparePartId,
+            o.supplier_id as supplierId, o.order_qty as orderQty,
+            o.unit_price as unitPrice, o.total_amount as totalAmount,
+            o.order_status as orderStatus, o.expected_date as expectedDate,
+            o.actual_date as actualDate, o.reorder_suggest_id as reorderSuggestId,
+            o.purchaser_id as purchaserId, o.remark,
+            o.created_at as createdAt, o.updated_at as updatedAt,
+            sp.code as sparePartCode, sp.name as sparePartName,
+            s.name as supplierName,
+            u.name as purchaserName
+        FROM biz_purchase_order o
+        LEFT JOIN spare_part sp ON o.spare_part_id = sp.id
+        LEFT JOIN supplier s ON o.supplier_id = s.id
+        LEFT JOIN user u ON o.purchaser_id = u.id
+        WHERE o.id = #{id}
+    </select>
+
+    <select id="findList" resultType="com.langdong.spare.entity.PurchaseOrder">
+        SELECT
+            o.id, o.order_no as orderNo, o.spare_part_id as sparePartId,
+            o.supplier_id as supplierId, o.order_qty as orderQty,
+            o.unit_price as unitPrice, o.total_amount as totalAmount,
+            o.order_status as orderStatus, o.expected_date as expectedDate,
+            o.actual_date as actualDate, o.reorder_suggest_id as reorderSuggestId,
+            o.purchaser_id as purchaserId, o.remark,
+            o.created_at as createdAt, o.updated_at as updatedAt,
+            sp.code as sparePartCode, sp.name as sparePartName,
+            s.name as supplierName,
+            u.name as purchaserName
+        FROM biz_purchase_order o
+        LEFT JOIN spare_part sp ON o.spare_part_id = sp.id
+        LEFT JOIN supplier s ON o.supplier_id = s.id
+        LEFT JOIN user u ON o.purchaser_id = u.id
+        <where>
+            <if test="orderStatus != null and orderStatus != ''">
+                AND o.order_status = #{orderStatus}
+            </if>
+            <if test="sparePartId != null">
+                AND o.spare_part_id = #{sparePartId}
+            </if>
+            <if test="supplierId != null">
+                AND o.supplier_id = #{supplierId}
+            </if>
+        </where>
+        ORDER BY o.created_at DESC
     </select>
 
     <update id="updateStatus">
-        UPDATE purchase_order 
-        SET status = #{status} 
+        UPDATE biz_purchase_order SET order_status = #{orderStatus} WHERE id = #{id}
+    </update>
+
+    <update id="updatePriceAndStatus">
+        UPDATE biz_purchase_order
+        SET unit_price = #{unitPrice}, total_amount = #{totalAmount}, order_status = #{orderStatus}
         WHERE id = #{id}
     </update>
 
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO purchase_order (po_code, supplier_id, status, expected_delivery_date, remark)
-        VALUES (#{poCode}, #{supplierId}, #{status}, #{expectedDeliveryDate}, #{remark})
-    </insert>
+    <update id="updateAcceptance">
+        UPDATE biz_purchase_order
+        SET order_status = #{orderStatus}, actual_date = #{actualDate}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Legacy: used by StockInService — reads old purchase_order table -->
+    <select id="findByCode" resultType="com.langdong.spare.entity.PurchaseOrder">
+        SELECT id, po_code as orderNo, supplier_id as supplierId, status as orderStatus,
+               total_amount as totalAmount, expected_delivery_date as expectedDate,
+               remark, created_at as createdAt, updated_at as updatedAt, created_by as purchaserId
+        FROM purchase_order WHERE po_code = #{poCode}
+    </select>
+
+    <update id="updateLegacyStatus">
+        UPDATE purchase_order SET status = #{status} WHERE id = #{id}
+    </update>
 
 </mapper>
