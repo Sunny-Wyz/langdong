@@ -20,7 +20,19 @@ public class SparePart {
     private Long supplierId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // ---- 分类模块新增字段 ----
+
+    /** 是否关键备件（1=关键，0=非关键），用于ABC分类计算 */
+    private Integer isCritical;
+
+    /** 供应替代难度（1~5分，5=极难），用于ABC分类计算 */
+    private Integer replaceDiff;
+
+    /** 采购提前期（天），用于ABC分类计算及SS/ROP计算 */
     private Integer leadTime;
+
+    // ---- 兼容本地 windows 分支 SmartClassificationService 调用的字段 ----
     private String criticality;
     private String substitutionDifficulty;
 }
