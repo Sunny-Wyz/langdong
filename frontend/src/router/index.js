@@ -43,6 +43,9 @@ import WarningCenter from '../views/report/WarningCenter.vue'
 // 备件智能分类模块
 import ClassifyResult from '../views/classify/ClassifyResult.vue'
 
+// AI 智能分析模块
+import AiForecastResult from '../views/ai/AiForecastResult.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -107,6 +110,15 @@ const router = new VueRouter({
       meta: { requiresAuth: true },
       children: [
         { path: 'classify-result', component: ClassifyResult, meta: { requiresAuth: true } }
+      ]
+    },
+    // AI 智能分析模块
+    {
+      path: '/ai',
+      component: Home,
+      meta: { requiresAuth: true },
+      children: [
+        { path: 'forecast-result', component: AiForecastResult, meta: { requiresAuth: true } }
       ]
     },
     {

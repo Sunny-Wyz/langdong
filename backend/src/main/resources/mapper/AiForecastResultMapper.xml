@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.AiForecastResultMapper">
+
+    <resultMap id="AiForecastResultMap" type="com.langdong.spare.entity.AiForecastResult">
+        <id property="id" column="id"/>
+        <result property="partCode"      column="part_code"/>
+        <result property="forecastMonth" column="forecast_month"/>
+        <result property="predictQty"    column="predict_qty"/>
+        <result property="lowerBound"    column="lower_bound"/>
+        <result property="upperBound"    column="upper_bound"/>
+        <result property="algoType"      column="algo_type"/>
+        <result property="mase"          column="mase"/>
+        <result property="modelVersion"  column="model_version"/>
+        <result property="createTime"    column="create_time"/>
+        <!-- 联查字段 -->
+        <result property="partName"      column="part_name"/>
+    </resultMap>
+
+    <!-- 批量插入预测结果 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_forecast_result (
+            part_code, forecast_month, predict_qty, lower_bound, upper_bound,
+            algo_type, mase, model_version, create_time
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.partCode}, #{item.forecastMonth}, #{item.predictQty},
+                #{item.lowerBound}, #{item.upperBound},
+                #{item.algoType}, #{item.mase}, #{item.modelVersion}, NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 查询指定备件的历史预测（按月升序） -->
+    <select id="findByPartCode" resultMap="AiForecastResultMap">
+        SELECT
+            r.id, r.part_code, r.forecast_month, r.predict_qty, r.lower_bound, r.upper_bound,
+            r.algo_type, r.mase, r.model_version, r.create_time,
+            sp.name AS part_name
+        FROM ai_forecast_result r
+        LEFT JOIN spare_part sp ON r.part_code = sp.code
+        WHERE r.part_code = #{partCode}
+        ORDER BY r.forecast_month ASC
+    </select>
+
+    <!-- 分页查询预测结果（支持按月份、备件编码过滤） -->
+    <select id="findByPage" resultMap="AiForecastResultMap">
+        SELECT
+            r.id, r.part_code, r.forecast_month, r.predict_qty, r.lower_bound, r.upper_bound,
+            r.algo_type, r.mase, r.model_version, r.create_time,
+            sp.name AS part_name
+        FROM ai_forecast_result r
+        LEFT JOIN spare_part sp ON r.part_code = sp.code
+        WHERE r.forecast_month = (
+            <choose>
+                <when test="month != null and month != ''">
+                    SELECT #{month}
+                </when>
+                <otherwise>
+                    SELECT MAX(forecast_month) FROM ai_forecast_result
+                </otherwise>
+            </choose>
+        )
+        <if test="partCode != null and partCode != ''">
+            AND r.part_code LIKE CONCAT('%', #{partCode}, '%')
+        </if>
+        ORDER BY r.part_code ASC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 统计分页总数 -->
+    <select id="countByPage" resultType="long">
+        SELECT COUNT(*)
+        FROM ai_forecast_result r
+        WHERE r.forecast_month = (
+            <choose>
+                <when test="month != null and month != ''">
+                    SELECT #{month}
+                </when>
+                <otherwise>
+                    SELECT MAX(forecast_month) FROM ai_forecast_result
+                </otherwise>
+            </choose>
+        )
+        <if test="partCode != null and partCode != ''">
+            AND r.part_code LIKE CONCAT('%', #{partCode}, '%')
+        </if>
+    </select>
+
+    <!-- 查询最新预测月份 -->
+    <select id="findLatestMonth" resultType="java.lang.String">
+        SELECT MAX(forecast_month) FROM ai_forecast_result
+    </select>
+
+</mapper>

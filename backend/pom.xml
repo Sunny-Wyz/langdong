@@ -61,6 +61,14 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        
+        <!-- Smile ML -->
+        <dependency>
+            <groupId>com.github.haifengl</groupId>
+            <artifactId>smile-core</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        
         <!-- 测试依赖：JUnit 5 + Mockito（由 spring-boot-starter-test 统一引入） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
