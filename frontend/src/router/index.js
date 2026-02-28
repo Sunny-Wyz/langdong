@@ -26,6 +26,9 @@ import WorkOrderProcess from '../views/workorder/WorkOrderProcess.vue'
 import WorkOrderComplete from '../views/workorder/WorkOrderComplete.vue'
 import WorkOrderQuery from '../views/workorder/WorkOrderQuery.vue'
 
+// 备件智能分类模块
+import ClassifyResult from '../views/classify/ClassifyResult.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -68,6 +71,15 @@ const router = new VueRouter({
         { path: 'work-order-process',  component: WorkOrderProcess,  meta: { requiresAuth: true } },
         { path: 'work-order-complete', component: WorkOrderComplete, meta: { requiresAuth: true } },
         { path: 'work-order-query',    component: WorkOrderQuery,    meta: { requiresAuth: true } }
+      ]
+    },
+    // 备件智能分类模块（对应菜单 id=11，path=/smart）
+    {
+      path: '/smart',
+      component: Home,
+      meta: { requiresAuth: true },
+      children: [
+        { path: 'classify-result', component: ClassifyResult, meta: { requiresAuth: true } }
       ]
     },
     {

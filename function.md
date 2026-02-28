@@ -72,3 +72,18 @@
 
 状态流转：报修 → 已派工 → 维修中 → 完工（每步均有数据库层 AND order_status 幂等保护）
 - **落实情况**：已落实
+
+---
+
+### F9: 备件智能分类模块（ABC/XYZ 分析）完整实现
+- **功能描述**：基于历史领用数据，对所有备件进行 ABC（价值重要度）和 XYZ（需求稳定性）分类，自动计算安全库存（SS）和补货触发点（ROP），支持每月1日凌晨定时重算和管理员手动触发。
+- **落实情况**：
+  - **数据库**：`sql/classify_module.sql` — ALTER TABLE `spare_part` 新增 `is_critical`、`replace_diff`、`lead_time` 三个字段；CREATE TABLE `biz_part_classify` 分类结果表（含 abc_class、xyz_class、composite_score、cv2、safety_stock、reorder_point 等字段）；新增菜单 id=50（分类结果查询，type=2）和 id=51（手动触发重算按钮，type=3），授权给 ADMIN 角色。
+  - **后端 Entity**：`PartClassify.java`（分类结果实体）；SparePart.java 新增 isCritical/replaceDiff/leadTime 字段；新增 DTO `MonthlyConsumptionVO.java`（月度消耗汇总视图对象）。
+  - **后端 Mapper**：`PartClassifyMapper.java`（insertBatch/findLatestByPage/countLatest/findHistoryByPartCode/findMatrixCount/findLatestMonth）+ `PartClassifyMapper.xml`；SparePartMapper 新增 `findAllForClassify` 和 `findAllMonthlyConsumption` 方法（从 biz_requisition_item JOIN biz_requisition 获取近12月消耗）。
+  - **后端 Util**：`ClassifyCalculator.java`（独立纯静态工具类，包含 ABC/XYZ 分类计算、SS/ROP 计算所有方法）。
+  - **后端 Service**：`ClassifyService.java`（全量重算核心逻辑、@Async 异步执行、@Scheduled 每月1日定时触发、分页查询、历史查询、矩阵查询）。
+  - **后端 Config**：`AsyncScheduleConfig.java`（@EnableAsync + @EnableScheduling）。
+  - **后端 Controller**：`ClassifyController.java`（POST /api/classify/trigger 需 classify:trigger:run 权限；GET /api/classify/result 分页；GET /api/classify/result/{partCode} 历史；GET /api/classify/matrix 9格矩阵）。
+  - **后端测试**：`ClassifyCalculatorTest.java`（JUnit 5，27个测试用例覆盖提前期得分、综合得分权重验证、CV²、XYZ分类、SS/ROP计算等）；pom.xml 新增 spring-boot-starter-test 依赖。
+  - **前端**：`views/classify/ClassifyResult.vue`（顶部4个筛选条件、ECharts 3×3热力矩阵点击过滤、带颜色标签的数据表格、导出Excel、ADMIN专属手动触发按钮）；router/index.js 新增 `/smart/classify-result` 路由；package.json 新增 echarts/xlsx/file-saver 依赖（需执行 npm install）。

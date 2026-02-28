@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.PartClassifyMapper">
+
+    <resultMap id="PartClassifyResultMap" type="com.langdong.spare.entity.PartClassify">
+        <id property="id" column="id"/>
+        <result property="partCode" column="part_code"/>
+        <result property="classifyMonth" column="classify_month"/>
+        <result property="abcClass" column="abc_class"/>
+        <result property="xyzClass" column="xyz_class"/>
+        <result property="compositeScore" column="composite_score"/>
+        <result property="annualCost" column="annual_cost"/>
+        <result property="adi" column="adi"/>
+        <result property="cv2" column="cv2"/>
+        <result property="safetyStock" column="safety_stock"/>
+        <result property="reorderPoint" column="reorder_point"/>
+        <result property="serviceLevel" column="service_level"/>
+        <result property="strategyCode" column="strategy_code"/>
+        <result property="createTime" column="create_time"/>
+        <!-- 联查字段 -->
+        <result property="partName" column="part_name"/>
+    </resultMap>
+
+    <!-- 批量插入分类结果 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_part_classify (
+            part_code, classify_month, abc_class, xyz_class,
+            composite_score, annual_cost, adi, cv2,
+            safety_stock, reorder_point, service_level, strategy_code, create_time
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.partCode}, #{item.classifyMonth}, #{item.abcClass}, #{item.xyzClass},
+                #{item.compositeScore}, #{item.annualCost}, #{item.adi}, #{item.cv2},
+                #{item.safetyStock}, #{item.reorderPoint}, #{item.serviceLevel}, #{item.strategyCode},
+                NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 查询最新月份分类结果（分页），联查备件名称 -->
+    <select id="findLatestByPage" resultMap="PartClassifyResultMap">
+        SELECT
+            c.id, c.part_code, c.classify_month, c.abc_class, c.xyz_class,
+            c.composite_score, c.annual_cost, c.adi, c.cv2,
+            c.safety_stock, c.reorder_point, c.service_level, c.strategy_code, c.create_time,
+            sp.name AS part_name
+        FROM biz_part_classify c
+        LEFT JOIN spare_part sp ON c.part_code = sp.code
+        WHERE c.classify_month = (
+            <choose>
+                <when test="month != null and month != ''">
+                    SELECT #{month}
+                </when>
+                <otherwise>
+                    SELECT MAX(classify_month) FROM biz_part_classify
+                </otherwise>
+            </choose>
+        )
+        <if test="abcClass != null and abcClass != ''">
+            AND c.abc_class = #{abcClass}
+        </if>
+        <if test="xyzClass != null and xyzClass != ''">
+            AND c.xyz_class = #{xyzClass}
+        </if>
+        <if test="partCode != null and partCode != ''">
+            AND c.part_code LIKE CONCAT('%', #{partCode}, '%')
+        </if>
+        ORDER BY c.abc_class, c.xyz_class, c.composite_score DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 统计分页总数 -->
+    <select id="countLatest" resultType="long">
+        SELECT COUNT(*)
+        FROM biz_part_classify c
+        WHERE c.classify_month = (
+            <choose>
+                <when test="month != null and month != ''">
+                    SELECT #{month}
+                </when>
+                <otherwise>
+                    SELECT MAX(classify_month) FROM biz_part_classify
+                </otherwise>
+            </choose>
+        )
+        <if test="abcClass != null and abcClass != ''">
+            AND c.abc_class = #{abcClass}
+        </if>
+        <if test="xyzClass != null and xyzClass != ''">
+            AND c.xyz_class = #{xyzClass}
+        </if>
+        <if test="partCode != null and partCode != ''">
+            AND c.part_code LIKE CONCAT('%', #{partCode}, '%')
+        </if>
+    </select>
+
+    <!-- 查询指定备件的全部历史分类（按月升序） -->
+    <select id="findHistoryByPartCode" resultMap="PartClassifyResultMap">
+        SELECT
+            id, part_code, classify_month, abc_class, xyz_class,
+            composite_score, annual_cost, adi, cv2,
+            safety_stock, reorder_point, service_level, strategy_code, create_time
+        FROM biz_part_classify
+        WHERE part_code = #{partCode}
+        ORDER BY classify_month ASC
+    </select>
+
+    <!-- 统计最新月份的ABC×XYZ矩阵（9格） -->
+    <select id="findMatrixCount" resultType="map">
+        SELECT
+            abc_class AS abcClass,
+            xyz_class AS xyzClass,
+            COUNT(*)  AS cnt
+        FROM biz_part_classify
+        WHERE classify_month = (SELECT MAX(classify_month) FROM biz_part_classify)
+        GROUP BY abc_class, xyz_class
+    </select>
+
+    <!-- 查询最新分类月份 -->
+    <select id="findLatestMonth" resultType="java.lang.String">
+        SELECT MAX(classify_month) FROM biz_part_classify
+    </select>
+
+</mapper>
