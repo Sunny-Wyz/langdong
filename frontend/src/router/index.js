@@ -32,6 +32,14 @@ import PurchaseQuote from '../views/purchase/PurchaseQuote.vue'
 import PurchaseOrders from '../views/purchase/PurchaseOrders.vue'
 import PurchaseAcceptance from '../views/purchase/PurchaseAcceptance.vue'
 
+// 报表与看板模块
+import Dashboard from '../views/report/Dashboard.vue'
+import InventoryReport from '../views/report/InventoryReport.vue'
+import ConsumptionReport from '../views/report/ConsumptionReport.vue'
+import SupplierReport from '../views/report/SupplierReport.vue'
+import MaintenanceReport from '../views/report/MaintenanceReport.vue'
+import WarningCenter from '../views/report/WarningCenter.vue'
+
 // 备件智能分类模块
 import ClassifyResult from '../views/classify/ClassifyResult.vue'
 
@@ -82,7 +90,14 @@ const router = new VueRouter({
         { path: 'purchase-apply', component: PurchaseApply, meta: { requiresAuth: true } },
         { path: 'purchase-quote', component: PurchaseQuote, meta: { requiresAuth: true } },
         { path: 'purchase-orders', component: PurchaseOrders, meta: { requiresAuth: true } },
-        { path: 'purchase-acceptance', component: PurchaseAcceptance, meta: { requiresAuth: true } }
+        { path: 'purchase-acceptance', component: PurchaseAcceptance, meta: { requiresAuth: true } },
+        // 报表与看板模块 - 6个子模块
+        { path: 'report-dashboard', component: Dashboard, meta: { requiresAuth: true } },
+        { path: 'report-inventory', component: InventoryReport, meta: { requiresAuth: true } },
+        { path: 'report-consumption', component: ConsumptionReport, meta: { requiresAuth: true } },
+        { path: 'report-supplier', component: SupplierReport, meta: { requiresAuth: true } },
+        { path: 'report-maintenance', component: MaintenanceReport, meta: { requiresAuth: true } },
+        { path: 'warning-center', component: WarningCenter, meta: { requiresAuth: true } }
       ]
     },
     // 备件智能分类模块（对应菜单 id=11，path=/smart）

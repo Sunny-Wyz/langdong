@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.WarningMapper">
+
+    <!-- 低库存预警：库存低于 ROP（reorder_point） -->
+    <!-- spare_part 表中无 ROP 字段，使用 biz_reorder_suggest 中的 reorder_point 关联 -->
+    <select id="getLowStockWarnings" resultType="com.langdong.spare.dto.WarningItemDTO">
+        SELECT
+            'LOW_STOCK'                                    AS type,
+            CONCAT(sp.code, ' ', sp.name, ' 库存不足')    AS title,
+            CONCAT('当前库存 ', sp.quantity, '，低于补货触发点 ', rs.reorder_point)  AS detail,
+            IF(sp.quantity = 0, '紧急', '警告')            AS severity,
+            '/home/purchase-suggestions'                   AS targetPath,
+            sp.id                                          AS refId
+        FROM spare_part sp
+        JOIN (
+            SELECT part_code, MIN(reorder_point) AS reorder_point
+            FROM biz_reorder_suggest
+            WHERE status = '待处理'
+            GROUP BY part_code
+        ) rs ON sp.code = rs.part_code
+        WHERE sp.quantity &lt; rs.reorder_point
+        ORDER BY severity ASC, sp.quantity ASC
+    </select>
+
+    <!-- 逾期工单预警：plan_finish < NOW() 且未完成 -->
+    <select id="getOverdueWorkOrders" resultType="com.langdong.spare.dto.WarningItemDTO">
+        SELECT
+            'OVERDUE_ORDER'                                AS type,
+            CONCAT('工单 ', wo.work_order_no, ' 已逾期')  AS title,
+            CONCAT('设备: ', e.name, '，计划完成: ', DATE_FORMAT(wo.plan_finish, '%Y-%m-%d')) AS detail,
+            '紧急'                                         AS severity,
+            '/home/work-order-query'                       AS targetPath,
+            wo.id                                          AS refId
+        FROM biz_work_order wo
+        LEFT JOIN equipment e ON wo.device_id = e.id
+        WHERE wo.plan_finish IS NOT NULL
+          AND wo.plan_finish &lt; NOW()
+          AND wo.order_status NOT IN ('已完成','关闭')
+        ORDER BY wo.plan_finish ASC
+    </select>
+
+    <!-- 采购逾期预警：expected_date < TODAY 且未到货 -->
+    <select id="getOverduePurchaseOrders" resultType="com.langdong.spare.dto.WarningItemDTO">
+        SELECT
+            'OVERDUE_PO'                                   AS type,
+            CONCAT('采购单 ', po.order_no, ' 到货逾期')   AS title,
+            CONCAT('备件: ', sp.name, '，期望到货: ', DATE_FORMAT(po.expected_date, '%Y-%m-%d')) AS detail,
+            '警告'                                         AS severity,
+            '/home/purchase-orders'                        AS targetPath,
+            po.id                                          AS refId
+        FROM biz_purchase_order po
+        LEFT JOIN spare_part sp ON po.spare_part_id = sp.id
+        WHERE po.expected_date IS NOT NULL
+          AND po.expected_date &lt; CURDATE()
+          AND po.actual_date IS NULL
+          AND po.order_status NOT IN ('验收通过','验收失败')
+        ORDER BY po.expected_date ASC
+    </select>
+
+</mapper>
