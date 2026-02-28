@@ -113,6 +113,9 @@ public class AiForecastService {
         List<AiForecastResult> list = aiForecastResultMapper.findByPage(mon, code, offset, size);
         long total = aiForecastResultMapper.countByPage(mon, code);
 
+        log.info("[AI查询] 结果: month={}, partCode={}, page={}, size={}, 实际页数据条数={}, 总条数={}",
+                mon, code, page, size, list.size(), total);
+
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);
         result.put("list", list);

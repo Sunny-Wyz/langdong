@@ -56,10 +56,10 @@
         WHERE r.forecast_month = (
             <choose>
                 <when test="month != null and month != ''">
-                    SELECT #{month}
+                    #{month}
                 </when>
                 <otherwise>
-                    SELECT MAX(forecast_month) FROM ai_forecast_result
+                    (SELECT MAX(t.forecast_month) FROM ai_forecast_result t)
                 </otherwise>
             </choose>
         )
@@ -77,10 +77,10 @@
         WHERE r.forecast_month = (
             <choose>
                 <when test="month != null and month != ''">
-                    SELECT #{month}
+                    #{month}
                 </when>
                 <otherwise>
-                    SELECT MAX(forecast_month) FROM ai_forecast_result
+                    (SELECT MAX(t.forecast_month) FROM ai_forecast_result t)
                 </otherwise>
             </choose>
         )
