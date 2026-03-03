@@ -40,7 +40,7 @@
             </div>
         </el-dialog>
 
-        <el-dialog title="分配菜单与权限" :visible.sync="menuDialogVisible" width="500px">
+        <el-dialog title="分配角色权限" :visible.sync="menuDialogVisible" width="500px">
             <el-tree ref="tree" :data="allMenus" show-checkbox node-key="id"
                 :props="{ children: 'children', label: 'name' }">
             </el-tree>
@@ -62,7 +62,19 @@ export default {
             dialogType: 'add',
             form: { id: null, code: '', name: '', remark: '' },
             allMenus: [],
+            checkedMenuIds: [],
             currentRoleId: null
+        }
+    },
+    watch: {
+        allMenus(val) {
+            if (val && val.length > 0 && this.checkedMenuIds.length > 0) {
+                this.$nextTick(() => {
+                    if (this.$refs.tree) {
+                        this.$refs.tree.setCheckedKeys(this.checkedMenuIds)
+                    }
+                })
+            }
         }
     },
     created() {
@@ -102,23 +114,36 @@ export default {
         },
         async handleAssignMenus(row) {
             this.currentRoleId = row.id
+            this.checkedMenuIds = []
+            this.allMenus = []
+            this.menuDialogVisible = true
             const [allRes, ownRes] = await Promise.all([
                 this.$http.get('/menus'),
                 this.$http.get(`/roles/${row.id}/menus`)
             ])
             this.allMenus = allRes.data
-            this.menuDialogVisible = true
+            this.checkedMenuIds = ownRes.data
             this.$nextTick(() => {
-                this.$refs.tree.setCheckedKeys(ownRes.data)
+                if (this.$refs.tree) {
+                    this.$refs.tree.setCheckedKeys(this.checkedMenuIds)
+                }
             })
         },
         async saveMenus() {
-            const keys = this.$refs.tree.getCheckedKeys()
-            const halfKeys = this.$refs.tree.getHalfCheckedKeys()
-            const allKeys = [...keys, ...halfKeys]
-            await this.$http.post(`/roles/${this.currentRoleId}/menus`, { menuIds: allKeys })
-            this.$message.success('菜单分配成功')
-            this.menuDialogVisible = false
+            try {
+                const keys = this.$refs.tree.getCheckedKeys()
+                const halfKeys = this.$refs.tree.getHalfCheckedKeys()
+                const allKeys = [...new Set([...keys, ...halfKeys])].map(Number)
+                console.log('[权限分配] 发送 menuIds:', allKeys)
+                const res = await this.$http.post(`/roles/${this.currentRoleId}/menus`, { menuIds: allKeys })
+                console.log('[权限分配] 响应:', res)
+                this.$message.success('权限分配成功')
+                this.menuDialogVisible = false
+            } catch (e) {
+                console.error('[权限分配] 失败:', e)
+                const msg = e.response?.data?.message || e.response?.data || e.message || '请求失败'
+                this.$message.error('权限分配失败: ' + msg)
+            }
         }
     }
 }

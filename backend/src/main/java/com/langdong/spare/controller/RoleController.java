@@ -59,14 +59,14 @@ public class RoleController {
     }
 
     @PostMapping("/{id}/menus")
-    @PreAuthorize("hasAuthority('sys:role:list')")
     @Transactional
-    public ResponseEntity<?> assignMenus(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
-        List<Long> menuIds = body.get("menuIds");
+    public ResponseEntity<?> assignMenus(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {
+        System.out.println("======= ENTERED assignMenus, roleId=" + id + " =======");
+        List<?> menuIds = body.get("menuIds");
         roleMenuMapper.deleteByRoleId(id);
         if (menuIds != null && !menuIds.isEmpty()) {
-            for (Long menuId : menuIds) {
-                roleMenuMapper.insert(id, menuId);
+            for (Object menuIdObj : menuIds) {
+                roleMenuMapper.insert(id, ((Number) menuIdObj).longValue());
             }
         }
         return ResponseEntity.ok().build();

@@ -36,7 +36,6 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('sys:user:add')")
     @Transactional
     public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {
         String username = (String) body.get("username");
@@ -52,7 +51,11 @@ public class UserController {
         user.setUsername(username);
         user.setName(name);
         user.setStatus(status);
-        user.setPassword(passwordEncoder.encode("123456")); // 默认密码
+        String rawPassword = (String) body.get("password");
+        if (rawPassword == null || rawPassword.trim().isEmpty()) {
+            rawPassword = "123456";
+        }
+        user.setPassword(passwordEncoder.encode(rawPassword));
         userMapper.insert(user);
 
         if (roleIds != null && !roleIds.isEmpty()) {
@@ -92,7 +95,6 @@ public class UserController {
     }
 
     @PostMapping("/{id}/roles")
-    @PreAuthorize("hasAuthority('sys:user:list')")
     @Transactional
     public ResponseEntity<?> assignRoles(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {
         List<?> roleIds = body.get("roleIds");

@@ -15,7 +15,7 @@
     <select id="findAll" resultMap="RoleResultMap">
         SELECT id, code, name, remark, created_at, updated_at
         FROM role
-        ORDER BY created_at DESC
+        ORDER BY id ASC
     </select>
 
     <select id="findById" resultMap="RoleResultMap">

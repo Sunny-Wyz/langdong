@@ -133,7 +133,7 @@ INSERT INTO `user_role` (`user_id`, `role_id`) VALUES (1, 1);
 INSERT INTO `menu` (`id`, `parent_id`, `name`, `path`, `component`, `permission`, `type`, `icon`, `sort`) VALUES
 (1, NULL, '系统管理', '/sys', 'Layout', NULL, 1, 'el-icon-setting', 99),
 (2, 1, '用户管理', '/sys/users', 'sys/UserManage', 'sys:user:list', 2, 'el-icon-user', 1),
-(3, 1, '角色与菜单分配', '/sys/roles', 'sys/RoleManage', 'sys:role:list', 2, 'el-icon-key', 2),
+(3, 1, '角色与权限分配', '/sys/roles', 'sys/RoleManage', 'sys:role:list', 2, 'el-icon-key', 2),
 (4, NULL, '基础数据管理', '/home', 'Layout', NULL, 1, 'el-icon-suitcase-1', 1),
 (5, 4, '备件档案管理', '/home/spare-parts', 'SparePartList', 'base:spare:list', 2, 'el-icon-s-order', 1),
 (6, 5, '备件新增(按钮)', NULL, NULL, 'base:spare:add', 3, NULL, 1),

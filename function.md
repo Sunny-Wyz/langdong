@@ -90,6 +90,15 @@
 
 ---
 
+### F9.1: 备件智能分类模块 - 移除测试代码并补充真实分类数据
+- **功能描述**：移除备件智能分类模块的单元测试文件（ClassifyCalculatorTest.java），并新建 `sql/classify_data.sql`，为全部50个备件生成覆盖 ABC×XYZ 9格矩阵的真实分类结果数据，使热力矩阵图表可完整展示。
+- **落实情况**：
+  - 删除 `backend/src/test/java/com/langdong/spare/util/ClassifyCalculatorTest.java`
+  - 新建 `sql/classify_data.sql`：插入 `2026-02` 月份50条分类记录（AX:4, AY:4, AZ:2, BX:7, BY:5, BZ:3, CX:9, CY:8, CZ:8）及 `2025-12` 历史参照记录12条，数据字段与 `biz_part_classify` 表完全对应（composite_score/annual_cost/cv2/safety_stock/reorder_point/service_level/strategy_code）
+  - 分类数据已导入数据库，热力矩阵9格均有数据，颜色深浅对比明显
+
+---
+
 ### F10: AI 智能分析模块 (M7) 完整实现
 - **功能描述**：基于历史领用数据和设备运行特征，引入 AI 预测算法实现备件次月的消耗量预测，并在底层联动库存水位的动态控制，主动生成智能补货建议。
 - **落实情况**：
