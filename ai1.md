@@ -33,9 +33,6 @@ AI 分析流程由 `AiForecastService` 串联，核心路径为“特征工程 -
 
 数学形式：
 - 公式(文本版)：D = {d1, d2, ..., d12}, dt >= 0
-$$
-D = \{d_1, d_2, \ldots, d_{12}\}, \quad d_t \in \mathbb{Z}_{\ge 0}
-$$
 - 缺失月份按 `d_t = 0` 处理，保证时序长度对齐。
 
 实现过程：
@@ -60,15 +57,9 @@ $$
 数学形式：
 - 平均需求间隔（ADI）
 - 公式(文本版)：ADI = T / N_plus
-$$
-ADI = \frac{T}{N_+}
-$$
   其中，`T` 为总期数，`N_+` 为非零需求期数。
 - 需求变异系数平方（CV2）
 - 公式(文本版)：CV2 = (sigma / mu)^2
-$$
-CV^2 = \left(\frac{\sigma}{\mu}\right)^2
-$$
   其中 `mu`、`sigma` 在非零需求子样本上计算。
 
 阈值与路由规则：
@@ -95,18 +86,9 @@ SBA（Syntetos-Boylan Approximation）用于间断需求，分别平滑“需求
 - 设 `z_t` 为需求大小平滑量，`p_t` 为需求间隔平滑量，`q_t` 为当前间隔计数。
 - 预测式
 - 公式(文本版)：y_hat(t+1) = (1 - beta/2) * z_t / p_t
-$$
-\hat{y}_{t+1} = \left(1 - \frac{\beta}{2}\right)\frac{z_t}{p_t}
-$$
 - 更新式（若当期需求 `d_t > 0`）
 - 公式(文本版)：z_t = alpha * d_t + (1 - alpha) * z_(t-1)
-$$
-z_t = \alpha d_t + (1-\alpha)z_{t-1}
-$$
 - 公式(文本版)：p_t = beta * q_t + (1 - beta) * p_(t-1)
-$$
-p_t = \beta q_t + (1-\beta)p_{t-1}
-$$
 - 当前实现参数：`alpha = 0.15`，`beta = 0.10`。
 
 实现过程：
@@ -132,19 +114,10 @@ $$
 数学形式：
 - 特征构造
 - 公式(文本版)：x_t = [d_(t-1), d_(t-2), (d_(t-1)+d_(t-2)+d_(t-3))/3]
-$$
-x_t = [d_{t-1}, d_{t-2}, \frac{d_{t-1}+d_{t-2}+d_{t-3}}{3}]
-$$
 - 目标
 - 公式(文本版)：y_t = d_t
-$$
-y_t = d_t
-$$
 - 模型输出
 - 公式(文本版)：y_hat(t+1) = f_RF(x_(t+1))
-$$
-\hat{y}_{t+1} = f_{RF}(x_{t+1})
-$$
 
 实现过程：
 - 用窗口 `window=3` 构造监督样本，样本数为 `n-3`。
@@ -170,14 +143,8 @@ $$
 数学形式：
 - 预测值取非零历史需求均值
 - 公式(文本版)：y_hat = mean({d_t | d_t > 0})
-$$
-\hat{y} = mean(\{d_t \mid d_t > 0\})
-$$
 - 预测区间
 - 公式(文本版)：[0.5 * y_hat, 1.5 * y_hat]
-$$
-[0.5\hat{y},\ 1.5\hat{y}]
-$$
 
 触发条件：
 - 非零样本不足 `MIN_DATA_POINTS=3`。
@@ -199,19 +166,10 @@ $$
 数学形式：
 - 模型 MAE
 - 公式(文本版)：MAE_model = (1/n) * sum(|y_t - y_hat_t|)
-$$
-MAE_{model} = \frac{1}{n}\sum_{t=1}^{n}|y_t - \hat{y}_t|
-$$
 - 朴素基线 MAE（lag-1）
 - 公式(文本版)：MAE_naive = (1/(n-1)) * sum(|y_t - y_(t-1)|)
-$$
-MAE_{naive} = \frac{1}{n-1}\sum_{t=2}^{n}|y_t - y_{t-1}|
-$$
 - MASE
 - 公式(文本版)：MASE = MAE_model / MAE_naive
-$$
-MASE = \frac{MAE_{model}}{MAE_{naive}}
-$$
 
 实现细节：
 - 若历史过短或 `MAE_naive = 0`，返回 `null`（避免除零和误导性指标）。
@@ -236,26 +194,14 @@ SBA 区间：
 - 近似假设：泊松分布满足 `Var(Y) ~= E(Y)`。
 - 标准差估计
 - 公式(文本版)：sigma ~= sqrt(y_hat)
-$$
-\sigma \approx \sqrt{\hat{y}}
-$$
 - 90% 区间（`z=1.645`）
 - 公式(文本版)：[max(0, y_hat - 1.645*sigma), y_hat + 1.645*sigma]
-$$
-[\max(0,\hat{y}-1.645\sigma),\ \hat{y}+1.645\sigma]
-$$
 
 RF 区间：
 - 用训练残差估计不确定性。
 - 公式(文本版)：RMSE = sqrt((1/n) * sum((y_t - y_hat_t)^2))
-$$
-RMSE = \sqrt{\frac{1}{n}\sum (y_t-\hat{y}_t)^2}
-$$
 - 90% 区间
 - 公式(文本版)：[max(0, y_hat - 1.645*RMSE), y_hat + 1.645*RMSE]
-$$
-[\max(0,\hat{y}-1.645\cdot RMSE),\ \hat{y}+1.645\cdot RMSE]
-$$
 
 业务含义：
 - 区间可直接作为库存安全策略的波动输入，而非只依赖单点预测。
@@ -273,24 +219,12 @@ $$
 数学形式：
 - 日均需求估计
 - 公式(文本版)：d_bar = Q_hat_month / 30
-$$
-\bar{d} = \frac{\hat{Q}_{month}}{30}
-$$
 - 由区间反推日需求标准差
 - 公式(文本版)：sigma_d ~= (upper - lower) / (2 * 1.645)
-$$
-\sigma_d \approx \frac{upper-lower}{2\times1.645}
-$$
 - 安全库存
 - 公式(文本版)：SS = k * sigma_d * sqrt(L)
-$$
-SS = k\cdot\sigma_d\cdot\sqrt{L}
-$$
 - 补货触发点
 - 公式(文本版)：ROP = d_bar * L + SS
-$$
-ROP = \bar{d}\cdot L + SS
-$$
 
 服务水平系数 `k`：
 - A 类：2.33
