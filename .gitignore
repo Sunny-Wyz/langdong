@@ -15,3 +15,23 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary / debug scripts (should not be committed)
+backend/TestBcrypt.java
+backend/cp.txt
+backend/fix_hash.py
+
+# Personal notes and local AI assistant files
+QA.md
+CLAUDE.md
+*.md.bak
+function.md
+silu.md
+yaoqiu*.md
+zongjie.md
+ai.md
+ai1.md
+
+# Standalone Python scripts (not part of the project structure)
+predictive_maintenance.py
+smart_replenishment.py
