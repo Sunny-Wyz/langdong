@@ -38,6 +38,26 @@ CREATE TABLE IF NOT EXISTS `biz_part_classify` (
 -- ================================================================
 -- 3. 新增菜单项（父节点 id=11，即备件智能分类模块目录）
 -- ================================================================
+-- 清理历史占位“测试模块”（避免侧边栏出现无效菜单）
+DELETE FROM role_menu
+WHERE menu_id IN (
+    SELECT id FROM menu
+    WHERE parent_id = 11
+      AND (
+          path IS NULL
+          OR path = '/test-11'
+          OR name LIKE '%测试模块%'
+      )
+);
+
+DELETE FROM menu
+WHERE parent_id = 11
+  AND (
+      path IS NULL
+      OR path = '/test-11'
+      OR name LIKE '%测试模块%'
+  );
+
 INSERT IGNORE INTO `menu` (`id`, `parent_id`, `name`, `path`, `component`, `permission`, `type`, `icon`, `sort`)
 VALUES
     -- 分类结果列表页（菜单页面）
@@ -50,3 +70,36 @@ VALUES
 -- ================================================================
 INSERT IGNORE INTO `role_menu` (`role_id`, `menu_id`)
 VALUES (1, 50), (1, 51);
+
+-- 去重：仅保留 id=50（分类结果查询）及其按钮 id=51
+CREATE TEMPORARY TABLE tmp_classify_menu_cleanup_ids (
+    id BIGINT PRIMARY KEY
+);
+
+INSERT IGNORE INTO tmp_classify_menu_cleanup_ids (id)
+SELECT id
+FROM menu
+WHERE parent_id = 11
+  AND path = '/smart/classify-result'
+  AND id <> 50;
+
+INSERT IGNORE INTO tmp_classify_menu_cleanup_ids (id)
+SELECT id
+FROM menu
+WHERE parent_id IN (
+    SELECT id FROM (
+        SELECT id
+        FROM menu
+        WHERE parent_id = 11
+          AND path = '/smart/classify-result'
+          AND id <> 50
+    ) t
+);
+
+DELETE FROM role_menu
+WHERE menu_id IN (SELECT id FROM tmp_classify_menu_cleanup_ids);
+
+DELETE FROM menu
+WHERE id IN (SELECT id FROM tmp_classify_menu_cleanup_ids);
+
+DROP TEMPORARY TABLE tmp_classify_menu_cleanup_ids;

@@ -14,8 +14,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * AI智能预测核心调度服务
@@ -30,6 +33,7 @@ import java.util.Map;
 public class AiForecastService {
 
     private static final Logger log = LoggerFactory.getLogger(AiForecastService.class);
+    private final AtomicBoolean forecasting = new AtomicBoolean(false);
 
     @Autowired
     private AiFeatureService aiFeatureService;
@@ -61,6 +65,10 @@ public class AiForecastService {
      */
     @Async
     public void runFullForecast() {
+        if (!forecasting.compareAndSet(false, true)) {
+            log.warn("[AI预测] 检测到已有预测任务运行中，忽略本次触发");
+            return;
+        }
         log.info("[AI预测] 开始挂起全部备件的预测任务");
 
         // 目标月份（下个月）
@@ -90,6 +98,16 @@ public class AiForecastService {
 
             // 第三步：批量保存预测结果
             if (!results.isEmpty()) {
+                Set<String> partCodeSet = new LinkedHashSet<>();
+                for (AiForecastResult item : results) {
+                    if (item != null && item.getPartCode() != null && !item.getPartCode().trim().isEmpty()) {
+                        partCodeSet.add(item.getPartCode().trim());
+                    }
+                }
+                if (!partCodeSet.isEmpty()) {
+                    int deleted = aiForecastResultMapper.deleteByMonthAndPartCodes(targetMonth, new ArrayList<>(partCodeSet));
+                    log.info("[AI预测] 已清理目标月份旧结果 {} 条（month={}, parts={}）", deleted, targetMonth, partCodeSet.size());
+                }
                 aiForecastResultMapper.insertBatch(results);
                 log.info("[AI预测] 成功写入全量预测结果 {} 条", results.size());
             }
@@ -99,6 +117,8 @@ public class AiForecastService {
 
         } catch (Exception e) {
             log.error("[AI预测] 核心流水线执行异常", e);
+        } finally {
+            forecasting.set(false);
         }
     }
 

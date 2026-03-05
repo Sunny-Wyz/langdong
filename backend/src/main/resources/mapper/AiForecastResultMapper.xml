@@ -33,6 +33,15 @@
         </foreach>
     </insert>
 
+    <delete id="deleteByMonthAndPartCodes">
+        DELETE FROM ai_forecast_result
+        WHERE forecast_month = #{month}
+          AND part_code IN
+          <foreach collection="partCodes" item="code" open="(" separator="," close=")">
+              #{code}
+          </foreach>
+    </delete>
+
     <!-- 查询指定备件的历史预测（按月升序） -->
     <select id="findByPartCode" resultMap="AiForecastResultMap">
         SELECT

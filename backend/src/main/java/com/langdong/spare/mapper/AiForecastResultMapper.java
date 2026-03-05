@@ -18,6 +18,13 @@ public interface AiForecastResultMapper {
     void insertBatch(@Param("list") List<AiForecastResult> list);
 
     /**
+     * 删除指定月份、指定备件编码的旧预测（用于手动重算幂等覆盖）
+     */
+    int deleteByMonthAndPartCodes(
+            @Param("month") String month,
+            @Param("partCodes") List<String> partCodes);
+
+    /**
      * 按备件编码查询历史预测（按月升序）
      */
     List<AiForecastResult> findByPartCode(@Param("partCode") String partCode);
