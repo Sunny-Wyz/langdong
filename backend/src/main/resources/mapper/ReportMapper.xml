@@ -42,7 +42,7 @@
                  简化：非报修状态工单占比 */
             (SELECT ROUND(
                 COALESCE(
-                    SUM(CASE WHEN wo.order_status = '已完成' THEN 1 ELSE 0 END) /
+                    SUM(CASE WHEN wo.order_status IN ('已完成', '完工') THEN 1 ELSE 0 END) /
                     NULLIF(COUNT(*), 0),
                 0) * 100, 1)
              FROM biz_work_order wo
@@ -55,12 +55,21 @@
          ================================================================ -->
     <select id="getAbcDistribution" resultType="java.util.Map">
         SELECT
-            COALESCE(bc.classify_level, '未分类') AS classLevel,
+            COALESCE(bc.abc_class, '未分类')      AS classLevel,
             COUNT(sp.id)                           AS partCount,
             COALESCE(SUM(sp.quantity * sp.price), 0) AS totalAmount
         FROM spare_part sp
-        LEFT JOIN biz_part_classify bc ON sp.id = bc.spare_part_id
-        GROUP BY COALESCE(bc.classify_level, '未分类')
+        LEFT JOIN (
+            SELECT c.part_code, c.abc_class
+            FROM biz_part_classify c
+            INNER JOIN (
+                SELECT part_code, MAX(id) AS max_id
+                FROM biz_part_classify
+                WHERE classify_month = (SELECT MAX(classify_month) FROM biz_part_classify)
+                GROUP BY part_code
+            ) t ON c.id = t.max_id
+        ) bc ON sp.code = bc.part_code
+        GROUP BY COALESCE(bc.abc_class, '未分类')
         ORDER BY totalAmount DESC
     </select>
 

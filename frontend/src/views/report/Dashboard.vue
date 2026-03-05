@@ -1,5 +1,21 @@
 <template>
     <div style="padding: 24px">
+        <el-card shadow="never" style="margin-bottom: 16px">
+            <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-weight:600">KPI月份</span>
+                <el-date-picker
+                    v-model="selectedMonth"
+                    type="month"
+                    format="yyyy-MM"
+                    value-format="yyyy-MM"
+                    placeholder="选择月份"
+                    size="small"
+                    style="width: 140px"
+                    @change="loadKpi"
+                />
+            </div>
+        </el-card>
+
         <el-row :gutter="20" style="margin-bottom: 24px">
             <el-col :span="6" v-for="kpi in kpiCards" :key="kpi.key">
                 <el-card shadow="hover" body-style="padding:20px">
@@ -36,26 +52,34 @@ import * as echarts from 'echarts';
 export default {
     data() {
         return {
-            kpi: null,
+            selectedMonth: '',
             kpiCards: [],
             maintenanceChart: null,
             trendChart: null,
         };
     },
     async created() {
+        this.selectedMonth = this.currentMonth();
         await this.loadKpi();
         await this.renderCharts();
     },
     methods: {
+        currentMonth() {
+            const d = new Date();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            return `${d.getFullYear()}-${m}`;
+        },
         async loadKpi() {
             try {
-                const res = await this.$http.get('/report/kpi');
+                const res = await this.$http.get('/report/kpi', {
+                    params: { yearMonth: this.selectedMonth || undefined }
+                });
                 const k = res.data || {};
                 this.kpiCards = [
                     { key: 'inventory', label: '库存总金额', value: '¥ ' + (k.totalInventoryAmount || 0).toLocaleString(), icon: 'el-icon-box', color: '#409EFF' },
                     { key: 'turnover', label: '库存周转率', value: (k.inventoryTurnoverRate || 0) + ' 次/年', icon: 'el-icon-refresh', color: '#67C23A' },
-                    { key: 'purchase', label: '本月采购额', value: '¥ ' + (k.monthPurchaseAmount || 0).toLocaleString(), icon: 'el-icon-shopping-cart-2', color: '#E6A23C' },
-                    { key: 'repair', label: '本月维修费用', value: '¥ ' + (k.monthRepairCost || 0).toLocaleString(), icon: 'el-icon-setting', color: '#F56C6C' },
+                    { key: 'purchase', label: '当月采购额', value: '¥ ' + (k.monthPurchaseAmount || 0).toLocaleString(), icon: 'el-icon-shopping-cart-2', color: '#E6A23C' },
+                    { key: 'repair', label: '当月维修费用', value: '¥ ' + (k.monthRepairCost || 0).toLocaleString(), icon: 'el-icon-setting', color: '#F56C6C' },
                     { key: 'avail', label: '设备可用率', value: (k.equipmentAvailability || 0) + ' %', icon: 'el-icon-data-line', color: '#909399' },
                 ];
             } catch (e) { this.$message.error('加载KPI数据失败'); }

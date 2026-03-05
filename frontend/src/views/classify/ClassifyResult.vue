@@ -286,11 +286,14 @@ export default {
       try {
         const res = await request.get('/classify/matrix')
         this.matrixData = res.data || {}
-        this.renderMatrix()
       } catch (e) {
         this.$message.error('获取矩阵数据失败')
       } finally {
         this.matrixLoading = false
+        this.$nextTick(() => {
+          this.ensureMatrixChart()
+          this.renderMatrix()
+        })
       }
     },
 
@@ -304,17 +307,22 @@ export default {
         const echarts = await import('echarts')
         this.echarts = echarts
         this.echartsAvailable = true
-        // 等待 DOM 渲染完成后初始化图表
         this.$nextTick(() => {
-          if (this.$refs.matrixChart) {
-            this.matrixChart = echarts.init(this.$refs.matrixChart)
-            this.renderMatrix()
-          }
+          this.ensureMatrixChart()
+          this.renderMatrix()
         })
       } catch (e) {
         // ECharts 未安装，降级显示 HTML 表格
         this.echartsAvailable = false
       }
+    },
+
+    /** 确保 ECharts 实例存在（处理 loading 阶段容器尚未渲染的时序问题） */
+    ensureMatrixChart() {
+      if (!this.echartsAvailable || !this.echarts) return
+      if (!this.$refs.matrixChart) return
+      if (this.matrixChart) return
+      this.matrixChart = this.echarts.init(this.$refs.matrixChart)
     },
 
     /** 渲染 ECharts 热力矩阵 */

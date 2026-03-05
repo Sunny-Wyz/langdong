@@ -26,6 +26,9 @@ public class StockThresholdService {
 
     private static final Logger log = LoggerFactory.getLogger(StockThresholdService.class);
 
+    @Autowired
+    private ReorderSuggestMapper reorderSuggestMapper;
+
     /**
      * 重算安全阈值并推送补货建议
      *
@@ -71,10 +74,9 @@ public class StockThresholdService {
             double ropDouble = meanDailyDemand * leadTime + safetyStock;
             int reorderPoint = (int) Math.ceil(ropDouble);
 
-            // 6. 假设这里通过另一个 Mapper 获取当前真实库存。
-            // 为简化演示，我们假设当前可用库存随机，或者通过其他手段获取。
-            // （本系统中正常应查询 sparePartLocationStock 或 spare_part 表的 quantity，这里设为一个简单固定判断）
-            int currentStock = 10; // 模拟当前库存为 10
+            // 6. 读取当前真实库存（优先 spare_part_stock，兜底 spare_part.quantity）
+            Integer stock = reorderSuggestMapper.findCurrentStockByPartCode(ctx.getPartCode());
+            int currentStock = stock == null ? 0 : Math.max(stock, 0);
 
             // 7. 判断是否需要推送补货建议
             if (currentStock <= reorderPoint) {
@@ -90,8 +92,9 @@ public class StockThresholdService {
                 suggest.setUrgency(currentStock < safetyStock ? "紧急" : "正常");
                 suggest.setStatus("待处理");
 
-                // todo: 这里正常应该通过 reorderSuggestMapper.insert(suggest) 保存
-                // （为与现有代码兼容，我们简化此存储逻辑，或依赖现有的 mapper，目前暂无 insert 方法提供）
+                // 同月同备件仅保留一条待处理建议，重复运行时覆盖旧建议
+                reorderSuggestMapper.deletePendingByPartAndMonth(suggest.getPartCode(), currentMonth);
+                reorderSuggestMapper.insert(suggest);
                 suggestCount++;
             }
         }

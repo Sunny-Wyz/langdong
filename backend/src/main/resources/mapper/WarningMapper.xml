@@ -37,7 +37,7 @@
         LEFT JOIN equipment e ON wo.device_id = e.id
         WHERE wo.plan_finish IS NOT NULL
           AND wo.plan_finish &lt; NOW()
-          AND wo.order_status NOT IN ('已完成','关闭')
+          AND wo.order_status NOT IN ('已完成','完工','关闭')
         ORDER BY wo.plan_finish ASC
     </select>
 

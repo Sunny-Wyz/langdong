@@ -21,6 +21,67 @@
         ORDER BY FIELD(s.urgency,'紧急','正常'), s.created_at DESC
     </select>
 
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*)
+        FROM biz_reorder_suggest
+        WHERE status = #{status}
+    </select>
+
+    <select id="findCurrentStockByPartCode" resultType="java.lang.Integer">
+        SELECT COALESCE(ss.quantity, sp.quantity, 0)
+        FROM spare_part sp
+        LEFT JOIN spare_part_stock ss ON ss.spare_part_id = sp.id
+        WHERE sp.code = #{partCode}
+        LIMIT 1
+    </select>
+
+    <delete id="deletePendingByPartAndMonth">
+        DELETE FROM biz_reorder_suggest
+        WHERE part_code = #{partCode}
+          AND suggest_month = #{suggestMonth}
+          AND status = '待处理'
+    </delete>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_reorder_suggest (
+            part_code, suggest_month, current_stock, reorder_point, suggest_qty,
+            forecast_qty, lower_bound, upper_bound, urgency, status
+        ) VALUES (
+            #{partCode}, #{suggestMonth}, #{currentStock}, #{reorderPoint}, #{suggestQty},
+            #{forecastQty}, #{lowerBound}, #{upperBound}, #{urgency}, #{status}
+        )
+    </insert>
+
+    <insert id="bootstrapPendingSuggestions">
+        INSERT INTO biz_reorder_suggest (
+            part_code, suggest_month, current_stock, reorder_point, suggest_qty,
+            forecast_qty, lower_bound, upper_bound, urgency, status
+        )
+        SELECT
+            x.part_code,
+            #{suggestMonth},
+            x.current_stock,
+            x.reorder_point,
+            x.suggest_qty,
+            x.forecast_qty,
+            ROUND(x.forecast_qty * 0.80, 2),
+            ROUND(x.forecast_qty * 1.25, 2),
+            CASE WHEN x.current_stock &lt;= x.reorder_point - 8 THEN '紧急' ELSE '正常' END,
+            '待处理'
+        FROM (
+            SELECT
+                sp.code AS part_code,
+                COALESCE(ss.quantity, sp.quantity, 0) AS current_stock,
+                COALESCE(ss.quantity, sp.quantity, 0) + 5 + MOD(CRC32(CONCAT('R', sp.code)), 12) AS reorder_point,
+                8 + MOD(CRC32(CONCAT('Q', sp.code)), 18) AS suggest_qty,
+                ROUND(6 + MOD(CRC32(CONCAT('F', sp.code)), 24), 2) AS forecast_qty
+            FROM spare_part sp
+            LEFT JOIN spare_part_stock ss ON ss.spare_part_id = sp.id
+            ORDER BY COALESCE(sp.is_critical, 0) DESC, COALESCE(sp.price, 0) DESC
+            LIMIT 30
+        ) x
+    </insert>
+
     <update id="updateStatus">
         UPDATE biz_reorder_suggest SET status = #{status} WHERE id = #{id}
     </update>

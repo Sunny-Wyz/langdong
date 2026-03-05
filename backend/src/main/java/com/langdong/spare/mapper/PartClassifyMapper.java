@@ -70,4 +70,14 @@ public interface PartClassifyMapper {
      * 查询最新的分类月份（classify_month 最大值）
      */
     String findLatestMonth();
+
+    /**
+     * 分类结果总记录数（用于空数据兜底）
+     */
+    long countAll();
+
+    /**
+     * 从现有备件快照生成一批演示分类结果
+     */
+    int insertDemoSnapshot(@Param("month") String month);
 }

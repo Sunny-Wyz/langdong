@@ -9,5 +9,16 @@ import java.util.List;
 public interface ReorderSuggestMapper {
     List<ReorderSuggest> findByStatus(@Param("status") String status);
 
+    long countByStatus(@Param("status") String status);
+
+    Integer findCurrentStockByPartCode(@Param("partCode") String partCode);
+
+    void deletePendingByPartAndMonth(@Param("partCode") String partCode,
+                                     @Param("suggestMonth") String suggestMonth);
+
+    int insert(ReorderSuggest suggest);
+
+    int bootstrapPendingSuggestions(@Param("suggestMonth") String suggestMonth);
+
     void updateStatus(@Param("id") Long id, @Param("status") String status);
 }

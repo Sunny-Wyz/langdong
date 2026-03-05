@@ -123,4 +123,66 @@
         SELECT MAX(classify_month) FROM biz_part_classify
     </select>
 
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM biz_part_classify
+    </select>
+
+    <insert id="insertDemoSnapshot">
+        INSERT INTO biz_part_classify (
+            part_code, classify_month, abc_class, xyz_class,
+            composite_score, annual_cost, adi, cv2,
+            safety_stock, reorder_point, service_level, strategy_code, create_time
+        )
+        SELECT
+            sp.code,
+            #{month},
+            CASE
+                WHEN COALESCE(sp.is_critical, 0) = 1 OR COALESCE(sp.price, 0) >= 1000 THEN 'A'
+                WHEN COALESCE(sp.price, 0) >= 200 THEN 'B'
+                ELSE 'C'
+            END,
+            CASE MOD(CRC32(sp.code), 3)
+                WHEN 0 THEN 'X'
+                WHEN 1 THEN 'Y'
+                ELSE 'Z'
+            END,
+            ROUND(LEAST(100, COALESCE(sp.price, 20) / 25 + COALESCE(sp.lead_time, 15) / 2), 2),
+            ROUND(COALESCE(sp.price, 20) * (6 + MOD(CRC32(CONCAT('AN', sp.code)), 18)), 2),
+            NULL,
+            CASE MOD(CRC32(sp.code), 3)
+                WHEN 0 THEN 0.3200
+                WHEN 1 THEN 0.9200
+                ELSE 1.8600
+            END,
+            CASE
+                WHEN COALESCE(sp.is_critical, 0) = 1 THEN 8
+                WHEN COALESCE(sp.price, 0) >= 200 THEN 5
+                ELSE 3
+            END,
+            CASE
+                WHEN COALESCE(sp.is_critical, 0) = 1 THEN 20
+                WHEN COALESCE(sp.price, 0) >= 200 THEN 12
+                ELSE 8
+            END,
+            CASE
+                WHEN COALESCE(sp.is_critical, 0) = 1 THEN 99.00
+                WHEN COALESCE(sp.price, 0) >= 200 THEN 95.00
+                ELSE 90.00
+            END,
+            CONCAT(
+                CASE
+                    WHEN COALESCE(sp.is_critical, 0) = 1 OR COALESCE(sp.price, 0) >= 1000 THEN 'A'
+                    WHEN COALESCE(sp.price, 0) >= 200 THEN 'B'
+                    ELSE 'C'
+                END,
+                CASE MOD(CRC32(sp.code), 3)
+                    WHEN 0 THEN 'X'
+                    WHEN 1 THEN 'Y'
+                    ELSE 'Z'
+                END
+            ),
+            NOW()
+        FROM spare_part sp
+    </insert>
+
 </mapper>

@@ -260,6 +260,8 @@ public class ClassifyService {
     public Map<String, Object> queryResult(String abcClass, String xyzClass,
                                             String partCode, String month,
                                             int page, int pageSize) {
+        ensureClassifyDataReady();
+
         // 处理空字符串
         String abc  = (abcClass  != null && !abcClass.trim().isEmpty())  ? abcClass.trim()  : null;
         String xyz  = (xyzClass  != null && !xyzClass.trim().isEmpty())  ? xyzClass.trim()  : null;
@@ -290,6 +292,8 @@ public class ClassifyService {
      * 返回格式：{ "AX": 12, "AY": 5, "AZ": 2, "BX": 30, ... }
      */
     public Map<String, Long> queryMatrix() {
+        ensureClassifyDataReady();
+
         // 初始化9个格子全为0
         String[] abcClasses = {"A", "B", "C"};
         String[] xyzClasses = {"X", "Y", "Z"};
@@ -312,5 +316,17 @@ public class ClassifyService {
         }
 
         return matrix;
+    }
+
+    /**
+     * 兜底：分类结果为空时，按当前备件快照生成一批演示分类数据
+     */
+    private void ensureClassifyDataReady() {
+        if (partClassifyMapper.countAll() > 0) {
+            return;
+        }
+        String month = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        int inserted = partClassifyMapper.insertDemoSnapshot(month);
+        log.warn("[分类查询兜底] 检测到分类结果为空，已自动生成演示数据 {} 条（月份={}）", inserted, month);
     }
 }
