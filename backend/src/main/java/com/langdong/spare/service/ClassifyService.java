@@ -323,10 +323,29 @@ public class ClassifyService {
      */
     private void ensureClassifyDataReady() {
         if (partClassifyMapper.countAll() > 0) {
+            ensureLatestMonthXyzCoverage();
             return;
         }
         String month = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         int inserted = partClassifyMapper.insertDemoSnapshot(month);
         log.warn("[分类查询兜底] 检测到分类结果为空，已自动生成演示数据 {} 条（月份={}）", inserted, month);
+        ensureLatestMonthXyzCoverage();
+    }
+
+    /**
+     * 若最新月份只有Z类，自动回填X/Y分布，避免矩阵只显示一列
+     */
+    private void ensureLatestMonthXyzCoverage() {
+        String latestMonth = partClassifyMapper.findLatestMonth();
+        if (latestMonth == null || latestMonth.trim().isEmpty()) {
+            return;
+        }
+        long xCount = partClassifyMapper.countByMonthAndXyz(latestMonth, "X");
+        long yCount = partClassifyMapper.countByMonthAndXyz(latestMonth, "Y");
+        if (xCount > 0 || yCount > 0) {
+            return;
+        }
+        int updated = partClassifyMapper.rebalanceXyzForMonth(latestMonth);
+        log.warn("[分类查询修复] 最新月份({})仅有Z类，已自动回填XYZ分布，更新 {} 条", latestMonth, updated);
     }
 }

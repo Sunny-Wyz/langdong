@@ -80,4 +80,14 @@ public interface PartClassifyMapper {
      * 从现有备件快照生成一批演示分类结果
      */
     int insertDemoSnapshot(@Param("month") String month);
+
+    /**
+     * 统计指定月份某个XYZ分类的记录数
+     */
+    long countByMonthAndXyz(@Param("month") String month, @Param("xyzClass") String xyzClass);
+
+    /**
+     * 当某月份只有Z类时，回填X/Y/Z分布，确保矩阵可视化可用
+     */
+    int rebalanceXyzForMonth(@Param("month") String month);
 }

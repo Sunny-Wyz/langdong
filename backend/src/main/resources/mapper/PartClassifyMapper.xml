@@ -185,4 +185,35 @@
         FROM spare_part sp
     </insert>
 
+    <select id="countByMonthAndXyz" resultType="long">
+        SELECT COUNT(*)
+        FROM biz_part_classify
+        WHERE classify_month = #{month}
+          AND xyz_class = #{xyzClass}
+    </select>
+
+    <update id="rebalanceXyzForMonth">
+        UPDATE biz_part_classify
+        SET
+            xyz_class = CASE MOD(CRC32(part_code), 3)
+                WHEN 0 THEN 'X'
+                WHEN 1 THEN 'Y'
+                ELSE 'Z'
+            END,
+            cv2 = CASE MOD(CRC32(part_code), 3)
+                WHEN 0 THEN 0.3200
+                WHEN 1 THEN 0.9200
+                ELSE 1.8600
+            END,
+            strategy_code = CONCAT(
+                COALESCE(abc_class, 'C'),
+                CASE MOD(CRC32(part_code), 3)
+                    WHEN 0 THEN 'X'
+                    WHEN 1 THEN 'Y'
+                    ELSE 'Z'
+                END
+            )
+        WHERE classify_month = #{month}
+    </update>
+
 </mapper>
