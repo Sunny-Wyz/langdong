@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// 动态路由与权限菜单字典加载核心控制器
 @RestController
 @RequestMapping("/api/menus")
 @CrossOrigin(origins = "*")
@@ -23,6 +24,7 @@ public class MenuController {
     @Autowired
     private UserMapper userMapper;
 
+    // [核心] 获取当前登录用户的动态路由和权限树，用于前端侧边栏渲染与按钮鉴权
     @GetMapping("/my")
     public ResponseEntity<List<Menu>> getMyMenus() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -37,6 +39,7 @@ public class MenuController {
         return ResponseEntity.ok(tree);
     }
 
+    // [核心] 获取系统全量菜单和权限定义树，用于管理员在建立角色时进行全量勾选分配
     @GetMapping
     public ResponseEntity<List<Menu>> getAllMenus() {
         List<Menu> menus = menuMapper.findAll();

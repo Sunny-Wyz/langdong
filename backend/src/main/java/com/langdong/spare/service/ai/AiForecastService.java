@@ -105,7 +105,8 @@ public class AiForecastService {
                     }
                 }
                 if (!partCodeSet.isEmpty()) {
-                    int deleted = aiForecastResultMapper.deleteByMonthAndPartCodes(targetMonth, new ArrayList<>(partCodeSet));
+                    int deleted = aiForecastResultMapper.deleteByMonthAndPartCodes(targetMonth,
+                            new ArrayList<>(partCodeSet));
                     log.info("[AI预测] 已清理目标月份旧结果 {} 条（month={}, parts={}）", deleted, targetMonth, partCodeSet.size());
                 }
                 aiForecastResultMapper.insertBatch(results);

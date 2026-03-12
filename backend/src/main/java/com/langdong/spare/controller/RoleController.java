@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+// 角色与权限关联管理核心控制器
 @RestController
 @RequestMapping("/api/roles")
 @CrossOrigin(origins = "*")
@@ -52,12 +53,14 @@ public class RoleController {
         return ResponseEntity.ok().build();
     }
 
+    // [核心] 获取当前角色已分配的菜单/权限ID列表，用于前端树形控件回显
     @GetMapping("/{id}/menus")
     @PreAuthorize("hasAuthority('sys:role:list')")
     public ResponseEntity<List<Long>> getRoleMenus(@PathVariable Long id) {
         return ResponseEntity.ok(roleMenuMapper.findMenuIdsByRoleId(id));
     }
 
+    // [核心] 为角色分配菜单和按钮权限 (全量覆盖：先删除旧关联再插入新关联)
     @PostMapping("/{id}/menus")
     @Transactional
     public ResponseEntity<?> assignMenus(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {

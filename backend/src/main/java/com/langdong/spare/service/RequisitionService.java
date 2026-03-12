@@ -34,6 +34,7 @@ public class RequisitionService {
         req.setApplicantId(userId);
         req.setWorkOrderNo(dto.getWorkOrderNo());
         req.setDeviceId(dto.getDeviceId());
+        // [状态机1] PENDING (待审批)：设备工程师提交领用申请时初始状态
         req.setReqStatus("PENDING");
         req.setIsUrgent(dto.getIsUrgent() != null ? dto.getIsUrgent() : false);
         req.setRemark(dto.getRemark());
@@ -66,6 +67,7 @@ public class RequisitionService {
 
     @Transactional
     public void approve(Long id, RequisitionApproveDTO dto, Long approverId) {
+        // [状态机2] APPROVED (已审批) / REJECTED (已驳回)：主管/库管员进行审批流转
         String status = "APPROVE".equalsIgnoreCase(dto.getAction()) ? "APPROVED" : "REJECTED";
         requisitionMapper.updateApprovalInfo(id, approverId, dto.getRemark(), status);
     }
@@ -83,6 +85,7 @@ public class RequisitionService {
                 sparePartStockMapper.addQuantity(item.getSparePartId(), -itemDto.getOutQty());
             }
         }
+        // [状态机3] OUTBOUND (已出库)：库管员实际执行库存扣减后状态变更为已出库
         requisitionMapper.updateStatus(id, "OUTBOUND");
     }
 
@@ -91,6 +94,7 @@ public class RequisitionService {
         for (RequisitionInstallDTO.RequisitionInstallItemDTO itemDto : dto.getItems()) {
             requisitionItemMapper.updateInstallInfo(itemDto.getItemId(), installerId, itemDto.getInstallLoc());
         }
+        // [状态机4] INSTALLED (已安装)：维修人员领取并在设备安装完毕后进入闭环终态
         requisitionMapper.updateStatus(id, "INSTALLED");
     }
 }
