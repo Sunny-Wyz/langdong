@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s /b *.java)",
+      "Bash(mysql -u root -p123456 spare_db -e \"SHOW COLUMNS FROM stock_in_item;\")"
+    ],
+    "additionalDirectories": [
+      "e:\\GitHub\\langdong"
+    ]
+  }
+}

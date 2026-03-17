@@ -10,6 +10,7 @@ public class StockInItem {
     private Long sparePartId;
     private Integer expectedQuantity;
     private Integer actualQuantity;
+    private Integer remainingQty;   // FIFO剩余数量
     private Integer shelvedQuantity;
     private Long locationId;
     private String remark;

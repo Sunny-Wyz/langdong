@@ -3,9 +3,11 @@ package com.langdong.spare.service;
 import com.langdong.spare.dto.*;
 import com.langdong.spare.entity.Requisition;
 import com.langdong.spare.entity.RequisitionItem;
+import com.langdong.spare.entity.StockInItem;
 import com.langdong.spare.mapper.RequisitionItemMapper;
 import com.langdong.spare.mapper.RequisitionMapper;
 import com.langdong.spare.mapper.SparePartStockMapper;
+import com.langdong.spare.mapper.StockInItemMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,9 @@ public class RequisitionService {
 
     @Autowired
     private SparePartStockMapper sparePartStockMapper;
+
+    @Autowired
+    private StockInItemMapper stockInItemMapper;
 
     @Transactional
     public void apply(RequisitionApplyDTO dto, Long userId) {
@@ -72,16 +77,31 @@ public class RequisitionService {
 
     @Transactional
     public void outbound(Long id, RequisitionOutboundDTO dto) {
-        for (RequisitionOutboundDTO.RequisitionOutboundItemDTO itemDto : dto.getItems()) {
-            requisitionItemMapper.updateOutbound(itemDto.getItemId(), itemDto.getOutQty());
+        List<RequisitionItem> allItems = requisitionItemMapper.findByReqId(id);
 
-            // 扣除库存
-            RequisitionItem item = requisitionItemMapper.findByReqId(id).stream()
+        for (RequisitionOutboundDTO.RequisitionOutboundItemDTO itemDto : dto.getItems()) {
+            if (itemDto.getOutQty() == null || itemDto.getOutQty() <= 0) continue;
+
+            RequisitionItem item = allItems.stream()
                     .filter(i -> i.getId().equals(itemDto.getItemId()))
                     .findFirst().orElse(null);
-            if (item != null && itemDto.getOutQty() != null && itemDto.getOutQty() > 0) {
-                sparePartStockMapper.addQuantity(item.getSparePartId(), -itemDto.getOutQty());
+            if (item == null) continue;
+
+            // FIFO：按入库日期升序消耗批次
+            int needed = itemDto.getOutQty();
+            List<StockInItem> fifoBatches = stockInItemMapper.findFifoBySparePartId(item.getSparePartId());
+            for (StockInItem batch : fifoBatches) {
+                if (needed <= 0) break;
+                int consume = Math.min(batch.getRemainingQty(), needed);
+                stockInItemMapper.deductRemainingQty(batch.getId(), consume);
+                needed -= consume;
             }
+            if (needed > 0) {
+                throw new RuntimeException("备件库存不足，无法完成出库（缺少 " + needed + " 件）");
+            }
+
+            requisitionItemMapper.updateOutbound(itemDto.getItemId(), itemDto.getOutQty());
+            sparePartStockMapper.addQuantity(item.getSparePartId(), -itemDto.getOutQty());
         }
         requisitionMapper.updateStatus(id, "OUTBOUND");
     }

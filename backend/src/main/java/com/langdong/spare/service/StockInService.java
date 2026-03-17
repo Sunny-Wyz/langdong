@@ -92,6 +92,7 @@ public class StockInService {
             stockInItem.setSparePartId(poItem.getSparePartId());
             stockInItem.setExpectedQuantity(poItem.getQuantity() - poItem.getReceivedQuantity());
             stockInItem.setActualQuantity(reqItem.getActualQuantity());
+            stockInItem.setRemainingQty(reqItem.getActualQuantity()); // FIFO：初始剩余量=实收量
             stockInItem.setLocationId(reqItem.getLocationId());
             stockInItem.setRemark(reqItem.getRemark());
             stockInItemMapper.insert(stockInItem);

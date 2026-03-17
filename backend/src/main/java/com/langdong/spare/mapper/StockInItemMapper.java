@@ -13,4 +13,10 @@ public interface StockInItemMapper {
     List<StockInItem> findPendingShelving();
 
     int updateShelvedQuantity(@Param("id") Long id, @Param("addedQuantity") Integer addedQuantity);
+
+    /** 按入库日期升序（先进先出）查询指定备件的有剩余库存的批次 */
+    List<StockInItem> findFifoBySparePartId(@Param("sparePartId") Long sparePartId);
+
+    /** 扣减批次剩余数量 */
+    int deductRemainingQty(@Param("id") Long id, @Param("qty") Integer qty);
 }
