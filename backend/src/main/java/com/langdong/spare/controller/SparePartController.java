@@ -23,6 +23,19 @@ public class SparePartController {
     @Autowired
     private SparePartCategoryMapper categoryMapper;
 
+    @Autowired
+    private com.langdong.spare.service.SparePartService sparePartService;
+
+    @PostMapping("/import")
+    public ResponseEntity<?> importData(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            java.util.Map<String, Object> result = sparePartService.importSpareParts(file);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("导入失败: " + e.getMessage());
+        }
+    }
+
     @GetMapping
     public ResponseEntity<List<SparePart>> list() {
         return ResponseEntity.ok(sparePartMapper.findAll());

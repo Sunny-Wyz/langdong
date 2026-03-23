@@ -3,39 +3,42 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <span class="title">备件列表</span>
-      <el-button type="primary" icon="el-icon-plus" @click="dialogVisible = true">增加备件</el-button>
+      <div class="action-buttons">
+        <el-button type="success" icon="el-icon-upload2" @click="importDialogVisible = true">批量导入</el-button>
+        <el-button type="primary" icon="el-icon-plus" @click="dialogVisible = true">增加备件</el-button>
+      </div>
     </div>
 
     <!-- 备件表格 -->
     <el-table :data="list" border stripe v-loading="loading" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column prop="code" label="备件编码" width="100" />
-      <el-table-column prop="name" label="备件名称" min-width="120" />
-      <el-table-column prop="model" label="型号规格" min-width="120" />
-      <el-table-column prop="categoryId" label="类别" width="120" show-overflow-tooltip>
+      <el-table-column prop="id" label="ID" width="60" sortable />
+      <el-table-column prop="code" label="备件编码" width="100" sortable />
+      <el-table-column prop="name" label="备件名称" min-width="120" sortable />
+      <el-table-column prop="model" label="型号规格" min-width="120" sortable />
+      <el-table-column prop="categoryId" label="类别" width="120" show-overflow-tooltip sortable >
         <template slot-scope="{ row }">
           {{ getCategoryName(row.categoryId) }}
         </template>
       </el-table-column>
-      <el-table-column prop="quantity" label="库存数量" width="90" align="center" />
-      <el-table-column prop="unit" label="单位" width="70" align="center" />
-      <el-table-column prop="price" label="单价（元）" width="110" align="right">
+      <el-table-column prop="quantity" label="库存数量" width="90" align="center" sortable />
+      <el-table-column prop="unit" label="单位" width="70" align="center" sortable />
+      <el-table-column prop="price" label="单价（元）" width="110" align="right" sortable >
         <template slot-scope="{ row }">
           {{ row.price != null ? Number(row.price).toFixed(2) : '—' }}
         </template>
       </el-table-column>
-      <el-table-column prop="supplierId" label="供应商" min-width="120" show-overflow-tooltip>
+      <el-table-column prop="supplierId" label="供应商" min-width="120" show-overflow-tooltip sortable >
         <template slot-scope="{ row }">
           {{ getSupplierName(row.supplierId) }}
         </template>
       </el-table-column>
-      <el-table-column prop="locationId" label="所属货位" min-width="120" show-overflow-tooltip>
+      <el-table-column prop="locationId" label="所属货位" min-width="120" show-overflow-tooltip sortable >
         <template slot-scope="{ row }">
           {{ getLocationName(row.locationId) }}
         </template>
       </el-table-column>
-      <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="createdAt" label="创建时间" width="160">
+      <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip sortable />
+      <el-table-column prop="createdAt" label="创建时间" width="160" sortable >
         <template slot-scope="{ row }">
           {{ formatDate(row.createdAt) }}
         </template>
@@ -119,6 +122,22 @@
         <el-button type="primary" :loading="submitting" @click="submitForm">确 定</el-button>
       </span>
     </el-dialog>
+
+    <!-- 批量导入对话框 -->
+    <el-dialog title="批量导入备件" :visible.sync="importDialogVisible" width="400px">
+      <el-upload
+        class="upload-demo"
+        drag
+        action="#"
+        :http-request="handleImport"
+        :show-file-list="false"
+        accept=".xlsx,.xls"
+      >
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <div class="el-upload__tip" slot="tip">请上传包含数据的 Excel 文件</div>
+      </el-upload>
+    </el-dialog>
   </div>
 </template>
 
@@ -135,7 +154,9 @@ export default {
       categories: [],
       loading: false,
       dialogVisible: false,
+      importDialogVisible: false,
       submitting: false,
+      importing: false,
       form: {
         id: null,
         code: '',
@@ -246,6 +267,24 @@ export default {
     resetForm() {
       this.$refs.spareForm && this.$refs.spareForm.resetFields()
       this.form = { id: null, code: '', name: '', model: '', quantity: 0, unit: '个', price: null, categoryId: null, supplierId: null, remark: '', locationId: null }
+    },
+    async handleImport(params) {
+      const formData = new FormData()
+      formData.append('file', params.file)
+      this.importing = true
+      try {
+        const res = await request.post('/spare-parts/import', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        const data = res.data || res // 兼容不同的拦截器返回结构
+        this.$message.success(`导入完成：成功 ${data.successCount} 条，失败 ${data.failCount} 条。${data.failMsgs || ''}`)
+        this.importDialogVisible = false
+        this.fetchList()
+      } catch (e) {
+        this.$message.error('导入失败，请检查文件格式或重试')
+      } finally {
+        this.importing = false
+      }
     },
     handleEdit(row) {
       this.form = { ...row }

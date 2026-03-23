@@ -49,9 +49,9 @@
 
             <!-- 报价列表 -->
             <el-table :data="quotes" border v-if="quotes.length">
-                <el-table-column prop="supplierName" label="供应商"></el-table-column>
-                <el-table-column prop="quotePrice" label="报价(元)" width="110" align="right"></el-table-column>
-                <el-table-column label="偏差" width="110" align="center">
+                <el-table-column prop="supplierName" label="供应商" sortable ></el-table-column>
+                <el-table-column prop="quotePrice" label="报价(元)" width="110" align="right" sortable ></el-table-column>
+                <el-table-column label="偏差" width="110" align="center" sortable >
                     <template slot-scope="scope">
                         <span v-if="refPrice">
                             <el-tag :type="deviation(scope.row.quotePrice) > 15 ? 'danger' : 'success'" size="small">
@@ -61,9 +61,9 @@
                         <span v-else>—</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="deliveryDays" label="交货天数" width="95" align="center"></el-table-column>
-                <el-table-column prop="quoteTime" label="报价时间" width="160"></el-table-column>
-                <el-table-column label="中标" width="80" align="center">
+                <el-table-column prop="deliveryDays" label="交货天数" width="95" align="center" sortable ></el-table-column>
+                <el-table-column prop="quoteTime" label="报价时间" width="160" sortable ></el-table-column>
+                <el-table-column label="中标" width="80" align="center" sortable >
                     <template slot-scope="scope">
                         <el-tag v-if="scope.row.isSelected" type="success" size="small">✓ 中标</el-tag>
                     </template>

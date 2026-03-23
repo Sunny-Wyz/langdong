@@ -29,10 +29,10 @@
             <div slot="header">设备维修成本排名（Top 10）</div>
             <el-table :data="deviceList" border size="small" v-loading="loading">
                 <el-table-column type="index" width="50" align="center"></el-table-column>
-                <el-table-column prop="deviceName" label="设备名称"></el-table-column>
-                <el-table-column prop="deviceCode" label="设备编码" width="110"></el-table-column>
-                <el-table-column prop="repairCount" label="维修次数" width="90" align="center"></el-table-column>
-                <el-table-column prop="totalCost" label="总费用(元)" width="120" align="right">
+                <el-table-column prop="deviceName" label="设备名称" sortable ></el-table-column>
+                <el-table-column prop="deviceCode" label="设备编码" width="110" sortable ></el-table-column>
+                <el-table-column prop="repairCount" label="维修次数" width="90" align="center" sortable ></el-table-column>
+                <el-table-column prop="totalCost" label="总费用(元)" width="120" align="right" sortable >
                     <template slot-scope="scope">
                         <span style="font-weight:bold;color:#F56C6C">{{ scope.row.totalCost }}</span>
                     </template>

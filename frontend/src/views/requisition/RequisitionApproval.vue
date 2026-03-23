@@ -8,25 +8,25 @@
             </div>
 
             <el-table :data="list" border stripe style="width: 100%" v-loading="loading">
-                <el-table-column prop="reqNo" label="单号" width="180"></el-table-column>
-                <el-table-column prop="applicantName" label="申请人" width="120"></el-table-column>
-                <el-table-column prop="deviceName" label="关联设备" width="180">
+                <el-table-column prop="reqNo" label="单号" width="180" sortable ></el-table-column>
+                <el-table-column prop="applicantName" label="申请人" width="120" sortable ></el-table-column>
+                <el-table-column prop="deviceName" label="关联设备" width="180" sortable >
                     <template slot-scope="{row}">
                         {{ row.deviceName ? `${row.deviceName}(${row.deviceCode})` : '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="isUrgent" label="加急" width="80" align="center">
+                <el-table-column prop="isUrgent" label="加急" width="80" align="center" sortable >
                     <template slot-scope="{row}">
                         <el-tag :type="row.isUrgent ? 'danger' : 'info'" size="small">{{ row.isUrgent ? '是' : '否'
                             }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="applyTime" label="申请时间" width="180">
+                <el-table-column prop="applyTime" label="申请时间" width="180" sortable >
                     <template slot-scope="{row}">
                         {{ formatTime(row.applyTime) }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="事由" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="remark" label="事由" show-overflow-tooltip sortable ></el-table-column>
                 <el-table-column label="操作" width="120" align="center">
                     <template slot-scope="{row}">
                         <el-button type="primary" size="small" @click="openDrawer(row)">查阅审批</el-button>
@@ -54,9 +54,9 @@
                 <div style="margin-top: 20px">
                     <h4>申请物料明细</h4>
                     <el-table :data="currentItems" border style="width: 100%">
-                        <el-table-column prop="sparePartCode" label="备件编码" width="150"></el-table-column>
-                        <el-table-column prop="sparePartName" label="备件名称"></el-table-column>
-                        <el-table-column prop="applyQty" label="申请数量" width="100" align="center"></el-table-column>
+                        <el-table-column prop="sparePartCode" label="备件编码" width="150" sortable ></el-table-column>
+                        <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
+                        <el-table-column prop="applyQty" label="申请数量" width="100" align="center" sortable ></el-table-column>
                     </el-table>
                 </div>
 

@@ -15,14 +15,14 @@
                             style="margin-left:4px"></el-badge>
                     </template>
                     <el-table :data="warnings.lowStock" border size="small" v-loading="loading">
-                        <el-table-column prop="severity" label="紧急程度" width="90" align="center">
+                        <el-table-column prop="severity" label="紧急程度" width="90" align="center" sortable >
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.severity === '紧急' ? 'danger' : 'warning'" size="small">{{
                                     scope.row.severity }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="title" label="预警标题"></el-table-column>
-                        <el-table-column prop="detail" label="详情"></el-table-column>
+                        <el-table-column prop="title" label="预警标题" sortable ></el-table-column>
+                        <el-table-column prop="detail" label="详情" sortable ></el-table-column>
                         <el-table-column label="操作" width="100" align="center">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="primary" @click="navigate(scope.row)">去处理</el-button>
@@ -39,8 +39,8 @@
                             style="margin-left:4px"></el-badge>
                     </template>
                     <el-table :data="warnings.overdueWO" border size="small" v-loading="loading">
-                        <el-table-column prop="title" label="预警标题"></el-table-column>
-                        <el-table-column prop="detail" label="详情"></el-table-column>
+                        <el-table-column prop="title" label="预警标题" sortable ></el-table-column>
+                        <el-table-column prop="detail" label="详情" sortable ></el-table-column>
                         <el-table-column label="操作" width="100" align="center">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="warning" @click="navigate(scope.row)">去处理</el-button>
@@ -57,8 +57,8 @@
                             style="margin-left:4px"></el-badge>
                     </template>
                     <el-table :data="warnings.overduePO" border size="small" v-loading="loading">
-                        <el-table-column prop="title" label="预警标题"></el-table-column>
-                        <el-table-column prop="detail" label="详情"></el-table-column>
+                        <el-table-column prop="title" label="预警标题" sortable ></el-table-column>
+                        <el-table-column prop="detail" label="详情" sortable ></el-table-column>
                         <el-table-column label="操作" width="100" align="center">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="warning" @click="navigate(scope.row)">去处理</el-button>

@@ -41,30 +41,30 @@
 
             <!-- 工单列表 -->
             <el-table :data="workOrders" border stripe v-loading="loading">
-                <el-table-column prop="workOrderNo" label="工单编号" width="200"></el-table-column>
-                <el-table-column label="故障设备" min-width="150">
+                <el-table-column prop="workOrderNo" label="工单编号" width="200" sortable ></el-table-column>
+                <el-table-column label="故障设备" min-width="150" sortable >
                     <template slot-scope="scope">
                         {{ scope.row.deviceName }} <span style="color:#999">({{ scope.row.deviceCode }})</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="reporterName" label="报修人" width="90"></el-table-column>
-                <el-table-column prop="assigneeName" label="维修人员" width="90">
+                <el-table-column prop="reporterName" label="报修人" width="90" sortable ></el-table-column>
+                <el-table-column prop="assigneeName" label="维修人员" width="90" sortable >
                     <template slot-scope="scope">{{ scope.row.assigneeName || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="紧急程度" width="90" align="center">
+                <el-table-column label="紧急程度" width="90" align="center" sortable >
                     <template slot-scope="scope">
                         <el-tag :type="levelType(scope.row.faultLevel)" size="small">{{ scope.row.faultLevel }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="工单状态" width="90" align="center">
+                <el-table-column label="工单状态" width="90" align="center" sortable >
                     <template slot-scope="scope">
                         <el-tag :type="statusType(scope.row.orderStatus)" size="small">{{ scope.row.orderStatus }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="报修时间" width="160">
+                <el-table-column label="报修时间" width="160" sortable >
                     <template slot-scope="scope">{{ formatTime(scope.row.reportTime) }}</template>
                 </el-table-column>
-                <el-table-column label="维修时长" width="100" align="center">
+                <el-table-column label="维修时长" width="100" align="center" sortable >
                     <template slot-scope="scope">
                         <span v-if="scope.row.mttrMinutes">{{ formatMttr(scope.row.mttrMinutes) }}</span>
                         <span v-else style="color:#ccc">-</span>

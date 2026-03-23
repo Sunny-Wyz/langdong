@@ -25,34 +25,34 @@
 
             <!-- 数据表格 -->
             <el-table :data="tableData" border style="width: 100%" v-loading="loading">
-                <el-table-column prop="partCode" label="备件编码" width="120"></el-table-column>
-                <el-table-column prop="partName" label="备件名称" min-width="150" show-overflow-tooltip></el-table-column>
-                <el-table-column prop="forecastMonth" label="预测月份" width="100"></el-table-column>
-                <el-table-column prop="algoType" label="算法" width="100">
+                <el-table-column prop="partCode" label="备件编码" width="120" sortable ></el-table-column>
+                <el-table-column prop="partName" label="备件名称" min-width="150" show-overflow-tooltip sortable ></el-table-column>
+                <el-table-column prop="forecastMonth" label="预测月份" width="100" sortable ></el-table-column>
+                <el-table-column prop="algoType" label="算法" width="100" sortable >
                     <template slot-scope="scope">
                         <el-tag :type="getAlgoTagType(scope.row.algoType)" size="small">
                             {{ scope.row.algoType }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="predictQty" label="预测消耗量" width="120">
+                <el-table-column prop="predictQty" label="预测消耗量" width="120" sortable >
                     <template slot-scope="scope">
                         <span style="font-weight: bold; color: #409EFF">{{ scope.row.predictQty }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="90% 置信区间" width="180">
+                <el-table-column label="90% 置信区间" width="180" sortable >
                     <template slot-scope="scope">
                         [ {{ scope.row.lowerBound }} , {{ scope.row.upperBound }} ]
                     </template>
                 </el-table-column>
-                <el-table-column prop="mase" label="MASE指标" width="100">
+                <el-table-column prop="mase" label="MASE指标" width="100" sortable >
                     <template slot-scope="scope">
                         <span :style="{ color: scope.row.mase > 1.0 ? '#F56C6C' : '#67C23A' }">
                             {{ scope.row.mase || 'N/A' }}
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="createTime" label="计算时间" width="160"></el-table-column>
+                <el-table-column prop="createTime" label="计算时间" width="160" sortable ></el-table-column>
                 <el-table-column label="操作" width="120" fixed="right">
                     <template slot-scope="scope">
                         <el-button @click="showTrend(scope.row)" type="text" size="small"

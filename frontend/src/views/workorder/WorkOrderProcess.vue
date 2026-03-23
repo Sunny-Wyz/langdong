@@ -6,22 +6,22 @@
             </div>
 
             <el-table :data="workOrders" border stripe v-loading="loading">
-                <el-table-column prop="workOrderNo" label="工单编号" width="200"></el-table-column>
-                <el-table-column label="故障设备">
+                <el-table-column prop="workOrderNo" label="工单编号" width="200" sortable ></el-table-column>
+                <el-table-column label="故障设备" sortable >
                     <template slot-scope="scope">
                         {{ scope.row.deviceName }} <span style="color:#999">({{ scope.row.deviceCode }})</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="assigneeName" label="维修人员" width="100"></el-table-column>
-                <el-table-column label="紧急程度" width="90" align="center">
+                <el-table-column prop="assigneeName" label="维修人员" width="100" sortable ></el-table-column>
+                <el-table-column label="紧急程度" width="90" align="center" sortable >
                     <template slot-scope="scope">
                         <el-tag :type="levelType(scope.row.faultLevel)" size="small">{{ scope.row.faultLevel }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="计划完成时间" width="160">
+                <el-table-column label="计划完成时间" width="160" sortable >
                     <template slot-scope="scope">{{ formatTime(scope.row.planFinish) }}</template>
                 </el-table-column>
-                <el-table-column prop="faultDesc" label="故障描述" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="faultDesc" label="故障描述" show-overflow-tooltip sortable ></el-table-column>
                 <el-table-column label="操作" width="120" align="center" fixed="right">
                     <template slot-scope="scope">
                         <el-button type="warning" size="mini" @click="openProcess(scope.row)">填写记录</el-button>

@@ -115,11 +115,11 @@
       </div>
 
       <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
-        <el-table-column prop="partCode"  label="备件编码"  width="110" />
-        <el-table-column prop="partName"  label="备件名称"  min-width="150" show-overflow-tooltip />
+        <el-table-column prop="partCode"  label="备件编码"  width="110" sortable />
+        <el-table-column prop="partName"  label="备件名称"  min-width="150" show-overflow-tooltip sortable />
 
         <!-- ABC类别：A=危险红，B=警告黄，C=成功绿 -->
-        <el-table-column label="ABC类别" width="90" align="center">
+        <el-table-column label="ABC类别" width="90" align="center" sortable >
           <template slot-scope="{ row }">
             <el-tag
               :type="row.abcClass === 'A' ? 'danger' : row.abcClass === 'B' ? 'warning' : 'success'"
@@ -131,7 +131,7 @@
         </el-table-column>
 
         <!-- XYZ类别 -->
-        <el-table-column label="XYZ类别" width="90" align="center">
+        <el-table-column label="XYZ类别" width="90" align="center" sortable >
           <template slot-scope="{ row }">
             <el-tag
               :type="row.xyzClass === 'X' ? 'primary' : row.xyzClass === 'Y' ? 'info' : ''"
@@ -142,24 +142,24 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="compositeScore" label="综合得分"  width="90"  align="right">
+        <el-table-column prop="compositeScore" label="综合得分"  width="90"  align="right" sortable >
           <template slot-scope="{ row }">{{ formatDecimal(row.compositeScore) }}</template>
         </el-table-column>
-        <el-table-column prop="annualCost"     label="年消耗金额" width="110" align="right">
+        <el-table-column prop="annualCost"     label="年消耗金额" width="110" align="right" sortable >
           <template slot-scope="{ row }">¥ {{ formatDecimal(row.annualCost) }}</template>
         </el-table-column>
-        <el-table-column prop="cv2"            label="CV²"       width="80"  align="right">
+        <el-table-column prop="cv2"            label="CV²"       width="80"  align="right" sortable >
           <template slot-scope="{ row }">{{ formatDecimal(row.cv2, 4) }}</template>
         </el-table-column>
-        <el-table-column prop="safetyStock"    label="安全库存(SS)" width="110" align="right" />
-        <el-table-column prop="reorderPoint"   label="补货触发点(ROP)" width="130" align="right" />
-        <el-table-column prop="strategyCode"   label="策略编码"  width="90"  align="center">
+        <el-table-column prop="safetyStock"    label="安全库存(SS)" width="110" align="right" sortable />
+        <el-table-column prop="reorderPoint"   label="补货触发点(ROP)" width="130" align="right" sortable />
+        <el-table-column prop="strategyCode"   label="策略编码"  width="90"  align="center" sortable >
           <template slot-scope="{ row }">
             <el-tag size="small" effect="plain">{{ row.strategyCode }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="classifyMonth"  label="分类月份"  width="100" align="center" />
-        <el-table-column prop="createTime"     label="记录时间"  width="160">
+        <el-table-column prop="classifyMonth"  label="分类月份"  width="100" align="center" sortable />
+        <el-table-column prop="createTime"     label="记录时间"  width="160" sortable >
           <template slot-scope="{ row }">{{ formatTime(row.createTime) }}</template>
         </el-table-column>
       </el-table>

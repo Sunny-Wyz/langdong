@@ -10,16 +10,16 @@
                 <!-- Tab 1: 备件总览 -->
                 <el-tab-pane label="备件总览" name="summary">
                     <el-table :data="summaryList" border stripe style="width: 100%" v-loading="summaryLoading">
-                        <el-table-column prop="sparePartCode" label="备件编码" width="140"></el-table-column>
-                        <el-table-column prop="sparePartName" label="备件名称"></el-table-column>
-                        <el-table-column prop="quantity" label="总库存量（件）" width="150" align="center">
+                        <el-table-column prop="sparePartCode" label="备件编码" width="140" sortable ></el-table-column>
+                        <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
+                        <el-table-column prop="quantity" label="总库存量（件）" width="150" align="center" sortable >
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.quantity > 0 ? 'success' : 'danger'" size="medium">
                                     {{ scope.row.quantity }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="updatedAt" label="最后入库更新时间" width="200">
+                        <el-table-column prop="updatedAt" label="最后入库更新时间" width="200" sortable >
                             <template slot-scope="scope">
                                 {{ formatTime(scope.row.updatedAt) }}
                             </template>
@@ -41,29 +41,29 @@
 
                     <el-table :data="filteredLocationList" border stripe style="width: 100%"
                         v-loading="locationLoading">
-                        <el-table-column prop="locationZone" label="大区" width="120">
+                        <el-table-column prop="locationZone" label="大区" width="120" sortable >
                             <template slot-scope="{row}">
                                 <el-tag type="info">{{ row.locationZone || '未指派' }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="locationName" label="货位名称 (编码)" width="200">
+                        <el-table-column prop="locationName" label="货位名称 (编码)" width="200" sortable >
                             <template slot-scope="{row}">
                                 {{ row.locationName }} <span style="color:#909399;font-size:12px;">({{ row.locationCode
                                     }})</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="sparePartName" label="存储备件 (编码)">
+                        <el-table-column prop="sparePartName" label="存储备件 (编码)" sortable >
                             <template slot-scope="{row}">
                                 {{ row.sparePartName }} <span style="color:#909399;font-size:12px;">({{
                                     row.sparePartCode }})</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="quantity" label="货位存放数" width="120" align="center">
+                        <el-table-column prop="quantity" label="货位存放数" width="120" align="center" sortable >
                             <template slot-scope="{row}">
                                 <span style="font-weight:bold; color:#409EFF">{{ row.quantity }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="updatedAt" label="最新上架时间" width="200">
+                        <el-table-column prop="updatedAt" label="最新上架时间" width="200" sortable >
                             <template slot-scope="{row}">
                                 {{ formatTime(row.updatedAt) }}
                             </template>

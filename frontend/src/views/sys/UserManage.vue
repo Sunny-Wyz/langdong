@@ -8,17 +8,17 @@
             </div>
 
             <el-table :data="tableData" border style="width: 100%">
-                <el-table-column prop="id" label="ID" width="80"></el-table-column>
-                <el-table-column prop="username" label="登录名"></el-table-column>
-                <el-table-column prop="name" label="姓名"></el-table-column>
-                <el-table-column prop="status" label="状态">
+                <el-table-column prop="id" label="ID" width="80" sortable ></el-table-column>
+                <el-table-column prop="username" label="登录名" sortable ></el-table-column>
+                <el-table-column prop="name" label="姓名" sortable ></el-table-column>
+                <el-table-column prop="status" label="状态" sortable >
                     <template slot-scope="scope">
                         <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
                             {{ scope.row.status === 1 ? '正常' : '停用' }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="createdAt" label="创建时间" width="180"></el-table-column>
+                <el-table-column prop="createdAt" label="创建时间" width="180" sortable ></el-table-column>
                 <el-table-column label="操作" width="220" fixed="right">
                     <template slot-scope="scope">
                         <el-button size="mini" @click="handleEdit(scope.row)">编辑</el-button>

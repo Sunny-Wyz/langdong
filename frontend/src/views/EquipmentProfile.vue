@@ -10,16 +10,16 @@
 
             <!-- 设备表格 -->
             <el-table v-loading="loading" :data="list" border style="width: 100%; margin-top: 15px;">
-                <el-table-column prop="code" label="设备编码" width="120" />
-                <el-table-column prop="name" label="设备名称" min-width="150" />
-                <el-table-column prop="model" label="规格型号" width="120" />
-                <el-table-column prop="department" label="所属产线/部门" width="150" />
-                <el-table-column prop="status" label="状态" width="100" align="center">
+                <el-table-column prop="code" label="设备编码" width="120" sortable />
+                <el-table-column prop="name" label="设备名称" min-width="150" sortable />
+                <el-table-column prop="model" label="规格型号" width="120" sortable />
+                <el-table-column prop="department" label="所属产线/部门" width="150" sortable />
+                <el-table-column prop="status" label="状态" width="100" align="center" sortable >
                     <template slot-scope="{row}">
                         <el-tag :type="row.status === '正常' ? 'success' : 'warning'">{{ row.status }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+                <el-table-column prop="remark" label="备注" show-overflow-tooltip sortable />
                 <el-table-column label="操作" width="280" fixed="right" align="center">
                     <template slot-scope="{row}">
                         <el-button type="success" size="mini" @click="handleManageSpareParts(row)">配套备件</el-button>
@@ -75,10 +75,10 @@
             </div>
 
             <el-table :data="linkedSpareParts" border style="width: 100%" v-loading="spLoading">
-                <el-table-column prop="name" label="备件名称" />
-                <el-table-column prop="model" label="型号" />
-                <el-table-column prop="category" label="类别" />
-                <el-table-column label="目前库存" width="100">
+                <el-table-column prop="name" label="备件名称" sortable />
+                <el-table-column prop="model" label="型号" sortable />
+                <el-table-column prop="category" label="类别" sortable />
+                <el-table-column label="目前库存" width="100" sortable >
                     <template slot-scope="{row}">
                         {{ row.quantity }} {{ row.unit }}
                     </template>

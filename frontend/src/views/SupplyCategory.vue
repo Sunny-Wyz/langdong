@@ -9,9 +9,9 @@
             </div>
 
             <el-table v-loading="loading" :data="list" border style="width: 100%">
-                <el-table-column prop="code" label="品类编码" width="120" />
-                <el-table-column prop="name" label="品类名称" width="150" />
-                <el-table-column prop="description" label="描述" />
+                <el-table-column prop="code" label="品类编码" width="120" sortable />
+                <el-table-column prop="name" label="品类名称" width="150" sortable />
+                <el-table-column prop="description" label="描述" sortable />
                 <el-table-column label="操作" width="150" align="center">
                     <template slot-scope="{row}">
                         <el-button type="primary" size="mini" @click="handleEdit(row)">编辑</el-button>

@@ -15,24 +15,24 @@
             </el-form>
 
             <el-table v-if="items.length > 0" :data="items" border style="width: 100%">
-                <el-table-column prop="sparePartCode" label="备件编码" width="120"></el-table-column>
-                <el-table-column prop="sparePartName" label="备件名称"></el-table-column>
-                <el-table-column prop="quantity" label="采购总量" width="100"></el-table-column>
-                <el-table-column prop="receivedQuantity" label="历史已收" width="100"></el-table-column>
-                <el-table-column label="本次实收数量" width="150">
+                <el-table-column prop="sparePartCode" label="备件编码" width="120" sortable ></el-table-column>
+                <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
+                <el-table-column prop="quantity" label="采购总量" width="100" sortable ></el-table-column>
+                <el-table-column prop="receivedQuantity" label="历史已收" width="100" sortable ></el-table-column>
+                <el-table-column label="本次实收数量" width="150" sortable >
                     <template slot-scope="scope">
                         <el-input-number v-model="scope.row.actualQuantity" :min="0" :step="1"
                             size="small"></el-input-number>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="120">
+                <el-table-column label="状态" width="120" sortable >
                     <template slot-scope="scope">
                         <el-tag :type="isOverReceiving(scope.row) ? 'danger' : 'success'">
                             {{ isOverReceiving(scope.row) ? '超收' : '正常' }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="备注(存放位置等)">
+                <el-table-column label="备注(存放位置等)" sortable >
                     <template slot-scope="scope">
                         <el-input v-model="scope.row.remark" placeholder="如库区分区" size="small"></el-input>
                     </template>

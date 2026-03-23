@@ -28,16 +28,16 @@
                 </span>
             </div>
             <el-table :data="stagnantList" border size="small" v-loading="loading">
-                <el-table-column prop="partCode" label="编码" width="110"></el-table-column>
-                <el-table-column prop="partName" label="名称"></el-table-column>
-                <el-table-column prop="currentStock" label="库存" width="80" align="center"></el-table-column>
-                <el-table-column prop="stockAmount" label="金额(元)" width="100" align="right"></el-table-column>
-                <el-table-column prop="stagnantDays" label="滞库天数" width="95" align="center">
+                <el-table-column prop="partCode" label="编码" width="110" sortable ></el-table-column>
+                <el-table-column prop="partName" label="名称" sortable ></el-table-column>
+                <el-table-column prop="currentStock" label="库存" width="80" align="center" sortable ></el-table-column>
+                <el-table-column prop="stockAmount" label="金额(元)" width="100" align="right" sortable ></el-table-column>
+                <el-table-column prop="stagnantDays" label="滞库天数" width="95" align="center" sortable >
                     <template slot-scope="scope">
                         <el-tag type="danger" size="small">{{ scope.row.stagnantDays }}天</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="lastMovementTime" label="最后流动时间" width="160"></el-table-column>
+                <el-table-column prop="lastMovementTime" label="最后流动时间" width="160" sortable ></el-table-column>
             </el-table>
         </el-card>
     </div>

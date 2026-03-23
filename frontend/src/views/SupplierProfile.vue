@@ -9,12 +9,12 @@
             </div>
 
             <el-table v-loading="loading" :data="list" border style="width: 100%">
-                <el-table-column prop="code" label="编号" width="100" />
-                <el-table-column prop="name" label="名称" min-width="150" show-overflow-tooltip />
-                <el-table-column prop="contactPerson" label="联系人" width="100" />
-                <el-table-column prop="phone" label="联系电话" width="120" />
-                <el-table-column prop="unifiedSocialCreditCode" label="统一社会信用代码" width="180" show-overflow-tooltip />
-                <el-table-column label="供货品类" min-width="200">
+                <el-table-column prop="code" label="编号" width="100" sortable />
+                <el-table-column prop="name" label="名称" min-width="150" show-overflow-tooltip sortable />
+                <el-table-column prop="contactPerson" label="联系人" width="100" sortable />
+                <el-table-column prop="phone" label="联系电话" width="120" sortable />
+                <el-table-column prop="unifiedSocialCreditCode" label="统一社会信用代码" width="180" show-overflow-tooltip sortable />
+                <el-table-column label="供货品类" min-width="200" sortable >
                     <template slot-scope="{row}">
                         <el-tag v-for="cat in row.categories" :key="cat.id" size="small"
                             style="margin-right: 5px; margin-bottom: 5px;">
@@ -22,7 +22,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="status" label="状态" width="80" align="center">
+                <el-table-column prop="status" label="状态" width="80" align="center" sortable >
                     <template slot-scope="{row}">
                         <el-tag :type="row.status === '正常' ? 'success' : 'danger'">{{ row.status }}</el-tag>
                     </template>

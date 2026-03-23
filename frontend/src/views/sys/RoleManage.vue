@@ -7,10 +7,10 @@
             </div>
 
             <el-table :data="tableData" border style="width: 100%">
-                <el-table-column prop="id" label="ID" width="80"></el-table-column>
-                <el-table-column prop="code" label="角色编码"></el-table-column>
-                <el-table-column prop="name" label="角色名称"></el-table-column>
-                <el-table-column prop="remark" label="备注"></el-table-column>
+                <el-table-column prop="id" label="ID" width="80" sortable ></el-table-column>
+                <el-table-column prop="code" label="角色编码" sortable ></el-table-column>
+                <el-table-column prop="name" label="角色名称" sortable ></el-table-column>
+                <el-table-column prop="remark" label="备注" sortable ></el-table-column>
                 <el-table-column label="操作" width="220" fixed="right">
                     <template slot-scope="scope">
                         <el-button size="mini" @click="handleEdit(scope.row)">编辑</el-button>
