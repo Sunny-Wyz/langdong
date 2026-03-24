@@ -12,10 +12,10 @@
     </insert>
 
     <select id="findByReqId" resultType="com.langdong.spare.entity.RequisitionItem">
-        SELECT 
-            i.id, i.req_id as reqId, i.spare_part_id as sparePartId, 
-            i.apply_qty as applyQty, i.out_qty as outQty, 
-            i.install_loc as installLoc, i.install_time as installTime, 
+        SELECT
+            i.id, i.req_id as reqId, i.spare_part_id as sparePartId,
+            i.apply_qty as applyQty, i.out_qty as outQty, i.batch_info as batchInfo,
+            i.install_loc as installLoc, i.install_time as installTime,
             i.installer_id as installerId, i.created_at as createdAt, i.updated_at as updatedAt,
             sp.code as sparePartCode,
             sp.name as sparePartName,
@@ -31,9 +31,16 @@
     </update>
 
     <update id="updateInstallInfo">
-        UPDATE biz_requisition_item 
+        UPDATE biz_requisition_item
         SET installer_id = #{installerId}, install_loc = #{installLoc}, install_time = NOW()
         WHERE id = #{id}
+    </update>
+
+    <!-- FIFO: 更新领用明细的批次信息 -->
+    <update id="updateBatchInfo">
+        UPDATE biz_requisition_item
+        SET batch_info = #{batchInfo}
+        WHERE id = #{itemId}
     </update>
 
 </mapper>

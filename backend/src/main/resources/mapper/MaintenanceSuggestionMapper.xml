@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.MaintenanceSuggestionMapper">
+
+    <resultMap id="MaintenanceSuggestionResultMap" type="com.langdong.spare.entity.MaintenanceSuggestion">
+        <id property="id" column="id"/>
+        <result property="deviceId" column="device_id"/>
+        <result property="healthRecordId" column="health_record_id"/>
+        <result property="suggestionDate" column="suggestion_date"/>
+        <result property="maintenanceType" column="maintenance_type"/>
+        <result property="priorityLevel" column="priority_level"/>
+        <result property="suggestedStartDate" column="suggested_start_date"/>
+        <result property="suggestedEndDate" column="suggested_end_date"/>
+        <result property="relatedSpareParts" column="related_spare_parts"/>
+        <result property="estimatedCost" column="estimated_cost"/>
+        <result property="status" column="status"/>
+        <result property="workorderId" column="workorder_id"/>
+        <result property="requisitionId" column="requisition_id"/>
+        <result property="reason" column="reason"/>
+        <result property="rejectReason" column="reject_reason"/>
+        <result property="handledBy" column="handled_by"/>
+        <result property="handledAt" column="handled_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <!-- 联查字段 -->
+        <result property="deviceCode" column="device_code"/>
+        <result property="deviceName" column="device_name"/>
+        <result property="deviceImportance" column="device_importance"/>
+        <result property="currentHealthScore" column="current_health_score"/>
+        <result property="currentRiskLevel" column="current_risk_level"/>
+        <result property="failureProbability" column="failure_probability"/>
+        <result property="handlerName" column="handler_name"/>
+    </resultMap>
+
+    <!-- 插入单条记录 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_maintenance_suggestion (
+            device_id, health_record_id, suggestion_date,
+            maintenance_type, priority_level, suggested_start_date, suggested_end_date,
+            related_spare_parts, estimated_cost, status, reason, created_at, updated_at
+        ) VALUES (
+            #{deviceId}, #{healthRecordId}, #{suggestionDate},
+            #{maintenanceType}, #{priorityLevel}, #{suggestedStartDate}, #{suggestedEndDate},
+            #{relatedSpareParts}, #{estimatedCost}, #{status}, #{reason}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_maintenance_suggestion (
+            device_id, health_record_id, suggestion_date,
+            maintenance_type, priority_level, suggested_start_date, suggested_end_date,
+            related_spare_parts, estimated_cost, status, reason, created_at, updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.deviceId}, #{item.healthRecordId}, #{item.suggestionDate},
+                #{item.maintenanceType}, #{item.priorityLevel},
+                #{item.suggestedStartDate}, #{item.suggestedEndDate},
+                #{item.relatedSpareParts}, #{item.estimatedCost},
+                #{item.status}, #{item.reason}, NOW(), NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据ID查询详情 -->
+    <select id="findById" resultMap="MaintenanceSuggestionResultMap">
+        SELECT
+            s.id, s.device_id, s.health_record_id, s.suggestion_date,
+            s.maintenance_type, s.priority_level, s.suggested_start_date, s.suggested_end_date,
+            s.related_spare_parts, s.estimated_cost, s.status,
+            s.workorder_id, s.requisition_id, s.reason, s.reject_reason,
+            s.handled_by, s.handled_at, s.created_at, s.updated_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level,
+            p.failure_probability AS failure_probability,
+            u.username AS handler_name
+        FROM biz_maintenance_suggestion s
+        LEFT JOIN equipment e ON s.device_id = e.id
+        LEFT JOIN ai_device_health h ON s.health_record_id = h.id
+        LEFT JOIN (
+            SELECT device_id, failure_probability
+            FROM ai_fault_prediction
+            WHERE (device_id, prediction_date) IN (
+                SELECT device_id, MAX(prediction_date) FROM ai_fault_prediction GROUP BY device_id
+            )
+        ) p ON s.device_id = p.device_id
+        LEFT JOIN user u ON s.handled_by = u.id
+        WHERE s.id = #{id}
+    </select>
+
+    <!-- 查询设备的所有建议 -->
+    <select id="findByDevice" resultMap="MaintenanceSuggestionResultMap">
+        SELECT
+            s.id, s.device_id, s.health_record_id, s.suggestion_date,
+            s.maintenance_type, s.priority_level, s.suggested_start_date, s.suggested_end_date,
+            s.related_spare_parts, s.estimated_cost, s.status,
+            s.workorder_id, s.requisition_id, s.reason, s.reject_reason,
+            s.handled_by, s.handled_at, s.created_at, s.updated_at
+        FROM biz_maintenance_suggestion s
+        WHERE s.device_id = #{deviceId}
+        ORDER BY s.suggestion_date DESC
+    </select>
+
+    <!-- 分页查询建议列表 -->
+    <select id="findByPage" resultMap="MaintenanceSuggestionResultMap">
+        SELECT
+            s.id, s.device_id, s.health_record_id, s.suggestion_date,
+            s.maintenance_type, s.priority_level, s.suggested_start_date, s.suggested_end_date,
+            s.related_spare_parts, s.estimated_cost, s.status,
+            s.workorder_id, s.requisition_id, s.reason, s.reject_reason,
+            s.handled_by, s.handled_at, s.created_at, s.updated_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level
+        FROM biz_maintenance_suggestion s
+        LEFT JOIN equipment e ON s.device_id = e.id
+        LEFT JOIN ai_device_health h ON s.health_record_id = h.id
+        WHERE 1=1
+        <if test="status != null and status != ''">
+            AND s.status = #{status}
+        </if>
+        <if test="priorityLevel != null and priorityLevel != ''">
+            AND s.priority_level = #{priorityLevel}
+        </if>
+        <if test="maintenanceType != null and maintenanceType != ''">
+            AND s.maintenance_type = #{maintenanceType}
+        </if>
+        <if test="deviceCode != null and deviceCode != ''">
+            AND e.code LIKE CONCAT('%', #{deviceCode}, '%')
+        </if>
+        ORDER BY
+            FIELD(s.priority_level, 'HIGH', 'MEDIUM', 'LOW'),
+            s.suggestion_date DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 统计分页总数 -->
+    <select id="countByPage" resultType="long">
+        SELECT COUNT(*)
+        FROM biz_maintenance_suggestion s
+        LEFT JOIN equipment e ON s.device_id = e.id
+        WHERE 1=1
+        <if test="status != null and status != ''">
+            AND s.status = #{status}
+        </if>
+        <if test="priorityLevel != null and priorityLevel != ''">
+            AND s.priority_level = #{priorityLevel}
+        </if>
+        <if test="maintenanceType != null and maintenanceType != ''">
+            AND s.maintenance_type = #{maintenanceType}
+        </if>
+        <if test="deviceCode != null and deviceCode != ''">
+            AND e.code LIKE CONCAT('%', #{deviceCode}, '%')
+        </if>
+    </select>
+
+    <!-- 统计待处理建议数量 -->
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*)
+        FROM biz_maintenance_suggestion
+        WHERE status = 'PENDING'
+    </select>
+
+    <!-- 查询高优先级待处理建议 -->
+    <select id="findPendingHighPriority" resultMap="MaintenanceSuggestionResultMap">
+        SELECT
+            s.id, s.device_id, s.health_record_id, s.suggestion_date,
+            s.maintenance_type, s.priority_level, s.suggested_start_date, s.suggested_end_date,
+            s.related_spare_parts, s.estimated_cost, s.status, s.reason,
+            s.created_at, s.updated_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level
+        FROM biz_maintenance_suggestion s
+        LEFT JOIN equipment e ON s.device_id = e.id
+        LEFT JOIN ai_device_health h ON s.health_record_id = h.id
+        WHERE s.status = 'PENDING' AND s.priority_level = 'HIGH'
+        ORDER BY s.suggestion_date ASC
+        <if test="limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询即将到期的建议 -->
+    <select id="findUpcomingDue" resultMap="MaintenanceSuggestionResultMap">
+        SELECT
+            s.id, s.device_id, s.health_record_id, s.suggestion_date,
+            s.maintenance_type, s.priority_level, s.suggested_start_date, s.suggested_end_date,
+            s.related_spare_parts, s.estimated_cost, s.status, s.reason,
+            s.created_at, s.updated_at,
+            e.code AS device_code,
+            e.name AS device_name
+        FROM biz_maintenance_suggestion s
+        LEFT JOIN equipment e ON s.device_id = e.id
+        WHERE s.status = 'PENDING'
+          AND s.suggested_end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{daysAhead} DAY)
+        ORDER BY s.suggested_end_date ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 更新状态为已采纳 -->
+    <update id="updateStatusToAccepted">
+        UPDATE biz_maintenance_suggestion
+        SET status = 'ACCEPTED',
+            workorder_id = #{workorderId},
+            requisition_id = #{requisitionId},
+            handled_by = #{handledBy},
+            handled_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新状态为已拒绝 -->
+    <update id="updateStatusToRejected">
+        UPDATE biz_maintenance_suggestion
+        SET status = 'REJECTED',
+            reject_reason = #{rejectReason},
+            handled_by = #{handledBy},
+            handled_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新状态为已完成 -->
+    <update id="updateStatusToCompleted">
+        UPDATE biz_maintenance_suggestion
+        SET status = 'COMPLETED',
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 统计各状态的建议数量 -->
+    <select id="countByStatus" resultType="map">
+        SELECT
+            status AS status,
+            COUNT(*) AS cnt
+        FROM biz_maintenance_suggestion
+        GROUP BY status
+    </select>
+
+    <!-- 统计各优先级的建议数量 -->
+    <select id="countByPriority" resultType="map">
+        SELECT
+            priority_level AS priorityLevel,
+            COUNT(*) AS cnt
+        FROM biz_maintenance_suggestion
+        WHERE status = 'PENDING'
+        GROUP BY priority_level
+    </select>
+
+    <!-- 统计建议采纳率 -->
+    <select id="calcAcceptanceRate" resultType="java.lang.Double">
+        SELECT
+            CASE
+                WHEN COUNT(*) = 0 THEN 0
+                ELSE SUM(CASE WHEN status = 'ACCEPTED' THEN 1 ELSE 0 END) / COUNT(*)
+            END AS acceptance_rate
+        FROM biz_maintenance_suggestion
+        WHERE status IN ('ACCEPTED', 'REJECTED')
+    </select>
+
+    <!-- 删除历史已完成建议（数据归档） -->
+    <delete id="deleteCompletedBeforeDate">
+        DELETE FROM biz_maintenance_suggestion
+        WHERE status = 'COMPLETED'
+          AND suggestion_date &lt; #{beforeDate}
+    </delete>
+
+</mapper>

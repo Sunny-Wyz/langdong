@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.OutboundBatchTraceMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_outbound_batch_trace (
+            req_item_id, stock_in_item_id, spare_part_id, deduct_qty, outbound_time
+        )
+        VALUES (
+            #{reqItemId}, #{stockInItemId}, #{sparePartId}, #{deductQty}, #{outboundTime}
+        )
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO biz_outbound_batch_trace (
+            req_item_id, stock_in_item_id, spare_part_id, deduct_qty, outbound_time
+        )
+        VALUES
+        <foreach collection="traces" item="trace" separator=",">
+            (#{trace.reqItemId}, #{trace.stockInItemId}, #{trace.sparePartId},
+             #{trace.deductQty}, #{trace.outboundTime})
+        </foreach>
+    </insert>
+
+    <select id="findByReqItemId" resultType="com.langdong.spare.entity.OutboundBatchTrace">
+        SELECT
+            t.id,
+            t.req_item_id as reqItemId,
+            t.stock_in_item_id as stockInItemId,
+            t.spare_part_id as sparePartId,
+            t.deduct_qty as deductQty,
+            t.outbound_time as outboundTime,
+            r.receipt_code as receiptCode,
+            sp.code as sparePartCode
+        FROM biz_outbound_batch_trace t
+        LEFT JOIN stock_in_item si ON t.stock_in_item_id = si.id
+        LEFT JOIN stock_in_receipt r ON si.stock_in_receipt_id = r.id
+        LEFT JOIN spare_part sp ON t.spare_part_id = sp.id
+        WHERE t.req_item_id = #{reqItemId}
+        ORDER BY t.outbound_time DESC
+    </select>
+
+    <select id="findByStockInItemId" resultType="com.langdong.spare.entity.OutboundBatchTrace">
+        SELECT
+            t.id,
+            t.req_item_id as reqItemId,
+            t.stock_in_item_id as stockInItemId,
+            t.spare_part_id as sparePartId,
+            t.deduct_qty as deductQty,
+            t.outbound_time as outboundTime,
+            req.req_no as batchInfo
+        FROM biz_outbound_batch_trace t
+        LEFT JOIN biz_requisition_item ri ON t.req_item_id = ri.id
+        LEFT JOIN biz_requisition req ON ri.req_id = req.id
+        WHERE t.stock_in_item_id = #{stockInItemId}
+        ORDER BY t.outbound_time DESC
+    </select>
+
+</mapper>

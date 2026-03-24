@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.FaultPredictionMapper">
+
+    <resultMap id="FaultPredictionResultMap" type="com.langdong.spare.entity.FaultPrediction">
+        <id property="id" column="id"/>
+        <result property="deviceId" column="device_id"/>
+        <result property="predictionDate" column="prediction_date"/>
+        <result property="targetMonth" column="target_month"/>
+        <result property="predictedFaultCount" column="predicted_fault_count"/>
+        <result property="failureProbability" column="failure_probability"/>
+        <result property="faultCountLower" column="fault_count_lower"/>
+        <result property="faultCountUpper" column="fault_count_upper"/>
+        <result property="featureImportance" column="feature_importance"/>
+        <result property="modelType" column="model_type"/>
+        <result property="createdAt" column="created_at"/>
+        <!-- 联查字段 -->
+        <result property="deviceCode" column="device_code"/>
+        <result property="deviceName" column="device_name"/>
+        <result property="currentHealthScore" column="current_health_score"/>
+        <result property="currentRiskLevel" column="current_risk_level"/>
+    </resultMap>
+
+    <!-- 插入单条记录 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_fault_prediction (
+            device_id, prediction_date, target_month, predicted_fault_count, failure_probability,
+            fault_count_lower, fault_count_upper, feature_importance, model_type, created_at
+        ) VALUES (
+            #{deviceId}, #{predictionDate}, #{targetMonth}, #{predictedFaultCount}, #{failureProbability},
+            #{faultCountLower}, #{faultCountUpper}, #{featureImportance}, #{modelType}, NOW()
+        )
+    </insert>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_fault_prediction (
+            device_id, prediction_date, target_month, predicted_fault_count, failure_probability,
+            fault_count_lower, fault_count_upper, feature_importance, model_type, created_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.deviceId}, #{item.predictionDate}, #{item.targetMonth},
+                #{item.predictedFaultCount}, #{item.failureProbability},
+                #{item.faultCountLower}, #{item.faultCountUpper},
+                #{item.featureImportance}, #{item.modelType}, NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据设备和目标月份查询 -->
+    <select id="findByDeviceAndMonth" resultMap="FaultPredictionResultMap">
+        SELECT
+            p.id, p.device_id, p.prediction_date, p.target_month,
+            p.predicted_fault_count, p.failure_probability,
+            p.fault_count_lower, p.fault_count_upper,
+            p.feature_importance, p.model_type, p.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level
+        FROM ai_fault_prediction p
+        LEFT JOIN equipment e ON p.device_id = e.id
+        LEFT JOIN (
+            SELECT device_id, health_score, risk_level
+            FROM ai_device_health
+            WHERE (device_id, record_date) IN (
+                SELECT device_id, MAX(record_date) FROM ai_device_health GROUP BY device_id
+            )
+        ) h ON p.device_id = h.device_id
+        WHERE p.device_id = #{deviceId} AND p.target_month = #{targetMonth}
+    </select>
+
+    <!-- 查询设备最新预测记录 -->
+    <select id="findLatestByDevice" resultMap="FaultPredictionResultMap">
+        SELECT
+            p.id, p.device_id, p.prediction_date, p.target_month,
+            p.predicted_fault_count, p.failure_probability,
+            p.fault_count_lower, p.fault_count_upper,
+            p.feature_importance, p.model_type, p.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level
+        FROM ai_fault_prediction p
+        LEFT JOIN equipment e ON p.device_id = e.id
+        LEFT JOIN (
+            SELECT device_id, health_score, risk_level
+            FROM ai_device_health
+            WHERE (device_id, record_date) IN (
+                SELECT device_id, MAX(record_date) FROM ai_device_health GROUP BY device_id
+            )
+        ) h ON p.device_id = h.device_id
+        WHERE p.device_id = #{deviceId}
+        ORDER BY p.prediction_date DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询设备预测历史（最近N个月） -->
+    <select id="findHistoryByDevice" resultMap="FaultPredictionResultMap">
+        SELECT
+            p.id, p.device_id, p.prediction_date, p.target_month,
+            p.predicted_fault_count, p.failure_probability,
+            p.fault_count_lower, p.fault_count_upper,
+            p.feature_importance, p.model_type, p.created_at
+        FROM ai_fault_prediction p
+        WHERE p.device_id = #{deviceId}
+          AND p.target_month >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL #{months} MONTH), '%Y-%m')
+        ORDER BY p.target_month ASC
+    </select>
+
+    <!-- 查询高风险设备列表（按故障概率降序） -->
+    <select id="findHighRiskDevices" resultMap="FaultPredictionResultMap">
+        SELECT
+            p.id, p.device_id, p.prediction_date, p.target_month,
+            p.predicted_fault_count, p.failure_probability,
+            p.fault_count_lower, p.fault_count_upper,
+            p.feature_importance, p.model_type, p.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level
+        FROM ai_fault_prediction p
+        LEFT JOIN equipment e ON p.device_id = e.id
+        LEFT JOIN (
+            SELECT device_id, health_score, risk_level
+            FROM ai_device_health
+            WHERE (device_id, record_date) IN (
+                SELECT device_id, MAX(record_date) FROM ai_device_health GROUP BY device_id
+            )
+        ) h ON p.device_id = h.device_id
+        WHERE p.failure_probability > #{probabilityThreshold}
+          AND p.prediction_date = (
+              SELECT MAX(prediction_date) FROM ai_fault_prediction WHERE device_id = p.device_id
+          )
+        ORDER BY p.failure_probability DESC
+        <if test="limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询所有设备最新预测（分页） -->
+    <select id="findLatestAllDevices" resultMap="FaultPredictionResultMap">
+        SELECT
+            p.id, p.device_id, p.prediction_date, p.target_month,
+            p.predicted_fault_count, p.failure_probability,
+            p.fault_count_lower, p.fault_count_upper,
+            p.feature_importance, p.model_type, p.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            h.health_score AS current_health_score,
+            h.risk_level AS current_risk_level
+        FROM ai_fault_prediction p
+        LEFT JOIN equipment e ON p.device_id = e.id
+        LEFT JOIN (
+            SELECT device_id, health_score, risk_level
+            FROM ai_device_health
+            WHERE (device_id, record_date) IN (
+                SELECT device_id, MAX(record_date) FROM ai_device_health GROUP BY device_id
+            )
+        ) h ON p.device_id = h.device_id
+        WHERE p.prediction_date = (
+            SELECT MAX(prediction_date) FROM ai_fault_prediction WHERE device_id = p.device_id
+        )
+        <if test="deviceCode != null and deviceCode != ''">
+            AND e.code LIKE CONCAT('%', #{deviceCode}, '%')
+        </if>
+        <if test="minProbability != null">
+            AND p.failure_probability >= #{minProbability}
+        </if>
+        ORDER BY p.failure_probability DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 统计分页总数 -->
+    <select id="countLatestAllDevices" resultType="long">
+        SELECT COUNT(DISTINCT p.device_id)
+        FROM ai_fault_prediction p
+        LEFT JOIN equipment e ON p.device_id = e.id
+        WHERE p.prediction_date = (
+            SELECT MAX(prediction_date) FROM ai_fault_prediction WHERE device_id = p.device_id
+        )
+        <if test="deviceCode != null and deviceCode != ''">
+            AND e.code LIKE CONCAT('%', #{deviceCode}, '%')
+        </if>
+        <if test="minProbability != null">
+            AND p.failure_probability >= #{minProbability}
+        </if>
+    </select>
+
+    <!-- 统计指定月份的预测设备数 -->
+    <select id="countByMonth" resultType="long">
+        SELECT COUNT(DISTINCT device_id)
+        FROM ai_fault_prediction
+        WHERE target_month = #{targetMonth}
+    </select>
+
+    <!-- 统计高风险设备数 -->
+    <select id="countHighRiskDevices" resultType="long">
+        SELECT COUNT(DISTINCT device_id)
+        FROM ai_fault_prediction
+        WHERE failure_probability > #{probabilityThreshold}
+          AND prediction_date = (
+              SELECT MAX(prediction_date) FROM ai_fault_prediction WHERE device_id = ai_fault_prediction.device_id
+          )
+    </select>
+
+    <!-- 查询预测准确率统计（对比历史预测和实际故障） -->
+    <select id="calcPredictionAccuracy" resultType="map">
+        SELECT
+            p.target_month AS targetMonth,
+            AVG(ABS(p.predicted_fault_count - COALESCE(f.fault_count, 0))) AS avgError,
+            (1 - AVG(ABS(p.predicted_fault_count - COALESCE(f.fault_count, 0)) /
+                GREATEST(1, p.predicted_fault_count + COALESCE(f.fault_count, 0)))) * 100 AS accuracy
+        FROM ai_fault_prediction p
+        LEFT JOIN ai_device_feature f
+            ON p.device_id = f.device_id AND p.target_month = f.stat_month
+        WHERE p.target_month >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL #{months} MONTH), '%Y-%m')
+          AND p.target_month &lt; DATE_FORMAT(CURDATE(), '%Y-%m')
+        GROUP BY p.target_month
+        ORDER BY p.target_month ASC
+    </select>
+
+    <!-- 删除历史记录（数据归档） -->
+    <delete id="deleteBeforeDate">
+        DELETE FROM ai_fault_prediction
+        WHERE prediction_date &lt; #{beforeDate}
+    </delete>
+
+</mapper>

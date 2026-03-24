@@ -23,9 +23,16 @@
     </insert>
 
     <update id="addQuantity">
-        UPDATE spare_part_stock 
-        SET quantity = quantity + #{addedQuantity} 
+        UPDATE spare_part_stock
+        SET quantity = quantity + #{addedQuantity}
         WHERE spare_part_id = #{sparePartId}
     </update>
+
+    <!-- FIFO: 查询备件可用库存总量 -->
+    <select id="getAvailableQuantity" resultType="int">
+        SELECT COALESCE(quantity, 0)
+        FROM spare_part_stock
+        WHERE spare_part_id = #{sparePartId}
+    </select>
 
 </mapper>

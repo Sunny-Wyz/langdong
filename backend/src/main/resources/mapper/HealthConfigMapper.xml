@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.HealthConfigMapper">
+
+    <resultMap id="HealthConfigResultMap" type="com.langdong.spare.entity.HealthConfig">
+        <id property="id" column="id"/>
+        <result property="deviceType" column="device_type"/>
+        <result property="importanceLevel" column="importance_level"/>
+        <result property="criticalThreshold" column="critical_threshold"/>
+        <result property="highThreshold" column="high_threshold"/>
+        <result property="mediumThreshold" column="medium_threshold"/>
+        <result property="runtimeWeight" column="runtime_weight"/>
+        <result property="faultWeight" column="fault_weight"/>
+        <result property="workorderWeight" column="workorder_weight"/>
+        <result property="replacementWeight" column="replacement_weight"/>
+        <result property="predictionWindowDays" column="prediction_window_days"/>
+        <result property="minHistoryMonths" column="min_history_months"/>
+    </resultMap>
+
+    <!-- 插入配置 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_device_health_config (
+            device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        ) VALUES (
+            #{deviceType}, #{importanceLevel},
+            #{criticalThreshold}, #{highThreshold}, #{mediumThreshold},
+            #{runtimeWeight}, #{faultWeight}, #{workorderWeight}, #{replacementWeight},
+            #{predictionWindowDays}, #{minHistoryMonths}
+        )
+    </insert>
+
+    <!-- 更新配置 -->
+    <update id="update">
+        UPDATE sys_device_health_config
+        SET device_type = #{deviceType},
+            importance_level = #{importanceLevel},
+            critical_threshold = #{criticalThreshold},
+            high_threshold = #{highThreshold},
+            medium_threshold = #{mediumThreshold},
+            runtime_weight = #{runtimeWeight},
+            fault_weight = #{faultWeight},
+            workorder_weight = #{workorderWeight},
+            replacement_weight = #{replacementWeight},
+            prediction_window_days = #{predictionWindowDays},
+            min_history_months = #{minHistoryMonths}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="HealthConfigResultMap">
+        SELECT
+            id, device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        FROM sys_device_health_config
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据设备类型和重要性查询配置（优先级匹配） -->
+    <select id="findByDeviceTypeAndImportance" resultMap="HealthConfigResultMap">
+        SELECT
+            id, device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        FROM sys_device_health_config
+        WHERE
+            (device_type = #{deviceType} AND importance_level = #{importanceLevel})
+            OR (device_type = #{deviceType} AND importance_level IS NULL)
+            OR (device_type IS NULL AND importance_level = #{importanceLevel})
+            OR (device_type IS NULL AND importance_level IS NULL)
+        ORDER BY
+            CASE
+                WHEN device_type = #{deviceType} AND importance_level = #{importanceLevel} THEN 1
+                WHEN device_type = #{deviceType} AND importance_level IS NULL THEN 2
+                WHEN device_type IS NULL AND importance_level = #{importanceLevel} THEN 3
+                WHEN device_type IS NULL AND importance_level IS NULL THEN 4
+            END
+        LIMIT 1
+    </select>
+
+    <!-- 查询全局默认配置 -->
+    <select id="findGlobalDefault" resultMap="HealthConfigResultMap">
+        SELECT
+            id, device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        FROM sys_device_health_config
+        WHERE device_type IS NULL AND importance_level IS NULL
+        LIMIT 1
+    </select>
+
+    <!-- 查询所有配置 -->
+    <select id="findAll" resultMap="HealthConfigResultMap">
+        SELECT
+            id, device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        FROM sys_device_health_config
+        ORDER BY
+            CASE
+                WHEN device_type IS NOT NULL AND importance_level IS NOT NULL THEN 1
+                WHEN device_type IS NOT NULL AND importance_level IS NULL THEN 2
+                WHEN device_type IS NULL AND importance_level IS NOT NULL THEN 3
+                WHEN device_type IS NULL AND importance_level IS NULL THEN 4
+            END,
+            device_type, importance_level
+    </select>
+
+    <!-- 根据设备类型查询 -->
+    <select id="findByDeviceType" resultMap="HealthConfigResultMap">
+        SELECT
+            id, device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        FROM sys_device_health_config
+        WHERE device_type = #{deviceType}
+        ORDER BY
+            CASE
+                WHEN importance_level IS NOT NULL THEN 1
+                ELSE 2
+            END,
+            importance_level
+    </select>
+
+    <!-- 根据重要性查询 -->
+    <select id="findByImportance" resultMap="HealthConfigResultMap">
+        SELECT
+            id, device_type, importance_level,
+            critical_threshold, high_threshold, medium_threshold,
+            runtime_weight, fault_weight, workorder_weight, replacement_weight,
+            prediction_window_days, min_history_months
+        FROM sys_device_health_config
+        WHERE importance_level = #{importanceLevel}
+        ORDER BY
+            CASE
+                WHEN device_type IS NOT NULL THEN 1
+                ELSE 2
+            END,
+            device_type
+    </select>
+
+    <!-- 删除配置 -->
+    <delete id="deleteById">
+        DELETE FROM sys_device_health_config
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 统计指定配置是否存在 -->
+    <select id="countByDeviceTypeAndImportance" resultType="long">
+        SELECT COUNT(*)
+        FROM sys_device_health_config
+        WHERE
+            <choose>
+                <when test="deviceType != null and importanceLevel != null">
+                    device_type = #{deviceType} AND importance_level = #{importanceLevel}
+                </when>
+                <when test="deviceType != null and importanceLevel == null">
+                    device_type = #{deviceType} AND importance_level IS NULL
+                </when>
+                <when test="deviceType == null and importanceLevel != null">
+                    device_type IS NULL AND importance_level = #{importanceLevel}
+                </when>
+                <otherwise>
+                    device_type IS NULL AND importance_level IS NULL
+                </otherwise>
+            </choose>
+    </select>
+
+</mapper>

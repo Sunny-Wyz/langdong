@@ -27,6 +27,9 @@ public class RequisitionService {
     @Autowired
     private SparePartStockMapper sparePartStockMapper;
 
+    @Autowired
+    private FifoOutboundService fifoOutboundService;
+
     @Transactional
     public void apply(RequisitionApplyDTO dto, Long userId) {
         Requisition req = new Requisition();
@@ -75,15 +78,26 @@ public class RequisitionService {
     @Transactional
     public void outbound(Long id, RequisitionOutboundDTO dto) {
         for (RequisitionOutboundDTO.RequisitionOutboundItemDTO itemDto : dto.getItems()) {
-            requisitionItemMapper.updateOutbound(itemDto.getItemId(), itemDto.getOutQty());
-
-            // 扣除库存
+            // 获取领用明细信息
             RequisitionItem item = requisitionItemMapper.findByReqId(id).stream()
                     .filter(i -> i.getId().equals(itemDto.getItemId()))
-                    .findFirst().orElse(null);
-            if (item != null && itemDto.getOutQty() != null && itemDto.getOutQty() > 0) {
-                sparePartStockMapper.addQuantity(item.getSparePartId(), -itemDto.getOutQty());
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("领用明细不存在"));
+
+            if (itemDto.getOutQty() == null || itemDto.getOutQty() <= 0) {
+                continue;
             }
+
+            // ===== 调用 FIFO 服务执行批次扣减 =====
+            String batchInfo = fifoOutboundService.processFifoOutbound(
+                    item.getId(),
+                    item.getSparePartId(),
+                    itemDto.getOutQty()
+            );
+
+            // 更新领用明细的出库数量和批次信息
+            requisitionItemMapper.updateOutbound(itemDto.getItemId(), itemDto.getOutQty());
+            requisitionItemMapper.updateBatchInfo(itemDto.getItemId(), batchInfo);
         }
         // [状态机3] OUTBOUND (已出库)：库管员实际执行库存扣减后状态变更为已出库
         requisitionMapper.updateStatus(id, "OUTBOUND");

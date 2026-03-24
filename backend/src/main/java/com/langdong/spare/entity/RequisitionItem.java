@@ -10,6 +10,7 @@ public class RequisitionItem {
     private Long sparePartId;
     private Integer applyQty;
     private Integer outQty;
+    private String batchInfo;       // FIFO: 批次分配信息摘要（如：IN20240101[10件] + IN20240102[5件]）
     private String installLoc;
     private LocalDateTime installTime;
     private Long installerId;

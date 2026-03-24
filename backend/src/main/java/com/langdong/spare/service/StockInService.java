@@ -92,6 +92,9 @@ public class StockInService {
             stockInItem.setSparePartId(poItem.getSparePartId());
             stockInItem.setExpectedQuantity(poItem.getQuantity() - poItem.getReceivedQuantity());
             stockInItem.setActualQuantity(reqItem.getActualQuantity());
+            // ===== FIFO 字段初始化 =====
+            stockInItem.setRemainingQty(reqItem.getActualQuantity());  // 初始剩余量=实收量
+            stockInItem.setInTime(LocalDateTime.now());                // 记录入库时间
             stockInItem.setLocationId(reqItem.getLocationId());
             stockInItem.setRemark(reqItem.getRemark());
             stockInItemMapper.insert(stockInItem);

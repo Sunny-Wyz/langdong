@@ -18,4 +18,12 @@ public interface RequisitionItemMapper {
     int updateInstallInfo(@Param("id") Long id, @Param("installerId") Long installerId,
             @Param("installLoc") String installLoc);
 
+    /**
+     * 更新领用明细的批次信息（FIFO）
+     * @param itemId 领用明细ID
+     * @param batchInfo 批次信息摘要
+     * @return 影响行数
+     */
+    int updateBatchInfo(@Param("itemId") Long itemId, @Param("batchInfo") String batchInfo);
+
 }

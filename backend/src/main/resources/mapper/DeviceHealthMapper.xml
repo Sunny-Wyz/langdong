@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.DeviceHealthMapper">
+
+    <resultMap id="DeviceHealthResultMap" type="com.langdong.spare.entity.DeviceHealth">
+        <id property="id" column="id"/>
+        <result property="deviceId" column="device_id"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="healthScore" column="health_score"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="runtimeScore" column="runtime_score"/>
+        <result property="faultScore" column="fault_score"/>
+        <result property="workorderScore" column="workorder_score"/>
+        <result property="replacementScore" column="replacement_score"/>
+        <result property="predictedFailureDays" column="predicted_failure_days"/>
+        <result property="confidenceLevel" column="confidence_level"/>
+        <result property="algorithmVersion" column="algorithm_version"/>
+        <result property="createdAt" column="created_at"/>
+        <!-- 联查字段 -->
+        <result property="deviceCode" column="device_code"/>
+        <result property="deviceName" column="device_name"/>
+        <result property="deviceImportance" column="device_importance"/>
+    </resultMap>
+
+    <!-- 插入单条记录 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_device_health (
+            device_id, record_date, health_score, risk_level,
+            runtime_score, fault_score, workorder_score, replacement_score,
+            predicted_failure_days, confidence_level, algorithm_version, created_at
+        ) VALUES (
+            #{deviceId}, #{recordDate}, #{healthScore}, #{riskLevel},
+            #{runtimeScore}, #{faultScore}, #{workorderScore}, #{replacementScore},
+            #{predictedFailureDays}, #{confidenceLevel}, #{algorithmVersion}, NOW()
+        )
+    </insert>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_device_health (
+            device_id, record_date, health_score, risk_level,
+            runtime_score, fault_score, workorder_score, replacement_score,
+            predicted_failure_days, confidence_level, algorithm_version, created_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.deviceId}, #{item.recordDate}, #{item.healthScore}, #{item.riskLevel},
+                #{item.runtimeScore}, #{item.faultScore}, #{item.workorderScore}, #{item.replacementScore},
+                #{item.predictedFailureDays}, #{item.confidenceLevel}, #{item.algorithmVersion}, NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据设备和日期查询 -->
+    <select id="findByDeviceAndDate" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance
+        FROM ai_device_health h
+        LEFT JOIN equipment e ON h.device_id = e.id
+        WHERE h.device_id = #{deviceId} AND h.record_date = #{recordDate}
+    </select>
+
+    <!-- 查询设备最新健康记录 -->
+    <select id="findLatestByDevice" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance
+        FROM ai_device_health h
+        LEFT JOIN equipment e ON h.device_id = e.id
+        WHERE h.device_id = #{deviceId}
+        ORDER BY h.record_date DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询设备健康趋势（最近N天） -->
+    <select id="findTrendByDevice" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at
+        FROM ai_device_health h
+        WHERE h.device_id = #{deviceId}
+          AND h.record_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        ORDER BY h.record_date ASC
+    </select>
+
+    <!-- 查询设备在日期范围内的健康记录 -->
+    <select id="findByDeviceAndDateRange" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at
+        FROM ai_device_health h
+        WHERE h.device_id = #{deviceId}
+          AND h.record_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY h.record_date ASC
+    </select>
+
+    <!-- 查询指定风险等级的设备（按健康分升序） -->
+    <select id="findByRiskLevel" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance
+        FROM ai_device_health h
+        LEFT JOIN equipment e ON h.device_id = e.id
+        WHERE h.risk_level = #{riskLevel}
+          AND h.record_date = (
+              SELECT MAX(record_date) FROM ai_device_health WHERE device_id = h.device_id
+          )
+        ORDER BY h.health_score ASC
+        <if test="limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 查询所有设备最新健康状态（分页） -->
+    <select id="findLatestAllDevices" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance
+        FROM ai_device_health h
+        LEFT JOIN equipment e ON h.device_id = e.id
+        WHERE h.record_date = (
+            SELECT MAX(record_date) FROM ai_device_health WHERE device_id = h.device_id
+        )
+        <if test="riskLevel != null and riskLevel != ''">
+            AND h.risk_level = #{riskLevel}
+        </if>
+        <if test="deviceCode != null and deviceCode != ''">
+            AND e.code LIKE CONCAT('%', #{deviceCode}, '%')
+        </if>
+        ORDER BY h.health_score ASC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 统计分页总数 -->
+    <select id="countLatestAllDevices" resultType="long">
+        SELECT COUNT(DISTINCT h.device_id)
+        FROM ai_device_health h
+        LEFT JOIN equipment e ON h.device_id = e.id
+        WHERE h.record_date = (
+            SELECT MAX(record_date) FROM ai_device_health WHERE device_id = h.device_id
+        )
+        <if test="riskLevel != null and riskLevel != ''">
+            AND h.risk_level = #{riskLevel}
+        </if>
+        <if test="deviceCode != null and deviceCode != ''">
+            AND e.code LIKE CONCAT('%', #{deviceCode}, '%')
+        </if>
+    </select>
+
+    <!-- 统计各风险等级的设备数量 -->
+    <select id="countByRiskLevel" resultType="map">
+        SELECT
+            h.risk_level AS riskLevel,
+            COUNT(DISTINCT h.device_id) AS cnt
+        FROM ai_device_health h
+        WHERE h.record_date = (
+            SELECT MAX(record_date) FROM ai_device_health WHERE device_id = h.device_id
+        )
+        GROUP BY h.risk_level
+    </select>
+
+    <!-- 统计最新评估的设备总数 -->
+    <select id="countTotalDevices" resultType="long">
+        SELECT COUNT(DISTINCT device_id)
+        FROM ai_device_health
+        WHERE record_date = (SELECT MAX(record_date) FROM ai_device_health)
+    </select>
+
+    <!-- 计算平均健康分 -->
+    <select id="calcAvgHealthScore" resultType="java.lang.Double">
+        SELECT AVG(health_score)
+        FROM ai_device_health
+        WHERE record_date = (SELECT MAX(record_date) FROM ai_device_health)
+    </select>
+
+    <!-- 查询健康评分最低的设备排行榜 -->
+    <select id="findLowestHealthRanking" resultMap="DeviceHealthResultMap">
+        SELECT
+            h.id, h.device_id, h.record_date, h.health_score, h.risk_level,
+            h.runtime_score, h.fault_score, h.workorder_score, h.replacement_score,
+            h.predicted_failure_days, h.confidence_level, h.algorithm_version, h.created_at,
+            e.code AS device_code,
+            e.name AS device_name,
+            e.importance_level AS device_importance
+        FROM ai_device_health h
+        LEFT JOIN equipment e ON h.device_id = e.id
+        WHERE h.record_date = (
+            SELECT MAX(record_date) FROM ai_device_health WHERE device_id = h.device_id
+        )
+        ORDER BY h.health_score ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 删除历史记录（数据归档） -->
+    <delete id="deleteBeforeDate">
+        DELETE FROM ai_device_health
+        WHERE record_date &lt; #{beforeDate}
+    </delete>
+
+</mapper>

@@ -4,10 +4,12 @@
 <mapper namespace="com.langdong.spare.mapper.StockInItemMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO stock_in_item (stock_in_receipt_id, purchase_order_item_id, spare_part_id, 
-                                   expected_quantity, actual_quantity, shelved_quantity, location_id, remark)
-        VALUES (#{stockInReceiptId}, #{purchaseOrderItemId}, #{sparePartId}, 
-                #{expectedQuantity}, #{actualQuantity}, #{shelvedQuantity}, #{locationId}, #{remark})
+        INSERT INTO stock_in_item (stock_in_receipt_id, purchase_order_item_id, spare_part_id,
+                                   expected_quantity, actual_quantity, remaining_qty, shelved_quantity,
+                                   location_id, in_time, remark)
+        VALUES (#{stockInReceiptId}, #{purchaseOrderItemId}, #{sparePartId},
+                #{expectedQuantity}, #{actualQuantity}, #{remainingQty}, #{shelvedQuantity},
+                #{locationId}, #{inTime}, #{remark})
     </insert>
 
     <select id="findPendingShelving" resultType="com.langdong.spare.entity.StockInItem">
@@ -32,6 +34,32 @@
         UPDATE stock_in_item
         SET shelved_quantity = shelved_quantity + #{addedQuantity}
         WHERE id = #{id}
+    </update>
+
+    <!-- ===== FIFO 核心查询：查询可用批次，按入库时间升序 ===== -->
+    <select id="findAvailableBatchesBySparePartId" resultType="com.langdong.spare.entity.StockInItem">
+        SELECT
+            i.id,
+            i.stock_in_receipt_id as stockInReceiptId,
+            i.spare_part_id as sparePartId,
+            i.actual_quantity as actualQuantity,
+            i.remaining_qty as remainingQty,
+            i.in_time as inTime,
+            i.location_id as locationId,
+            r.receipt_code as receiptCode
+        FROM stock_in_item i
+        LEFT JOIN stock_in_receipt r ON i.stock_in_receipt_id = r.id
+        WHERE i.spare_part_id = #{sparePartId}
+          AND i.remaining_qty > 0
+        ORDER BY i.in_time ASC
+    </select>
+
+    <!-- ===== FIFO 核心更新：扣减批次库存 ===== -->
+    <update id="deductBatchQuantity">
+        UPDATE stock_in_item
+        SET remaining_qty = remaining_qty - #{deductQty}
+        WHERE id = #{batchId}
+          AND remaining_qty >= #{deductQty}
     </update>
 
 </mapper>
