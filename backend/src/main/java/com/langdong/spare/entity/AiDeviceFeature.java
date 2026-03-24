@@ -2,6 +2,7 @@ package com.langdong.spare.entity;
 
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * AI设备特征记录实体
@@ -29,4 +30,16 @@ public class AiDeviceFeature {
 
     /** 当月换件总数量 */
     private Integer partReplaceQty;
+
+    /** 平均故障间隔时间（小时） */
+    private BigDecimal mtbf;
+
+    /** 平均修复时间（小时） */
+    private BigDecimal mttr;
+
+    /** 可用率（0-1） */
+    private BigDecimal availability;
+
+    /** 最近一次重大故障日期 */
+    private LocalDate lastMajorFaultDate;
 }

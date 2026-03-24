@@ -1,5 +1,6 @@
 package com.langdong.spare.service;
 
+import com.langdong.spare.entity.AiDeviceFeature;
 import com.langdong.spare.entity.Equipment;
 import com.langdong.spare.entity.FaultPrediction;
 import com.langdong.spare.mapper.EquipmentMapper;
@@ -67,9 +68,7 @@ public class FaultPredictionService {
         }
 
         // 查询最近12个月的设备特征数据
-        // TODO: 需要在AiDeviceFeatureMapper中添加查询最近N个月数据的方法
-        // 临时使用空列表，等待AiDeviceFeatureMapper扩展
-        List<Map<String, Object>> recentFeatures = new ArrayList<>();
+        List<AiDeviceFeature> recentFeatures = aiDeviceFeatureMapper.findRecentMonthsByDevice(deviceId, 12);
 
         if (recentFeatures.isEmpty() || recentFeatures.size() < 6) {
             log.warn("[故障预测] 设备 {} 历史数据不足（需至少6个月），跳过预测", equipment.getCode());
@@ -82,16 +81,18 @@ public class FaultPredictionService {
         List<Double> mtbfValues = new ArrayList<>();
         List<Double> healthScores = new ArrayList<>();
 
-        for (Map<String, Object> feature : recentFeatures) {
-            Double runHour = (Double) feature.get("run_hours");
-            Integer faultCount = (Integer) feature.get("fault_count");
-            Double mtbf = (Double) feature.get("mtbf");
-            Double healthScore = (Double) feature.get("health_score"); // 假设联查了健康评分
+        for (AiDeviceFeature feature : recentFeatures) {
+            // BigDecimal转Double
+            Double runHour = feature.getRunHours() != null ? feature.getRunHours().doubleValue() : 0.0;
+            Integer faultCount = feature.getFaultCount();
+            Double mtbf = feature.getMtbf() != null ? feature.getMtbf().doubleValue() : 9999.0;
+            // health_score需要联查ai_device_health表，暂时使用默认值
+            Double healthScore = 100.0;
 
-            runHours.add(runHour != null ? runHour : 0.0);
+            runHours.add(runHour);
             faultCounts.add(faultCount != null ? faultCount : 0);
-            mtbfValues.add(mtbf != null ? mtbf : 9999.0);
-            healthScores.add(healthScore != null ? healthScore : 100.0);
+            mtbfValues.add(mtbf);
+            healthScores.add(healthScore);
         }
 
         // 计算特征

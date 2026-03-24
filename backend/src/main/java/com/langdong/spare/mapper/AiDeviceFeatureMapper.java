@@ -26,4 +26,15 @@ public interface AiDeviceFeatureMapper {
      * 插入或覆盖更新单条设备特征（REPLACE INTO 保证幂等）
      */
     void insertOrReplace(AiDeviceFeature feature);
+
+    /**
+     * 查询单个设备最近N个月的特征数据
+     *
+     * @param deviceId 设备ID
+     * @param months   月数
+     * @return 特征数据列表（按月份降序）
+     */
+    List<AiDeviceFeature> findRecentMonthsByDevice(
+            @Param("deviceId") Long deviceId,
+            @Param("months") int months);
 }

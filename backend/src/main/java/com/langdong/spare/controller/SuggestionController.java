@@ -320,4 +320,31 @@ public class SuggestionController {
         response.put("total", suggestions.size());
         return ResponseEntity.ok(response);
     }
+
+    // ================================================================
+    // POST /api/phm/suggestion/generate — 手动触发维护建议生成
+    // ================================================================
+
+    /**
+     * 手动触发维护建议生成（临时端点用于测试）
+     *
+     * @return 生成的建议数量
+     */
+    @PostMapping("/generate")
+    public ResponseEntity<Map<String, Object>> generateSuggestions() {
+        try {
+            int generatedCount = suggestionService.generateSuggestions(null);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "维护建议生成完成");
+            response.put("generatedCount", generatedCount);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("code", 500);
+            error.put("message", "生成失败：" + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.langdong.spare.service;
 
+import com.langdong.spare.entity.AiDeviceFeature;
 import com.langdong.spare.entity.DeviceHealth;
 import com.langdong.spare.entity.Equipment;
 import com.langdong.spare.entity.HealthConfig;
@@ -69,11 +70,9 @@ public class DeviceHealthService {
         HealthConfig config = getHealthConfig(null, equipment.getImportanceLevel());
 
         // 查询最近3个月的设备特征数据
-        // TODO: 需要在AiDeviceFeatureMapper中添加查询最近N个月数据的方法
-        // 临时使用空列表，等待AiDeviceFeatureMapper扩展
-        List<Map<String, Object>> recentFeatures = new ArrayList<>();
+        List<AiDeviceFeature> recentFeatures = aiDeviceFeatureMapper.findRecentMonthsByDevice(deviceId, 3);
 
-        if (recentFeatures.isEmpty()) {
+        if (recentFeatures == null || recentFeatures.isEmpty()) {
             log.warn("[健康评估] 设备 {} 无历史特征数据，跳过评估", equipment.getCode());
             return null;
         }
@@ -84,15 +83,16 @@ public class DeviceHealthService {
         List<Double> workorderScores = new ArrayList<>();
         List<Double> replacementScores = new ArrayList<>();
 
-        for (Map<String, Object> feature : recentFeatures) {
-            Double runHours = (Double) feature.get("run_hours");
-            Double mtbf = (Double) feature.get("mtbf");
-            Integer workOrderCount = (Integer) feature.get("work_order_count");
-            Integer partReplaceQty = (Integer) feature.get("part_replace_qty");
+        for (AiDeviceFeature feature : recentFeatures) {
+            // BigDecimal转Double
+            Double runHours = feature.getRunHours() != null ? feature.getRunHours().doubleValue() : 0.0;
+            Double mtbf = feature.getMtbf() != null ? feature.getMtbf().doubleValue() : 9999.0;
+            Integer workOrderCount = feature.getWorkOrderCount();
+            Integer partReplaceQty = feature.getPartReplaceQty();
 
             // 计算各维度评分
             double runtimeScore = DeviceHealthCalculator.calcRuntimeScore(
-                    runHours != null ? runHours : 0.0,
+                    runHours,
                     720.0  // 标准运行时长（月度30天×24小时）
             );
             double faultScore = DeviceHealthCalculator.calcFaultScore(mtbf);

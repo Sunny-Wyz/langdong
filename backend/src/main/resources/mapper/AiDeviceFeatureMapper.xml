@@ -11,6 +11,10 @@
         <result property="faultCount"        column="fault_count"/>
         <result property="workOrderCount"    column="work_order_count"/>
         <result property="partReplaceQty"    column="part_replace_qty"/>
+        <result property="mtbf"              column="mtbf"/>
+        <result property="mttr"              column="mttr"/>
+        <result property="availability"      column="availability"/>
+        <result property="lastMajorFaultDate" column="last_major_fault_date"/>
     </resultMap>
 
     <!-- 批量查询多台设备的特征数据（一次 SQL，禁止 for 循环单条查询） -->
@@ -23,6 +27,16 @@
         </foreach>
         AND stat_month &gt;= #{fromMonth}
         ORDER BY device_id, stat_month ASC
+    </select>
+
+    <!-- 查询单个设备最近N个月的特征数据 -->
+    <select id="findRecentMonthsByDevice" resultMap="AiDeviceFeatureMap">
+        SELECT id, device_id, stat_month, run_hours, fault_count, work_order_count, part_replace_qty,
+               mtbf, mttr, availability, last_major_fault_date
+        FROM ai_device_feature
+        WHERE device_id = #{deviceId}
+          AND stat_month &gt;= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL #{months} MONTH), '%Y-%m')
+        ORDER BY stat_month DESC
     </select>
 
     <!-- 幂等写入：REPLACE INTO（先删除同 UK 行再插入） -->

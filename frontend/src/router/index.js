@@ -46,6 +46,11 @@ import ClassifyResult from '../views/classify/ClassifyResult.vue'
 // AI 智能分析模块
 import AiForecastResult from '../views/ai/AiForecastResult.vue'
 
+// PHM 预测性维护模块
+import HealthMonitor from '../views/phm/HealthMonitor.vue'
+import FaultPrediction from '../views/phm/FaultPrediction.vue'
+import MaintenanceSuggestion from '../views/phm/MaintenanceSuggestion.vue'
+
 Vue.use(VueRouter)
 
 // Fix 'Avoided redundant navigation to current location' warning
@@ -109,7 +114,11 @@ const router = new VueRouter({
       component: Home,
       meta: { requiresAuth: true },
       children: [
-        { path: 'classify-result', component: ClassifyResult, meta: { requiresAuth: true } }
+        { path: 'classify-result', component: ClassifyResult, meta: { requiresAuth: true } },
+        // PHM 预测性维护模块
+        { path: 'health-monitor', component: HealthMonitor, meta: { requiresAuth: true } },
+        { path: 'fault-prediction', component: FaultPrediction, meta: { requiresAuth: true } },
+        { path: 'maintenance-suggestion', component: MaintenanceSuggestion, meta: { requiresAuth: true } }
       ]
     },
     // AI 智能分析模块
