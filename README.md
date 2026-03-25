@@ -88,6 +88,12 @@
   - Fallback 回退预测
   - MASE 评估与预测区间
   - 库存阈值联动补货建议
+- 设备健康预测模块（PHM）：
+  - 设备健康评分与风险分级（CRITICAL/HIGH/MEDIUM/LOW）
+  - 故障预测（概率、预测窗口、置信区间）
+  - 维护建议自动生成，支持采纳/拒绝并联动工单与领用
+  - 定时批量评估与手动触发
+- 库存出库 FIFO 追溯：出库批次先进先出追溯。
 - 报表与看板：库存、领用、维修、供应商、预警中心、Dashboard。
 
 ---
@@ -113,13 +119,16 @@ mysql -u root -p < sql/init.sql
 按需补充功能模块 SQL（建议顺序）：
 
 ```bash
-mysql -u root -p < sql/classify_module.sql
-mysql -u root -p < sql/ai_module.sql
-mysql -u root -p < sql/requisition_module.sql
-mysql -u root -p < sql/work_order_module.sql
-mysql -u root -p < sql/purchase_module.sql
-mysql -u root -p < sql/report_module.sql
-mysql -u root -p < sql/mock_data.sql
+mysql -u root -p spare_db < sql/classify_module.sql
+mysql -u root -p spare_db < sql/ai_module.sql
+mysql -u root -p spare_db < sql/requisition_module.sql
+mysql -u root -p spare_db < sql/fix_menu.sql
+mysql -u root -p spare_db < sql/work_order_module.sql
+mysql -u root -p spare_db < sql/purchase_module.sql
+mysql -u root -p spare_db < sql/report_module.sql
+mysql -u root -p spare_db < sql/phm_module.sql
+mysql -u root -p spare_db < sql/fifo_migration_v1.sql
+mysql -u root -p spare_db < sql/mock_data.sql
 ```
 
 可选：导入分类示例数据
@@ -132,9 +141,22 @@ mysql -u root -p < sql/classify_data.sql
 
 修改 `backend/src/main/resources/application.yml`：
 
-- 数据库地址：`spring.datasource.url`
-- 用户名：`spring.datasource.username`
-- 密码：`spring.datasource.password`
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/spare_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: <your-db-user>
+    password: <your-db-password>
+
+jwt:
+  secret: <至少64字符的随机密钥>
+  expiration: 86400000
+
+# 允许跨域的前端地址（生产环境请修改为实际域名）
+app:
+  cors:
+    allowed-origin: http://localhost:3000
+```
 
 默认后端端口：`8080`
 
@@ -273,19 +295,26 @@ npm run build
 - 检查后端是否已启动在 `8080`
 - 检查 `frontend/vue.config.js` 中代理目标地址
 - 检查浏览器网络面板是否出现跨域或 401
+- 检查 `application.yml` 中 `app.cors.allowed-origin` 是否与前端地址一致
 
-### 2. 登录失败
+### 2. 接口返回 403 Forbidden
+
+- 说明当前用户缺少该接口所需的权限（`@PreAuthorize` 校验失败）
+- 登录管理员账号，进入"角色与权限分配"，确认该角色已勾选对应菜单/按钮权限
+- 重新登录后前端会刷新权限缓存
+
+### 3. 登录失败
 
 - 确认已执行 `sql/init.sql`
 - 确认 `user` 表存在 `admin` 账号
 - 确认数据库连接配置正确
 
-### 3. 菜单不显示或权限按钮缺失
+### 4. 菜单不显示或权限按钮缺失
 
 - 检查 `menu`、`role_menu`、`user_role` 数据是否完整
 - 重新登录以刷新前端动态路由与权限缓存
 
-### 4. AI/分类任务未出结果
+### 5. AI/分类任务未出结果
 
 - 检查定时任务是否启用（`@EnableScheduling`）
 - 检查历史业务数据是否足够（尤其是近 12 个月消耗）

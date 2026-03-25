@@ -23,7 +23,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/phm/prediction")
-@CrossOrigin(origins = "*")
 public class PredictionController {
 
     @Autowired
@@ -40,6 +39,7 @@ public class PredictionController {
      * @return 预测记录
      */
     @GetMapping("/device/{deviceId}")
+    @PreAuthorize("hasAuthority('phm:prediction:view')")
     public ResponseEntity<Map<String, Object>> getDevicePrediction(@PathVariable Long deviceId) {
         if (deviceId == null || deviceId <= 0) {
             Map<String, Object> error = new HashMap<>();
@@ -75,6 +75,7 @@ public class PredictionController {
      * @return 高风险设备预测列表
      */
     @GetMapping("/high-risk")
+    @PreAuthorize("hasAuthority('phm:prediction:view')")
     public ResponseEntity<Map<String, Object>> getHighRiskDevices(
             @RequestParam(defaultValue = "0.5") double threshold,
             @RequestParam(defaultValue = "20") int limit
@@ -142,7 +143,7 @@ public class PredictionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("code", 500);
-            error.put("message", "预测失败：" + e.getMessage());
+            error.put("message", "预测失败，请稍后重试");
             return ResponseEntity.status(500).body(error);
         }
     }
@@ -159,6 +160,7 @@ public class PredictionController {
      * @return 预测记录列表
      */
     @GetMapping("/history/{deviceId}")
+    @PreAuthorize("hasAuthority('phm:prediction:view')")
     public ResponseEntity<Map<String, Object>> getPredictionHistory(
             @PathVariable Long deviceId,
             @RequestParam(defaultValue = "12") int months
@@ -195,6 +197,7 @@ public class PredictionController {
      * @return 准确率统计列表
      */
     @GetMapping("/accuracy")
+    @PreAuthorize("hasAuthority('phm:prediction:view')")
     public ResponseEntity<Map<String, Object>> getPredictionAccuracy(
             @RequestParam(defaultValue = "6") int months
     ) {
@@ -225,6 +228,7 @@ public class PredictionController {
      * @return 分页结果
      */
     @GetMapping("/latest")
+    @PreAuthorize("hasAuthority('phm:prediction:view')")
     public ResponseEntity<Map<String, Object>> getLatestAll(
             @RequestParam(required = false) String deviceCode,
             @RequestParam(required = false) Double minProbability,

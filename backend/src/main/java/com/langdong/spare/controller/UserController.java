@@ -15,7 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -31,18 +30,29 @@ public class UserController {
     @PreAuthorize("hasAuthority('sys:user:list')")
     public ResponseEntity<List<User>> list() {
         List<User> users = userMapper.findAll();
-        users.forEach(u -> u.setPassword(null)); // 隐藏密码
+        users.forEach(u -> u.setPassword(null));
         return ResponseEntity.ok(users);
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('sys:user:list')")
     @Transactional
     public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {
         String username = (String) body.get("username");
         String name = (String) body.get("name");
+        String rawPassword = (String) body.get("password");
         Integer status = body.containsKey("status") ? (Integer) body.get("status") : 1;
         List<?> roleIds = (List<?>) body.get("roleIds");
 
+        if (username == null || username.isBlank()) {
+            return ResponseEntity.badRequest().body("用户名不能为空");
+        }
+        if (rawPassword == null || rawPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("密码不能为空");
+        }
+        if (rawPassword.length() < 6) {
+            return ResponseEntity.badRequest().body("密码长度不能少于6位");
+        }
         if (userMapper.findByUsername(username) != null) {
             return ResponseEntity.badRequest().body("用户名已存在");
         }
@@ -51,10 +61,6 @@ public class UserController {
         user.setUsername(username);
         user.setName(name);
         user.setStatus(status);
-        String rawPassword = (String) body.get("password");
-        if (rawPassword == null || rawPassword.trim().isEmpty()) {
-            rawPassword = "123456";
-        }
         user.setPassword(passwordEncoder.encode(rawPassword));
         userMapper.insert(user);
 
@@ -64,6 +70,7 @@ public class UserController {
             }
         }
 
+        user.setPassword(null);
         return ResponseEntity.ok(user);
     }
 
@@ -74,7 +81,7 @@ public class UserController {
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         } else {
-            user.setPassword(null); // 不更新密码
+            user.setPassword(null);
         }
         userMapper.update(user);
         return ResponseEntity.ok(user);
@@ -95,6 +102,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}/roles")
+    @PreAuthorize("hasAuthority('sys:user:list')")
     @Transactional
     public ResponseEntity<?> assignRoles(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {
         List<?> roleIds = body.get("roleIds");

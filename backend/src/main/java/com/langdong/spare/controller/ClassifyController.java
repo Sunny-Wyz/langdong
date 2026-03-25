@@ -22,25 +22,17 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/classify")
-@CrossOrigin(origins = "*")
 public class ClassifyController {
 
     @Autowired
     private ClassifyService classifyService;
 
-    // ================================================================
-    // POST /api/classify/trigger — 手动触发全量重算（ADMIN专属）
-    // ================================================================
-
     /**
-     * 手动触发全量分类重算
-     * 重算为异步执行，接口立即返回，不等待计算完成
-     * 权限：仅拥有 classify:trigger:run 权限的角色（即 ADMIN）可调用
+     * 手动触发全量分类重算（ADMIN专属）
      */
     @PostMapping("/trigger")
     @PreAuthorize("hasAuthority('classify:trigger:run')")
     public ResponseEntity<Map<String, Object>> triggerClassify() {
-        // 异步触发，不阻塞
         classifyService.runFullClassify();
 
         Map<String, Object> resp = new HashMap<>();
@@ -49,21 +41,11 @@ public class ClassifyController {
         return ResponseEntity.ok(resp);
     }
 
-    // ================================================================
-    // GET /api/classify/result — 分页查询最新分类结果
-    // ================================================================
-
     /**
      * 查询最新分类结果列表（分页）
-     *
-     * @param abcClass  ABC分类过滤（可选，A/B/C）
-     * @param xyzClass  XYZ分类过滤（可选，X/Y/Z）
-     * @param partCode  备件编码关键词（可选，模糊匹配）
-     * @param month     分类月份（可选，格式yyyy-MM，默认取最新月份）
-     * @param page      页码（从1开始，默认1）
-     * @param pageSize  每页条数（默认20）
      */
     @GetMapping("/result")
+    @PreAuthorize("hasAuthority('classify:result:list')")
     public ResponseEntity<Map<String, Object>> queryResult(
             @RequestParam(required = false) String abcClass,
             @RequestParam(required = false) String xyzClass,
@@ -72,7 +54,9 @@ public class ClassifyController {
             @RequestParam(defaultValue = "1")  int page,
             @RequestParam(defaultValue = "20") int pageSize
     ) {
-        // 参数合法性校验
+        if (month != null && !month.matches("\\d{4}-\\d{2}")) {
+            return ResponseEntity.badRequest().build();
+        }
         if (page < 1) {
             page = 1;
         }
@@ -85,16 +69,11 @@ public class ClassifyController {
         return ResponseEntity.ok(result);
     }
 
-    // ================================================================
-    // GET /api/classify/result/{partCode} — 查询指定备件的分类历史
-    // ================================================================
-
     /**
      * 查询指定备件的全部历史分类记录（按月份升序）
-     *
-     * @param partCode 备件编码（URL路径参数）
      */
     @GetMapping("/result/{partCode}")
+    @PreAuthorize("hasAuthority('classify:result:list')")
     public ResponseEntity<List<PartClassify>> queryHistory(@PathVariable String partCode) {
         if (partCode == null || partCode.isBlank()) {
             return ResponseEntity.badRequest().build();
@@ -103,15 +82,11 @@ public class ClassifyController {
         return ResponseEntity.ok(history);
     }
 
-    // ================================================================
-    // GET /api/classify/matrix — 查询ABC×XYZ 9格矩阵分布
-    // ================================================================
-
     /**
      * 查询最新月份的 ABC×XYZ 9格矩阵备件数量分布
-     * 响应格式：{ "AX": 12, "AY": 5, "AZ": 2, "BX": 30, "BY": 8, "BZ": 3, "CX": 45, "CY": 20, "CZ": 15 }
      */
     @GetMapping("/matrix")
+    @PreAuthorize("hasAuthority('classify:result:list')")
     public ResponseEntity<Map<String, Long>> queryMatrix() {
         Map<String, Long> matrix = classifyService.queryMatrix();
         return ResponseEntity.ok(matrix);

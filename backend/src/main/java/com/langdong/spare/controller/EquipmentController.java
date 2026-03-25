@@ -9,13 +9,13 @@ import com.langdong.spare.mapper.EquipmentSparePartMapper;
 import com.langdong.spare.mapper.SparePartMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/equipments")
-@CrossOrigin(origins = "*")
 public class EquipmentController {
 
     @Autowired
@@ -28,11 +28,13 @@ public class EquipmentController {
     private SparePartMapper sparePartMapper;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public List<Equipment> getAll() {
         return equipmentMapper.findAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public ResponseEntity<Equipment> getById(@PathVariable Long id) {
         Equipment e = equipmentMapper.findById(id);
         if (e == null) {
@@ -42,12 +44,14 @@ public class EquipmentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public Equipment create(@RequestBody Equipment equipment) {
         equipmentMapper.insert(equipment);
         return equipment;
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public ResponseEntity<Equipment> update(@PathVariable Long id, @RequestBody Equipment equipment) {
         Equipment existing = equipmentMapper.findById(id);
         if (existing == null) {
@@ -59,21 +63,19 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Equipment existing = equipmentMapper.findById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
-        // 解绑所有该设备关联的备件
         equipmentSparePartMapper.deleteByEquipmentId(id);
-        // 删除设备本身
         equipmentMapper.deleteById(id);
         return ResponseEntity.ok().build();
     }
 
-    // --- 备件关联API ---
-
     @GetMapping("/{id}/spare-parts")
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public ResponseEntity<List<SparePart>> getLinkedSpareParts(@PathVariable Long id) {
         Equipment existing = equipmentMapper.findById(id);
         if (existing == null) {
@@ -84,20 +86,18 @@ public class EquipmentController {
     }
 
     @PostMapping("/{id}/spare-parts")
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public ResponseEntity<?> linkSparePart(@PathVariable Long id, @RequestBody EquipmentSparePartDTO dto) {
         Equipment existing = equipmentMapper.findById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
 
-        // Check if link already exists
         EquipmentSparePart esp = equipmentSparePartMapper.findByEqAndSpId(id, dto.getSparePartId());
         if (esp != null) {
-            // Update quantity
             esp.setQuantity(dto.getQuantity() != null ? dto.getQuantity() : esp.getQuantity() + 1);
             equipmentSparePartMapper.updateQuantity(esp);
         } else {
-            // Create new link
             esp = new EquipmentSparePart();
             esp.setEquipmentId(id);
             esp.setSparePartId(dto.getSparePartId());
@@ -109,6 +109,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}/spare-parts/{spId}")
+    @PreAuthorize("hasAuthority('base:equipment:list')")
     public ResponseEntity<?> unlinkSparePart(@PathVariable Long id, @PathVariable Long spId) {
         int res = equipmentSparePartMapper.deleteByEqAndSpId(id, spId);
         if (res > 0) {

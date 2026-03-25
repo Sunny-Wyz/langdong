@@ -4,10 +4,14 @@ import com.langdong.spare.dto.WorkOrderAssignDTO;
 import com.langdong.spare.dto.WorkOrderCompleteDTO;
 import com.langdong.spare.dto.WorkOrderProcessDTO;
 import com.langdong.spare.dto.WorkOrderReportDTO;
+import com.langdong.spare.entity.User;
 import com.langdong.spare.entity.WorkOrder;
+import com.langdong.spare.mapper.UserMapper;
 import com.langdong.spare.service.WorkOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -16,24 +20,29 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/work-orders")
-@CrossOrigin(origins = "*")
 public class WorkOrderController {
 
     @Autowired
     private WorkOrderService workOrderService;
 
-    // Hardcoded user ID for demo purposes (与领用模块保持一致)
+    @Autowired
+    private UserMapper userMapper;
+
     private Long getCurrentUserId() {
-        return 1L;
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userMapper.findByUsername(username);
+        return user != null ? user.getId() : null;
     }
 
     @PostMapping("/report")
+    @PreAuthorize("hasAuthority('wo:report:add')")
     public ResponseEntity<?> report(@RequestBody WorkOrderReportDTO dto) {
         workOrderService.report(dto, getCurrentUserId());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('wo:query:list')")
     public ResponseEntity<List<WorkOrder>> getList(
             @RequestParam(required = false) String orderStatus,
             @RequestParam(required = false) Long deviceId,
@@ -44,6 +53,7 @@ public class WorkOrderController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('wo:query:list')")
     public ResponseEntity<Map<String, Object>> getDetail(@PathVariable Long id) {
         Map<String, Object> result = new HashMap<>();
         result.put("info", workOrderService.getDetail(id));
@@ -51,6 +61,7 @@ public class WorkOrderController {
     }
 
     @PutMapping("/{id}/assign")
+    @PreAuthorize("hasAuthority('wo:assign:edit')")
     public ResponseEntity<?> assign(@PathVariable Long id, @RequestBody WorkOrderAssignDTO dto) {
         try {
             workOrderService.assign(id, dto);
@@ -63,6 +74,7 @@ public class WorkOrderController {
     }
 
     @PutMapping("/{id}/process")
+    @PreAuthorize("hasAuthority('wo:process:edit')")
     public ResponseEntity<?> process(@PathVariable Long id, @RequestBody WorkOrderProcessDTO dto) {
         try {
             workOrderService.process(id, dto);
@@ -75,6 +87,7 @@ public class WorkOrderController {
     }
 
     @PutMapping("/{id}/complete")
+    @PreAuthorize("hasAuthority('wo:complete:edit')")
     public ResponseEntity<?> complete(@PathVariable Long id, @RequestBody WorkOrderCompleteDTO dto) {
         try {
             workOrderService.complete(id, dto);

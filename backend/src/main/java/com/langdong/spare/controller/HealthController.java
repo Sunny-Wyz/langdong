@@ -27,7 +27,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/phm/health")
-@CrossOrigin(origins = "*")
 public class HealthController {
 
     @Autowired
@@ -46,6 +45,7 @@ public class HealthController {
      * @return 健康记录列表
      */
     @GetMapping("/trend/{deviceId}")
+    @PreAuthorize("hasAuthority('phm:health:view')")
     public ResponseEntity<Map<String, Object>> getHealthTrend(
             @PathVariable Long deviceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -88,6 +88,7 @@ public class HealthController {
      * @return 风险设备列表(按健康分升序)
      */
     @GetMapping("/ranking")
+    @PreAuthorize("hasAuthority('phm:health:view')")
     public ResponseEntity<Map<String, Object>> getRiskRanking(
             @RequestParam(required = false) String riskLevel,
             @RequestParam(defaultValue = "20") int limit
@@ -116,6 +117,7 @@ public class HealthController {
      * @return 仪表盘数据(设备总数、风险分布、平均健康分等)
      */
     @GetMapping("/dashboard")
+    @PreAuthorize("hasAuthority('phm:health:view')")
     public ResponseEntity<Map<String, Object>> getDashboard() {
         Map<String, Object> dashboardData = deviceHealthService.getDashboardData();
 
@@ -162,6 +164,7 @@ public class HealthController {
      * @return 分页结果
      */
     @GetMapping("/latest")
+    @PreAuthorize("hasAuthority('phm:health:view')")
     public ResponseEntity<Map<String, Object>> getLatestAll(
             @RequestParam(required = false) String riskLevel,
             @RequestParam(required = false) String deviceCode,
@@ -199,6 +202,7 @@ public class HealthController {
      * @return 健康记录
      */
     @GetMapping("/device/{deviceId}/latest")
+    @PreAuthorize("hasAuthority('phm:health:view')")
     public ResponseEntity<Map<String, Object>> getLatestByDevice(@PathVariable Long deviceId) {
         if (deviceId == null || deviceId <= 0) {
             Map<String, Object> error = new HashMap<>();

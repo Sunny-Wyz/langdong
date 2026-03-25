@@ -6,6 +6,7 @@ import com.langdong.spare.mapper.MenuMapper;
 import com.langdong.spare.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +16,6 @@ import java.util.stream.Collectors;
 // 动态路由与权限菜单字典加载核心控制器
 @RestController
 @RequestMapping("/api/menus")
-@CrossOrigin(origins = "*")
 public class MenuController {
 
     @Autowired
@@ -34,16 +34,15 @@ public class MenuController {
         }
 
         List<Menu> menus = menuMapper.findMenusByUserId(user.getId());
-        // 构建树形结构
         List<Menu> tree = buildTree(menus, null);
         return ResponseEntity.ok(tree);
     }
 
     // [核心] 获取系统全量菜单和权限定义树，用于管理员在建立角色时进行全量勾选分配
     @GetMapping
+    @PreAuthorize("hasAuthority('sys:role:list')")
     public ResponseEntity<List<Menu>> getAllMenus() {
         List<Menu> menus = menuMapper.findAll();
-        // 构建树形结构返回给分配树
         return ResponseEntity.ok(buildTree(menus, null));
     }
 

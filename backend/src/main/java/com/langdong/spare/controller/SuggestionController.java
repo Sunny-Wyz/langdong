@@ -25,7 +25,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/phm/suggestion")
-@CrossOrigin(origins = "*")
 public class SuggestionController {
 
     @Autowired
@@ -47,6 +46,7 @@ public class SuggestionController {
      * @return 分页结果
      */
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('phm:suggestion:view')")
     public ResponseEntity<Map<String, Object>> getSuggestionList(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priorityLevel,
@@ -86,6 +86,7 @@ public class SuggestionController {
      * @return 建议详情
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('phm:suggestion:view')")
     public ResponseEntity<Map<String, Object>> getSuggestionDetail(@PathVariable Long id) {
         if (id == null || id <= 0) {
             Map<String, Object> error = new HashMap<>();
@@ -153,12 +154,12 @@ public class SuggestionController {
         } catch (RuntimeException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("code", 400);
-            error.put("message", "采纳失败：" + e.getMessage());
+            error.put("message", "采纳失败，请检查建议状态后重试");
             return ResponseEntity.badRequest().body(error);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("code", 500);
-            error.put("message", "系统错误：" + e.getMessage());
+            error.put("message", "系统错误，请稍后重试");
             return ResponseEntity.status(500).body(error);
         }
     }
@@ -214,12 +215,12 @@ public class SuggestionController {
         } catch (RuntimeException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("code", 400);
-            error.put("message", "拒绝失败：" + e.getMessage());
+            error.put("message", "拒绝失败，请检查建议状态后重试");
             return ResponseEntity.badRequest().body(error);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("code", 500);
-            error.put("message", "系统错误：" + e.getMessage());
+            error.put("message", "系统错误，请稍后重试");
             return ResponseEntity.status(500).body(error);
         }
     }
@@ -234,6 +235,7 @@ public class SuggestionController {
      * @return 待处理建议数
      */
     @GetMapping("/pending-count")
+    @PreAuthorize("hasAuthority('phm:suggestion:view')")
     public ResponseEntity<Map<String, Object>> getPendingCount() {
         long pendingCount = suggestionService.countPending();
 
@@ -254,6 +256,7 @@ public class SuggestionController {
      * @return 统计数据
      */
     @GetMapping("/dashboard")
+    @PreAuthorize("hasAuthority('phm:suggestion:view')")
     public ResponseEntity<Map<String, Object>> getDashboard() {
         Map<String, Object> dashboardData = suggestionService.getDashboardData();
 
@@ -275,6 +278,7 @@ public class SuggestionController {
      * @return 建议列表
      */
     @GetMapping("/device/{deviceId}")
+    @PreAuthorize("hasAuthority('phm:suggestion:view')")
     public ResponseEntity<Map<String, Object>> getSuggestionsByDevice(@PathVariable Long deviceId) {
         if (deviceId == null || deviceId <= 0) {
             Map<String, Object> error = new HashMap<>();
@@ -304,6 +308,7 @@ public class SuggestionController {
      * @return 建议列表
      */
     @GetMapping("/high-priority")
+    @PreAuthorize("hasAuthority('phm:suggestion:view')")
     public ResponseEntity<Map<String, Object>> getHighPrioritySuggestions(
             @RequestParam(defaultValue = "10") int limit
     ) {
@@ -331,6 +336,7 @@ public class SuggestionController {
      * @return 生成的建议数量
      */
     @PostMapping("/generate")
+    @PreAuthorize("hasAuthority('phm:suggestion:approve')")
     public ResponseEntity<Map<String, Object>> generateSuggestions() {
         try {
             int generatedCount = suggestionService.generateSuggestions(null);
@@ -343,7 +349,7 @@ public class SuggestionController {
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("code", 500);
-            error.put("message", "生成失败：" + e.getMessage());
+            error.put("message", "生成失败，请稍后重试");
             return ResponseEntity.status(500).body(error);
         }
     }

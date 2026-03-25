@@ -14,20 +14,17 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/ai/forecast")
-@CrossOrigin(origins = "*")
 public class AiForecastController {
 
     @Autowired
     private AiForecastService aiForecastService;
 
     /**
-     * 手动触发全量预测与分析（异步）
-     * 仅超级管理员可调用
+     * 手动触发全量预测与分析（异步，仅超级管理员可调用）
      */
     @PostMapping("/trigger")
     @PreAuthorize("hasAuthority('ai:forecast:trigger')")
     public ResponseEntity<Map<String, Object>> triggerForecast() {
-        // 异步调用，不阻塞
         aiForecastService.runFullForecast();
 
         Map<String, Object> resp = new HashMap<>();
@@ -40,11 +37,15 @@ public class AiForecastController {
      * 分页查询预测结果列表
      */
     @GetMapping("/result")
+    @PreAuthorize("hasAuthority('ai:forecast:list')")
     public ResponseEntity<Map<String, Object>> queryResult(
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String partCode,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        if (month != null && !month.matches("\\d{4}-\\d{2}")) {
+            return ResponseEntity.badRequest().build();
+        }
         if (page < 1)
             page = 1;
         if (size < 1 || size > 200)
@@ -58,8 +59,8 @@ public class AiForecastController {
      * 查询指定备件的历史预测趋势
      */
     @GetMapping("/result/{partCode}")
+    @PreAuthorize("hasAuthority('ai:forecast:list')")
     public ResponseEntity<Object> getHistory(@PathVariable String partCode) {
-        // 直接复用 service 或 mapper
         return ResponseEntity.ok(aiForecastService.queryHistory(partCode));
     }
 }

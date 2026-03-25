@@ -15,7 +15,6 @@ import java.util.Map;
 // 角色与权限关联管理核心控制器
 @RestController
 @RequestMapping("/api/roles")
-@CrossOrigin(origins = "*")
 public class RoleController {
 
     @Autowired
@@ -62,9 +61,9 @@ public class RoleController {
 
     // [核心] 为角色分配菜单和按钮权限 (全量覆盖：先删除旧关联再插入新关联)
     @PostMapping("/{id}/menus")
+    @PreAuthorize("hasAuthority('sys:role:list')")
     @Transactional
     public ResponseEntity<?> assignMenus(@PathVariable Long id, @RequestBody Map<String, List<?>> body) {
-        System.out.println("======= ENTERED assignMenus, roleId=" + id + " =======");
         List<?> menuIds = body.get("menuIds");
         roleMenuMapper.deleteByRoleId(id);
         if (menuIds != null && !menuIds.isEmpty()) {
