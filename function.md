@@ -111,3 +111,39 @@
   - **智能补货**：计算并落地 AI 预测值后，交由 `StockThresholdService.java` 结合当前备件对应的 ABC 分类、利用 k × σ_d × √L 自动重算安全库存区间，并在突破 ROP 点时推送补货建议(`biz_reorder_suggest`)。
   - **调度与前台服务**：每月 1 日凌晨由系统定时任务调度预测流水线；同时支持通过带权限的 Controller `/api/ai/forecast/trigger` 进行管理员手动全量预演。
   - **前端视图**：新增 `AiForecastResult.vue` 结果清单页面（绑定于侧边栏根目录`/ai`），可按月按编号复合检索，内嵌基于 ECharts 的预测趋势弹窗，并有动态算法彩签标记和 MASE 预警显示。
+
+---
+
+### F11: P1 文档拓展包完成（模块流程 / 安全库存 / 算法对比）
+- **功能描述**：完成 P1 拓展阶段文档建设，补齐三份关键文档并与总导航联动更新：`docs/ARCHITECTURE/MODULE_DETAILS.md`、`docs/AI_ALGORITHMS/SAFETY_STOCK.md`、`docs/AI_ALGORITHMS/RESULTS/RF_vs_SMA.md`。
+- **落实情况**：三份文档均已创建并形成可复用结构化内容：模块流程文档覆盖 9 大模块状态流与跨模块一致性校验；安全库存文档统一了动态法/固定法公式口径与实验结论；RF 对比文档沉淀了逐月误差、汇总指标与生产阈值建议。同时 `docs/README.md` 中对应条目与文档矩阵状态已由“待创建”更新为“已完成/已验证”。
+
+---
+
+### F12: P2 文档包完成（API / 生产部署 / 灾备 / 性能）
+- **功能描述**：完成 P2 阶段文档建设，新增 API 与运维体系文档并接入总导航：`docs/API/API_REFERENCE.md`、`docs/API/API_EXAMPLES.md`、`docs/OPS/DEPLOYMENT_PRODUCTION.md`、`docs/OPS/DISASTER_RECOVERY.md`、`docs/OPS/PERFORMANCE_CHECKLIST.md`。
+- **落实情况**：5 份文档均已创建，覆盖接口契约、联调示例、发布回滚、RPO/RTO 灾备流程与性能验收清单；`docs/README.md` 已同步新增 API/OPS 分区、文档矩阵状态与 FAQ 跳转入口，形成从开发联调到生产运维的闭环文档链路。
+
+---
+
+### F13: API 字段级文档与业务场景导航增强
+- **功能描述**：对 API 文档进行字段级增强，并在总导航增加按业务场景的一跳式入口，提升联调与排障效率。涉及文件：`docs/API/API_REFERENCE.md`、`docs/README.md`。
+- **落实情况**：`API_REFERENCE.md` 已补齐认证、分类预测、补货建议、FIFO 追溯等模块的请求/响应字段表；`README.md` 新增“按业务场景跳转”区，覆盖登录鉴权、分类预测、补货处理、FIFO 追溯、发布回滚、性能定位等高频场景。
+
+---
+
+### F14: API 联调错误矩阵增强（400/401/403/422）
+- **功能描述**：在联调示例文档中新增高频错误矩阵与可复制请求/响应示例，提升测试与联调问题定位效率。涉及文件：`docs/API/API_EXAMPLES.md`。
+- **落实情况**：已新增 400/401/403/422 的“触发点-根因-处理动作”矩阵，并补充 curl 复现场景和典型响应样例；同时保留 404/409/422 业务解释，形成从快速定位到深度排查的闭环结构。
+
+---
+
+### F15: API 文档契约纠偏（路径/参数/返回结构）
+- **功能描述**：针对联调文档与后端实现存在的口径偏差进行纠偏，避免示例可执行性与真实接口行为不一致。涉及文件：`docs/API/API_REFERENCE.md`、`docs/API/API_EXAMPLES.md`。
+- **落实情况**：已修正领用出库路径为 `/api/requisitions/{id}/outbound`，统一分类分页参数为 `page/pageSize`，将补货建议接口文档改为当前实现口径（仅 `status` + 数组返回），并补充 422/500 的异常映射说明，降低联调误判风险。
+
+---
+
+### F16: 历史源稿清理与归档规范化
+- **功能描述**：执行文档资产清理，删除已被正式文档完全吸收的源稿，并将仍具复盘价值的实验底稿归档，避免主目录冗余。
+- **落实情况**：已删除 `3-2.md`、`3-3.md`、`用例.md`、`ai3.md`、`ai11.md`、`ai19.md`；已归档 `随机森林.md`、`ai5.md`、`ai6.md`、`ai7.md`、`ai8.md`、`ai9.md` 至 `docs/archive/legacy_sources/`，`add_sortable.py` 至 `docs/archive/tools/`；并同步修复了 docs 内相关引用路径与归档说明。
