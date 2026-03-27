@@ -53,13 +53,14 @@ CREATE TABLE IF NOT EXISTS `role_menu` (
 
 CREATE TABLE IF NOT EXISTS `spare_part_category` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `code` VARCHAR(4) NOT NULL COMMENT '分类编码(大类占1位，小类加3位)',
+    `code` VARCHAR(4) NOT NULL COMMENT '分类编码(固定4位，大类占1位+小类3位)',
     `name` VARCHAR(100) NOT NULL COMMENT '分类名称',
     `parent_id` BIGINT DEFAULT NULL COMMENT '父类ID(大类为空)',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_category_code` (`code`)
+    UNIQUE KEY `uk_category_code` (`code`),
+    CONSTRAINT `chk_category_code_len` CHECK (CHAR_LENGTH(`code`) = 4)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备件分类字典表';
 
 CREATE TABLE IF NOT EXISTS `spare_part` (

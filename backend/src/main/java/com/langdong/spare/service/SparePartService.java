@@ -83,6 +83,7 @@ public class SparePartService {
 
             SparePartCategory categoryInfo = categoryMap.get(dto.getCategoryName());
             String prefix = categoryInfo.getCode();
+            int prefixLen = prefix.length();
 
             // 确定下一个编号
             int nextNum = 1;
@@ -90,9 +91,9 @@ public class SparePartService {
                 nextNum = categoryNextSeqMap.get(prefix) + 1;
             } else {
                 String maxCode = sparePartMapper.findMaxCodeByPrefix(prefix);
-                if (maxCode != null && maxCode.length() == 8) {
+                if (maxCode != null && maxCode.length() == prefixLen + 4) {
                     try {
-                        nextNum = Integer.parseInt(maxCode.substring(4)) + 1;
+                        nextNum = Integer.parseInt(maxCode.substring(prefixLen)) + 1;
                     } catch (NumberFormatException ignored) {}
                 }
             }

@@ -73,12 +73,12 @@ public class SparePartController {
             return ResponseEntity.badRequest().body("选择的分类不存在");
         }
         String prefix = categoryInfo.getCode();
+        int prefixLen = prefix.length();
         String maxCode = sparePartMapper.findMaxCodeByPrefix(prefix);
         int nextNum = 1;
-        if (maxCode != null && maxCode.length() == 8) {
-            String seqStr = maxCode.substring(4);
+        if (maxCode != null && maxCode.length() == prefixLen + 4) {
             try {
-                nextNum = Integer.parseInt(seqStr) + 1;
+                nextNum = Integer.parseInt(maxCode.substring(prefixLen)) + 1;
             } catch (NumberFormatException e) {
                 // fall through
             }
