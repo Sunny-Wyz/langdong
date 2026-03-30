@@ -9,6 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+from app.api.v1.maintenance import router as maintenance_router
+from app.api.v1.replenishment import router as replenishment_router
 
 # 加载环境变量
 load_dotenv()
@@ -20,11 +22,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+allow_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+    if origin.strip()
+]
+
 # 添加 CORS 中间件（允许 Java 后端跨域访问）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allow_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -48,10 +56,8 @@ def root():
     }
 
 # ==================== API 路由（后续添加）====================
-# 导入 API 路由（暂时注释，后续添加）
-# from app.api.v1 import maintenance, replenishment
-# app.include_router(maintenance.router)
-# app.include_router(replenishment.router)
+app.include_router(maintenance_router)
+app.include_router(replenishment_router)
 
 if __name__ == "__main__":
     import uvicorn

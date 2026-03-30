@@ -120,6 +120,17 @@
 
 ---
 
+### F12: Python 外联 AI 推理服务接入骨架（FastAPI + Java Client）
+- **功能描述**：执行“下一步工作清单”前 3 项，完成 Python 推理服务 API 化与 Java 外联调用骨架搭建，实现现有 `predictive_maintenance.py`、`smart_replenishment.py` 可被外部 HTTP 调用。
+- **落实情况**：
+  - 新建 Python 服务结构：`python-ai-service/app/schemas.py`、`app/services/legacy_bridge.py`、`app/api/v1/maintenance.py`、`app/api/v1/replenishment.py`，并在 `app/main.py` 注册路由；
+  - 通过 `legacy_bridge` 动态加载现有脚本并直接复用 `predict_rul` / `suggest_replenishment`；
+  - 新建 Java 外联客户端：`backend/src/main/java/com/langdong/spare/service/ai/PythonModelClient.java` 与 `backend/src/main/java/com/langdong/spare/config/PythonClientConfig.java`；
+  - 后端配置新增 `ai.python.base-url`，并完成空响应兜底、异常日志、CORS 白名单化、错误信息脱敏；
+  - 已验证 `PYTHON_OK` 与 `JAVA_OK`（Python 导入 + Maven 编译通过）。
+
+---
+
 ### F25: AI 预测结果查询接口空参数兼容修复
 - **功能描述**：修复 `/api/ai/forecast/result` 在 `month=`、`partCode=` 为空字符串时返回 400 的兼容性问题，保持原有业务语义（空 month 仍查询最新月份，空 partCode 仍表示不按编码过滤）。
 - **落实情况**：已在 `AiForecastController.queryResult` 中新增参数归一化逻辑：将 `month` 与 `partCode` 先 `trim`，空字符串统一转为 `null`；仅对非空 `month` 执行 `yyyy-MM` 格式校验，再传入 service 查询。后端编译验证通过。
