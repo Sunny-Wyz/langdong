@@ -43,7 +43,10 @@ public class AiForecastController {
             @RequestParam(required = false) String partCode,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        if (month != null && !month.matches("\\d{4}-\\d{2}")) {
+        String normalizedMonth = (month != null && !month.trim().isEmpty()) ? month.trim() : null;
+        String normalizedPartCode = (partCode != null && !partCode.trim().isEmpty()) ? partCode.trim() : null;
+
+        if (normalizedMonth != null && !normalizedMonth.matches("\\d{4}-\\d{2}")) {
             return ResponseEntity.badRequest().build();
         }
         if (page < 1)
@@ -51,7 +54,7 @@ public class AiForecastController {
         if (size < 1 || size > 200)
             size = 20;
 
-        Map<String, Object> result = aiForecastService.queryResult(month, partCode, page, size);
+        Map<String, Object> result = aiForecastService.queryResult(normalizedMonth, normalizedPartCode, page, size);
         return ResponseEntity.ok(result);
     }
 

@@ -120,6 +120,12 @@
 
 ---
 
+### F25: AI 预测结果查询接口空参数兼容修复
+- **功能描述**：修复 `/api/ai/forecast/result` 在 `month=`、`partCode=` 为空字符串时返回 400 的兼容性问题，保持原有业务语义（空 month 仍查询最新月份，空 partCode 仍表示不按编码过滤）。
+- **落实情况**：已在 `AiForecastController.queryResult` 中新增参数归一化逻辑：将 `month` 与 `partCode` 先 `trim`，空字符串统一转为 `null`；仅对非空 `month` 执行 `yyyy-MM` 格式校验，再传入 service 查询。后端编译验证通过。
+
+---
+
 ### F12: P2 文档包完成（API / 生产部署 / 灾备 / 性能）
 - **功能描述**：完成 P2 阶段文档建设，新增 API 与运维体系文档并接入总导航：`docs/API/API_REFERENCE.md`、`docs/API/API_EXAMPLES.md`、`docs/OPS/DEPLOYMENT_PRODUCTION.md`、`docs/OPS/DISASTER_RECOVERY.md`、`docs/OPS/PERFORMANCE_CHECKLIST.md`。
 - **落实情况**：5 份文档均已创建，覆盖接口契约、联调示例、发布回滚、RPO/RTO 灾备流程与性能验收清单；`docs/README.md` 已同步新增 API/OPS 分区、文档矩阵状态与 FAQ 跳转入口，形成从开发联调到生产运维的闭环文档链路。
