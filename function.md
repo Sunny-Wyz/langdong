@@ -147,3 +147,51 @@
 ### F16: 历史源稿清理与归档规范化
 - **功能描述**：执行文档资产清理，删除已被正式文档完全吸收的源稿，并将仍具复盘价值的实验底稿归档，避免主目录冗余。
 - **落实情况**：已删除 `3-2.md`、`3-3.md`、`用例.md`、`ai3.md`、`ai11.md`、`ai19.md`；已归档 `随机森林.md`、`ai5.md`、`ai6.md`、`ai7.md`、`ai8.md`、`ai9.md` 至 `docs/archive/legacy_sources/`，`add_sortable.py` 至 `docs/archive/tools/`；并同步修复了 docs 内相关引用路径与归档说明。
+
+---
+
+### F17: 前端页面视觉改造（对齐参考页风格）
+- **功能描述**：将现有前端页面视觉结构调整为参考文件风格，统一容器层次、页头工具区、表格与分页的展示规范，使列表页交互与视觉呈现保持一致。
+- **落实情况**：新增全局主题样式文件 `frontend/src/styles/reference-theme.css` 并在 `frontend/src/main.js` 注入；重构 `frontend/src/views/SparePartList.vue` 为 `page-container + page-section + phead + head-btn-group` 结构；同步改造 `frontend/src/views/Home.vue` 的侧边栏与顶部区域色彩与间距；完成构建验证通过。
+
+---
+
+### F18: 全站视觉回归统一（登录页/列表页/弹窗页）
+- **功能描述**：执行一轮全站视觉回归，覆盖登录页、各模块列表页和弹窗页，输出回归清单并将页面风格统一到同一视觉基线。
+- **落实情况**：扩展 `frontend/src/styles/reference-theme.css`，统一全站容器内边距、卡片头体结构、表格密度、分页高亮及弹窗头体尾间距；精修 `frontend/src/views/Login.vue`（标题、按钮、背景）；新增回归清单 `docs/IMPLEMENTATION/VISUAL_REGRESSION_CHECKLIST.md` 并完成页面分组验收项标记。
+
+---
+
+### F19: 全站纯视觉细抛光（细节一致性增强）
+- **功能描述**：在不改业务逻辑的前提下，对全站页面做第二轮纯视觉细抛光，重点提升卡片头部、筛选区、表格、弹窗与侧栏菜单的一致性。
+- **落实情况**：在 `frontend/src/styles/reference-theme.css` 增加侧栏菜单 hover/active 统一规则、卡片头 clearfix 与按钮间距规则、筛选容器自适应间距、表格表头背景与节奏统一、弹窗 footer 对齐与按钮间距统一，并补齐移动端细节间距规则。
+
+---
+
+### F20: 其余业务页面对齐备件列表风格
+- **功能描述**：将其余业务页面按 `SparePartList.vue` 的容器风格统一改写，确保页面主容器、卡片层次与间距体系一致。
+- **落实情况**：批量将 `EquipmentProfile`、`LocationProfile`、`SupplierProfile`、`SupplyCategory`、`AiForecastResult`、`ClassifyResult`、`PHM` 模块页及 `Dashboard` 根容器改为 `page-container + 原类名`；并在 `reference-theme.css` 增加 `.home-main > .page-container` 统一间距规则（含移动端），保证全站页面在同一视觉基线下呈现。
+
+---
+
+### F21: 全站页头图标对齐（与备件列表一致）
+- **功能描述**：将其他界面的页头统一增加与备件列表相同的数据图标，达到同等级视觉对齐效果。
+- **落实情况**：在 `frontend/src/styles/reference-theme.css` 中为 `.home-main .el-card__header` 统一添加 `el-icon-s-data` 伪元素（使用 Element Icons 编码 `\e7a8`），并同步设置边框、圆角、颜色与间距；兼容移动端偏移与内边距，避免逐页改模板导致维护成本上升。
+
+---
+
+### F22: 全站100%结构级页头一致化
+- **功能描述**：将全站业务页卡片头从样式模拟升级为结构级一致，完全对齐 `SparePartList.vue` 的页头 DOM 结构（`phead + icon + title + head-btn-group`）。
+- **落实情况**：批量改写所有 `slot=\"header\"` 模板为统一结构，并补齐 `AiForecastResult`、`FaultPrediction`、`Dashboard` 等页面的复杂页头；同时在 `reference-theme.css` 移除伪元素图标方案，改为由真实结构渲染图标，确保“样式和结构”双一致。并完成二轮细化修复：去除双分隔线、兼容旧 `float` 按钮写法与嵌套按钮容器。构建校验通过。
+
+---
+
+### F23: 备件列表排序规则收敛（仅保留编码排序）
+- **功能描述**：将数据列表排序能力收敛为仅保留“按编码排序”，移除其他列排序入口，避免排序口径分散。
+- **落实情况**：在 `frontend/src/views/SparePartList.vue` 中移除“备件名称、型号规格、类别、库存数量、单价”列的 `sortable` 属性，仅保留“备件编码”列排序按钮（`sortable=\"custom\"`）与默认编码升序规则。
+
+---
+
+### F24: 全界面排序规则统一（仅保留编码列排序）
+- **功能描述**：将“仅保留按编码排序”规则推广到所有界面，统一数据列表排序入口。
+- **落实情况**：批量移除 `frontend/src/views/**` 中非编码列的 `sortable` 配置，仅保留 `code/partCode/deviceCode/sparePartCode` 等编码字段列的排序按钮；全量构建通过。

@@ -1,11 +1,15 @@
 <template>
-    <div class="location-profile-container">
+    <div class="page-container location-profile-container">
         <el-card class="box-card">
-            <div slot="header" class="clearfix">
-                <span>货位档案管理</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">货位档案管理</div>
+                <div class="head-btn-group">
                 <el-button style="float: right; margin-left: 10px;" type="primary" size="small" @click="handleAdd">
                     新增货位
                 </el-button>
+            
+                </div>
             </div>
 
             <!-- 搜索和筛选器 -->
@@ -18,15 +22,15 @@
 
             <!-- 数据表格 -->
             <el-table v-loading="loading" :data="filteredList" border style="width: 100%; margin-top: 15px;">
-                <el-table-column prop="code" label="货位编码" width="120" sortable />
-                <el-table-column prop="name" label="货位名称" min-width="150" sortable />
-                <el-table-column prop="zone" label="所属专区" width="120" sortable >
+                <el-table-column prop="code" label="货位编码" width="120" sortable="custom" />
+                <el-table-column prop="name" label="货位名称" min-width="150" />
+                <el-table-column prop="zone" label="所属专区" width="120" >
                     <template slot-scope="{row}">
                         <el-tag>{{ row.zone }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="capacity" label="货位容量" width="120" sortable />
-                <el-table-column prop="remark" label="备注" show-overflow-tooltip sortable />
+                <el-table-column prop="capacity" label="货位容量" width="120" />
+                <el-table-column prop="remark" label="备注" show-overflow-tooltip />
                 <el-table-column label="操作" width="250" fixed="right" align="center">
                     <template slot-scope="{row}">
                         <el-button type="info" size="mini" @click="handleViewSpareParts(row)">查看备件</el-button>
@@ -67,10 +71,10 @@
         <!-- 关联备件列表弹窗 -->
         <el-dialog :title="'【' + currentLoc.name + '】下的备件列表'" :visible.sync="sparePartDialogVisible" width="800px">
             <el-table :data="locSpareParts" border style="width: 100%">
-                <el-table-column prop="name" label="备件名称" sortable />
-                <el-table-column prop="model" label="型号" sortable />
-                <el-table-column prop="category" label="类别" sortable />
-                <el-table-column label="库存" width="100" sortable >
+                <el-table-column prop="name" label="备件名称" />
+                <el-table-column prop="model" label="型号" />
+                <el-table-column prop="category" label="类别" />
+                <el-table-column label="库存" width="100" >
                     <template slot-scope="{row}">
                         {{ row.quantity }} {{ row.unit }}
                     </template>

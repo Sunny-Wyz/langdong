@@ -1,7 +1,12 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header"><span>供应商询价比价</span></div>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">供应商询价比价</div>
+                <div class="head-btn-group">
+                </div>
+            </div>
 
             <!-- 选择订单 -->
             <el-form inline style="margin-bottom: 16px">
@@ -26,7 +31,12 @@
 
             <!-- 询价录入 -->
             <el-card shadow="never" style="margin-bottom: 20px" v-if="selectedOrderId">
-                <div slot="header"><span>录入询价</span></div>
+                <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">录入询价</div>
+                <div class="head-btn-group">
+                </div>
+            </div>
                 <el-form :model="quoteForm" ref="quoteForm" inline>
                     <el-form-item label="供应商" :rules="[{ required: true }]">
                         <el-select v-model="quoteForm.supplierId" placeholder="选择供应商" style="width:180px" filterable>
@@ -49,9 +59,9 @@
 
             <!-- 报价列表 -->
             <el-table :data="quotes" border v-if="quotes.length">
-                <el-table-column prop="supplierName" label="供应商" sortable ></el-table-column>
-                <el-table-column prop="quotePrice" label="报价(元)" width="110" align="right" sortable ></el-table-column>
-                <el-table-column label="偏差" width="110" align="center" sortable >
+                <el-table-column prop="supplierName" label="供应商" ></el-table-column>
+                <el-table-column prop="quotePrice" label="报价(元)" width="110" align="right" ></el-table-column>
+                <el-table-column label="偏差" width="110" align="center" >
                     <template slot-scope="scope">
                         <span v-if="refPrice">
                             <el-tag :type="deviation(scope.row.quotePrice) > 15 ? 'danger' : 'success'" size="small">
@@ -61,9 +71,9 @@
                         <span v-else>—</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="deliveryDays" label="交货天数" width="95" align="center" sortable ></el-table-column>
-                <el-table-column prop="quoteTime" label="报价时间" width="160" sortable ></el-table-column>
-                <el-table-column label="中标" width="80" align="center" sortable >
+                <el-table-column prop="deliveryDays" label="交货天数" width="95" align="center" ></el-table-column>
+                <el-table-column prop="quoteTime" label="报价时间" width="160" ></el-table-column>
+                <el-table-column label="中标" width="80" align="center" >
                     <template slot-scope="scope">
                         <el-tag v-if="scope.row.isSelected" type="success" size="small">✓ 中标</el-tag>
                     </template>

@@ -1,25 +1,29 @@
 <template>
-    <div class="equipment-profile-container">
+    <div class="page-container equipment-profile-container">
         <el-card class="box-card">
-            <div slot="header" class="clearfix">
-                <span>设备档案管理</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">设备档案管理</div>
+                <div class="head-btn-group">
                 <el-button style="float: right; margin-left: 10px;" type="primary" size="small" @click="handleAdd">
                     新增设备
                 </el-button>
+            
+                </div>
             </div>
 
             <!-- 设备表格 -->
             <el-table v-loading="loading" :data="list" border style="width: 100%; margin-top: 15px;">
-                <el-table-column prop="code" label="设备编码" width="120" sortable />
-                <el-table-column prop="name" label="设备名称" min-width="150" sortable />
-                <el-table-column prop="model" label="规格型号" width="120" sortable />
-                <el-table-column prop="department" label="所属产线/部门" width="150" sortable />
-                <el-table-column prop="status" label="状态" width="100" align="center" sortable >
+                <el-table-column prop="code" label="设备编码" width="120" sortable="custom" />
+                <el-table-column prop="name" label="设备名称" min-width="150" />
+                <el-table-column prop="model" label="规格型号" width="120" />
+                <el-table-column prop="department" label="所属产线/部门" width="150" />
+                <el-table-column prop="status" label="状态" width="100" align="center" >
                     <template slot-scope="{row}">
                         <el-tag :type="row.status === '正常' ? 'success' : 'warning'">{{ row.status }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" show-overflow-tooltip sortable />
+                <el-table-column prop="remark" label="备注" show-overflow-tooltip />
                 <el-table-column label="操作" width="280" fixed="right" align="center">
                     <template slot-scope="{row}">
                         <el-button type="success" size="mini" @click="handleManageSpareParts(row)">配套备件</el-button>
@@ -75,10 +79,10 @@
             </div>
 
             <el-table :data="linkedSpareParts" border style="width: 100%" v-loading="spLoading">
-                <el-table-column prop="name" label="备件名称" sortable />
-                <el-table-column prop="model" label="型号" sortable />
-                <el-table-column prop="category" label="类别" sortable />
-                <el-table-column label="目前库存" width="100" sortable >
+                <el-table-column prop="name" label="备件名称" />
+                <el-table-column prop="model" label="型号" />
+                <el-table-column prop="category" label="类别" />
+                <el-table-column label="目前库存" width="100" >
                     <template slot-scope="{row}">
                         {{ row.quantity }} {{ row.unit }}
                     </template>

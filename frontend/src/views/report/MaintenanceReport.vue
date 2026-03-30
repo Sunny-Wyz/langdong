@@ -1,8 +1,10 @@
 <template>
-    <div style="padding:24px">
+    <div class="page-container">
         <el-card style="margin-bottom:16px">
-            <div slot="header" style="display:flex;justify-content:space-between;align-items:center">
-                <span>维修费用分析</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">维修费用分析</div>
+                <div class="head-btn-group">
                 <div>
                     <el-select v-model="months" size="small" style="width:120px;margin-right:8px" @change="load">
                         <el-option :value="3" label="近3个月"></el-option>
@@ -10,7 +12,9 @@
                         <el-option :value="12" label="近12个月"></el-option>
                     </el-select>
                     <el-button type="success" size="small" icon="el-icon-download" @click="exportCsv">导出 CSV</el-button>
+                
                 </div>
+            </div>
             </div>
 
             <el-row :gutter="20">
@@ -26,13 +30,16 @@
         </el-card>
 
         <el-card>
-            <div slot="header">设备维修成本排名（Top 10）</div>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">设备维修成本排名（Top 10）</div>
+            </div>
             <el-table :data="deviceList" border size="small" v-loading="loading">
                 <el-table-column type="index" width="50" align="center"></el-table-column>
-                <el-table-column prop="deviceName" label="设备名称" sortable ></el-table-column>
-                <el-table-column prop="deviceCode" label="设备编码" width="110" sortable ></el-table-column>
-                <el-table-column prop="repairCount" label="维修次数" width="90" align="center" sortable ></el-table-column>
-                <el-table-column prop="totalCost" label="总费用(元)" width="120" align="right" sortable >
+                <el-table-column prop="deviceName" label="设备名称" ></el-table-column>
+                <el-table-column prop="deviceCode" label="设备编码" width="110"  sortable="custom"></el-table-column>
+                <el-table-column prop="repairCount" label="维修次数" width="90" align="center" ></el-table-column>
+                <el-table-column prop="totalCost" label="总费用(元)" width="120" align="right" >
                     <template slot-scope="scope">
                         <span style="font-weight:bold;color:#F56C6C">{{ scope.row.totalCost }}</span>
                     </template>

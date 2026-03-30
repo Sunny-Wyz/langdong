@@ -1,8 +1,11 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header">
-                <span>故障报修</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">故障报修</div>
+                <div class="head-btn-group">
+                </div>
             </div>
 
             <el-form :model="form" :rules="rules" ref="reportForm" label-width="120px" style="max-width: 800px">

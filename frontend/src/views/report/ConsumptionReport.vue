@@ -1,8 +1,10 @@
 <template>
-    <div style="padding:24px">
+    <div class="page-container">
         <el-card style="margin-bottom:16px">
-            <div slot="header" style="display:flex;justify-content:space-between;align-items:center">
-                <span>备件消耗趋势分析</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">备件消耗趋势分析</div>
+                <div class="head-btn-group">
                 <div>
                     <el-select v-model="months" size="small" style="width:120px;margin-right:8px" @change="load">
                         <el-option :value="3" label="近3个月"></el-option>
@@ -10,13 +12,18 @@
                         <el-option :value="12" label="近12个月"></el-option>
                     </el-select>
                     <el-button type="success" size="small" icon="el-icon-download" @click="exportCsv">导出 CSV</el-button>
+                
                 </div>
+            </div>
             </div>
             <div ref="trendChart" style="height:300px"></div>
         </el-card>
 
         <el-card>
-            <div slot="header">Top 10 高消耗备件</div>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">Top 10 高消耗备件</div>
+            </div>
             <div ref="top10Chart" style="height:300px"></div>
         </el-card>
     </div>

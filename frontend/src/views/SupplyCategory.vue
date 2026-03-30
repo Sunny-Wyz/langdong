@@ -1,17 +1,21 @@
 <template>
-    <div class="category-container">
+    <div class="page-container category-container">
         <el-card>
-            <div slot="header" class="clearfix">
-                <span>供货品类字典</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">供货品类字典</div>
+                <div class="head-btn-group">
                 <el-button style="float: right;" type="primary" size="small" @click="handleAdd">新增品类</el-button>
                 <el-button style="float: right; margin-right: 10px;" size="small"
                     @click="$router.push('/home/supplier-profiles')">返回供应商列表</el-button>
+            
+                </div>
             </div>
 
             <el-table v-loading="loading" :data="list" border style="width: 100%">
-                <el-table-column prop="code" label="品类编码" width="120" sortable />
-                <el-table-column prop="name" label="品类名称" width="150" sortable />
-                <el-table-column prop="description" label="描述" sortable />
+                <el-table-column prop="code" label="品类编码" width="120" sortable="custom" />
+                <el-table-column prop="name" label="品类名称" width="150" />
+                <el-table-column prop="description" label="描述" />
                 <el-table-column label="操作" width="150" align="center">
                     <template slot-scope="{row}">
                         <el-button type="primary" size="mini" @click="handleEdit(row)">编辑</el-button>

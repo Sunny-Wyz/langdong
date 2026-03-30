@@ -1,7 +1,12 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header"><span>到货验收</span></div>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">到货验收</div>
+                <div class="head-btn-group">
+                </div>
+            </div>
 
             <div v-if="order" style="margin-bottom: 24px">
                 <el-descriptions :column="4" border size="small" title="订单信息">

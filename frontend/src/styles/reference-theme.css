@@ -1,0 +1,326 @@
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: "PingFang SC", "Helvetica Neue", Helvetica, "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  background: #f1f2f6;
+  color: #303133;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.page-container {
+  padding: 35px 12px;
+}
+
+.home-main > .page-container {
+  padding: 35px 12px !important;
+}
+
+.home-aside {
+  box-shadow: 2px 0 10px rgba(15, 48, 134, 0.12);
+}
+
+.home-aside .el-menu {
+  border-right: 0;
+}
+
+.home-aside .el-menu-item,
+.home-aside .el-submenu__title {
+  height: 46px;
+  line-height: 46px;
+}
+
+.home-aside .el-menu-item:hover,
+.home-aside .el-submenu__title:hover {
+  background-color: #0b2a79 !important;
+  color: #fff !important;
+}
+
+.home-aside .el-menu-item.is-active {
+  background-color: #0b2a79 !important;
+  color: #fff !important;
+}
+
+.home-main > div.equipment-profile-container,
+.home-main > div.location-profile-container,
+.home-main > div.supplier-container,
+.home-main > div.category-container,
+.home-main > div.ai-forecast-container,
+.home-main > div.shelving-container,
+.home-main > div.classify-result-page,
+.home-main > div.health-monitor-page,
+.home-main > div.fault-prediction-page,
+.home-main > div.maintenance-suggestion-page {
+  padding: 35px 12px !important;
+}
+
+.home-main .el-card {
+  border: 1px solid #e8eaee;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ecedf2;
+}
+
+.home-main .el-card__header {
+  padding: 0;
+  border-bottom: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.home-main .el-card__body {
+  padding: 12px;
+}
+
+.page-section {
+  background: #fff;
+  border: 1px solid #e8eaee;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ecedf2;
+  margin-bottom: 12px;
+}
+
+.phead {
+  padding: 15px 12px;
+  border-bottom: 2px solid #eff0f1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phead .title {
+  font-size: 15px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.phead .el-icon-s-data {
+  padding: 1px;
+  border: 1px solid #0f3086;
+  border-radius: 4px;
+  color: #0f3086;
+}
+
+.head-btn-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 兼容旧模板中的float/margin-right写法，避免与flex冲突 */
+.head-btn-group .el-button {
+  float: none !important;
+}
+
+.head-btn-group .el-button[style*="margin-right"] {
+  margin-right: 0 !important;
+}
+
+/* 兼容个别页面在head-btn-group内又包一层div的场景 */
+.head-btn-group > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-container .el-button--default {
+  border-color: #0f3086;
+  color: #0f3086;
+}
+
+.page-container .el-button--default:hover,
+.page-container .el-button--default:focus {
+  border-color: #0f3086;
+  color: #0f3086;
+  background: #fff;
+}
+
+.page-container .el-button--primary {
+  border-color: #0f3086;
+  background-color: #0f3086;
+}
+
+.page-container .el-button--primary:hover,
+.page-container .el-button--primary:focus {
+  border-color: #0f3086;
+  background-color: #0f3086;
+}
+
+.page-container .el-button--mini {
+  padding: 8px 10px;
+  border-radius: 3px;
+}
+
+.filter-card {
+  padding: 12px;
+}
+
+.filter-card .filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.pagination-container {
+  margin-top: 0;
+  padding: 5px 10px 10px;
+}
+
+.home-main .pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  background: #fff;
+  border: 1px solid #e8eaee;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ecedf2;
+}
+
+.home-main .el-form--inline .el-form-item {
+  margin-bottom: 10px;
+}
+
+.home-main .filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.home-main .filter-container .el-input,
+.home-main .filter-container .el-select,
+.home-main .filter-container .el-date-editor {
+  min-width: 180px;
+}
+
+.home-main .el-card__body > .el-table,
+.home-main .el-card__body > .el-tabs {
+  margin-top: 12px;
+}
+
+.home-main .el-table th,
+.home-main .el-table td {
+  padding: 6px 0;
+}
+
+.home-main .el-table th {
+  background: #fafbff;
+}
+
+.home-main .el-table .cell {
+  line-height: 30px;
+}
+
+.home-main .el-tag {
+  border-radius: 3px;
+}
+
+.home-main .el-pagination.is-background .el-pager li:not(.disabled).active {
+  background-color: #0f3086;
+}
+
+.home-main .el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.home-main .el-dialog__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eff0f1;
+}
+
+.home-main .el-dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.home-main .el-dialog__body {
+  padding: 16px;
+}
+
+.home-main .el-dialog__footer {
+  padding: 10px 16px 14px;
+  border-top: 1px solid #eff0f1;
+  text-align: right;
+}
+
+.home-main .dialog-footer .el-button + .el-button,
+.home-main .el-dialog__footer .el-button + .el-button {
+  margin-left: 10px;
+}
+
+.page-container .el-table th,
+.page-container .el-table td {
+  padding: 6px 0;
+}
+
+.page-container .el-table .cell {
+  line-height: 30px;
+}
+
+.page-container .el-pagination.is-background .el-pager li:not(.disabled).active {
+  background-color: #0f3086;
+}
+
+@media (max-width: 960px) {
+  .page-container {
+    padding: 16px 10px;
+  }
+
+  .home-main > .page-container {
+    padding: 16px 10px !important;
+  }
+
+  .home-main > div.equipment-profile-container,
+  .home-main > div.location-profile-container,
+  .home-main > div.supplier-container,
+  .home-main > div.category-container,
+  .home-main > div.ai-forecast-container,
+  .home-main > div.shelving-container,
+  .home-main > div.classify-result-page,
+  .home-main > div.health-monitor-page,
+  .home-main > div.fault-prediction-page,
+  .home-main > div.maintenance-suggestion-page {
+    padding: 16px 10px !important;
+  }
+
+  .home-main .filter-container {
+    gap: 8px;
+  }
+
+  .home-main .el-card__header {
+    padding: 0;
+  }
+
+  .home-main .filter-container .el-input,
+  .home-main .filter-container .el-select,
+  .home-main .filter-container .el-date-editor {
+    min-width: 140px;
+  }
+
+  .phead {
+    flex-wrap: wrap;
+  }
+
+  .head-btn-group {
+    width: 100%;
+    margin-left: 0;
+  }
+}

@@ -1,8 +1,11 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header">
-                <span>全量领用记录查询</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">全量领用记录查询</div>
+                <div class="head-btn-group">
+                </div>
             </div>
 
             <div style="margin-bottom: 20px; display: flex; gap: 15px">
@@ -18,10 +21,10 @@
             </div>
 
             <el-table :data="list" border stripe style="width: 100%" v-loading="loading">
-                <el-table-column prop="reqNo" label="单号" width="180" sortable ></el-table-column>
-                <el-table-column prop="applicantName" label="申请人" width="120" sortable ></el-table-column>
+                <el-table-column prop="reqNo" label="单号" width="180" ></el-table-column>
+                <el-table-column prop="applicantName" label="申请人" width="120" ></el-table-column>
 
-                <el-table-column prop="reqStatus" label="生命周期流转状态" width="180" align="center" sortable >
+                <el-table-column prop="reqStatus" label="生命周期流转状态" width="180" align="center" >
                     <template slot-scope="{row}">
                         <el-tag v-if="row.reqStatus === 'PENDING'" type="warning" effect="dark">① 待审批</el-tag>
                         <el-tag v-else-if="row.reqStatus === 'APPROVED'" type="primary" effect="dark">② 待出库</el-tag>
@@ -32,19 +35,19 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column prop="deviceName" label="关联设备" width="160" sortable >
+                <el-table-column prop="deviceName" label="关联设备" width="160" >
                     <template slot-scope="{row}">
                         {{ row.deviceName ? `${row.deviceName}` : '-' }}
                     </template>
                 </el-table-column>
 
-                <el-table-column prop="applyTime" label="初始发起时间" width="180" sortable >
+                <el-table-column prop="applyTime" label="初始发起时间" width="180" >
                     <template slot-scope="{row}">
                         {{ formatTime(row.applyTime) }}
                     </template>
                 </el-table-column>
 
-                <el-table-column label="详情查阅" width="120" align="center" sortable >
+                <el-table-column label="详情查阅" width="120" align="center" >
                     <template slot-scope="{row}">
                         <el-button type="text" size="small" @click="openDialog(row)">追溯明细档案</el-button>
                     </template>
@@ -69,18 +72,18 @@
 
                 <h4>出库与安装资产明细跟踪清单</h4>
                 <el-table :data="currentItems" border style="width: 100%">
-                    <el-table-column prop="sparePartName" label="下发备件资产名称" sortable ></el-table-column>
-                    <el-table-column prop="applyQty" label="诉求量" width="80" align="center" sortable ></el-table-column>
-                    <el-table-column prop="outQty" label="实发量" width="80" align="center" sortable >
+                    <el-table-column prop="sparePartName" label="下发备件资产名称" ></el-table-column>
+                    <el-table-column prop="applyQty" label="诉求量" width="80" align="center" ></el-table-column>
+                    <el-table-column prop="outQty" label="实发量" width="80" align="center" >
                         <template slot-scope="{row}">
                             <span v-if="row.outQty !== null" style="color: #67C23A; font-weight: bold">{{ row.outQty
                                 }}</span>
                             <span v-else style="color: #909399">-</span>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="installLoc" label="现场安装机位追溯" show-overflow-tooltip sortable ></el-table-column>
-                    <el-table-column prop="installerName" label="装配负责人" width="120" sortable ></el-table-column>
-                    <el-table-column prop="installTime" label="安装合拢时刻" width="160" sortable >
+                    <el-table-column prop="installLoc" label="现场安装机位追溯" show-overflow-tooltip ></el-table-column>
+                    <el-table-column prop="installerName" label="装配负责人" width="120" ></el-table-column>
+                    <el-table-column prop="installTime" label="安装合拢时刻" width="160" >
                         <template slot-scope="{row}">
                             {{ formatTime(row.installTime) }}
                         </template>

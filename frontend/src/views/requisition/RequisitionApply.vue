@@ -1,8 +1,11 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header">
-                <span>发起领用申请</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">发起领用申请</div>
+                <div class="head-btn-group">
+                </div>
             </div>
 
             <el-form :model="form" :rules="rules" ref="applyForm" label-width="120px" style="max-width: 800px">
@@ -42,9 +45,9 @@
                             @click="showSparePartDialog">添加备件</el-button>
                     </div>
                     <el-table :data="form.items" border style="width: 100%">
-                        <el-table-column prop="sparePartCode" label="备件编码" width="150" sortable ></el-table-column>
-                        <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
-                        <el-table-column label="申请数量" width="180" sortable >
+                        <el-table-column prop="sparePartCode" label="备件编码" width="150"  sortable="custom"></el-table-column>
+                        <el-table-column prop="sparePartName" label="备件名称" ></el-table-column>
+                        <el-table-column label="申请数量" width="180" >
                             <template slot-scope="scope">
                                 <el-input-number v-model="scope.row.applyQty" :min="1" size="small"></el-input-number>
                             </template>
@@ -72,10 +75,10 @@
             <el-table :data="filteredSpareParts" border style="width: 100%" height="400"
                 @selection-change="handleSelectionChange" ref="sparePartTable">
                 <el-table-column type="selection" width="55" :selectable="checkSelectable"></el-table-column>
-                <el-table-column prop="code" label="备件编码" width="150" sortable ></el-table-column>
-                <el-table-column prop="name" label="备件名称" sortable ></el-table-column>
-                <el-table-column prop="price" label="参考价格(元)" width="120" sortable ></el-table-column>
-                <el-table-column prop="stockQuantity" label="当前总库存" width="100" sortable >
+                <el-table-column prop="code" label="备件编码" width="150"  sortable="custom"></el-table-column>
+                <el-table-column prop="name" label="备件名称" ></el-table-column>
+                <el-table-column prop="price" label="参考价格(元)" width="120" ></el-table-column>
+                <el-table-column prop="stockQuantity" label="当前总库存" width="100" >
                     <template slot-scope="scope">
                         <el-tag :type="scope.row.quantity > 0 ? 'success' : 'danger'">{{ scope.row.quantity }}</el-tag>
                     </template>

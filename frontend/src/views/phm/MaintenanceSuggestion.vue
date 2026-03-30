@@ -1,5 +1,5 @@
 <template>
-  <div class="maintenance-suggestion-page">
+  <div class="page-container maintenance-suggestion-page">
     <!-- ============================================================
          顶部统计卡片区域
          ============================================================ -->
@@ -108,14 +108,17 @@
          建议列表表格
          ============================================================ -->
     <el-card class="table-card" shadow="never">
-      <div slot="header">
-        <span>维护建议列表</span>
-        <span class="table-tip">共 {{ total }} 条记录</span>
-      </div>
+      <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">维护建议列表</div>
+                <div class="head-btn-group"><span class="table-tip">共 {{ total }} 条记录</span>
+      
+                </div>
+            </div>
 
       <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
         <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="deviceCode" label="设备编码" width="120" />
+        <el-table-column prop="deviceCode" label="设备编码" width="120" sortable="custom" />
         <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
 
         <el-table-column label="优先级" width="90" align="center">

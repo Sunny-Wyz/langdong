@@ -1,10 +1,10 @@
 <template>
-  <el-container style="height: 100vh">
+  <el-container class="home-layout">
     <!-- 侧边栏 -->
-    <el-aside width="200px" style="background-color: #304156">
+    <el-aside width="210px" class="home-aside">
       <div class="logo">备件管理系统</div>
-      <el-menu :default-active="$route.path" router background-color="#304156" text-color="#bfcbd9"
-        active-text-color="#409EFF">
+      <el-menu :default-active="$route.path" router background-color="#0f3086" text-color="rgba(255,255,255,0.7)"
+        active-text-color="#ffffff">
         <template v-for="menu in menus">
 
           <!-- 有子菜单的呈现为 el-submenu -->
@@ -48,14 +48,13 @@
 
     <el-container>
       <!-- 顶部导航 -->
-      <el-header
-        style="background: #fff; border-bottom: 1px solid #e6e6e6; display: flex; align-items: center; justify-content: flex-end; padding: 0 24px">
-        <span style="margin-right: 12px; color: #606266">{{ username }}</span>
+      <el-header class="home-header">
+        <span class="header-user">{{ username }}</span>
         <el-button type="text" icon="el-icon-switch-button" @click="logout">退出登录</el-button>
       </el-header>
 
       <!-- 主内容区 -->
-      <el-main style="background: #f0f2f5; padding: 0">
+      <el-main class="home-main">
         <router-view />
       </el-main>
     </el-container>
@@ -112,6 +111,14 @@ export default {
 </script>
 
 <style scoped>
+.home-layout {
+  height: 100vh;
+}
+
+.home-aside {
+  background-color: #0f3086;
+}
+
 .logo {
   color: #fff;
   font-size: 15px;
@@ -119,5 +126,24 @@ export default {
   text-align: center;
   padding: 20px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.home-header {
+  background: #fff;
+  border-bottom: 1px solid #e6e6e6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 24px;
+}
+
+.header-user {
+  margin-right: 12px;
+  color: #606266;
+}
+
+.home-main {
+  background: #f1f2f6;
+  padding: 0;
 }
 </style>

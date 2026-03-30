@@ -1,24 +1,28 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header" style="display: flex; justify-content: space-between; align-items: center">
-                <span>用户管理</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">用户管理</div>
+                <div class="head-btn-group">
                 <el-button type="primary" size="small" @click="handleAdd"
                     v-if="hasPerm('sys:user:add')">新增用户</el-button>
+            
+                </div>
             </div>
 
             <el-table :data="tableData" border style="width: 100%">
-                <el-table-column prop="id" label="ID" width="80" sortable ></el-table-column>
-                <el-table-column prop="username" label="登录名" sortable ></el-table-column>
-                <el-table-column prop="name" label="姓名" sortable ></el-table-column>
-                <el-table-column prop="status" label="状态" sortable >
+                <el-table-column prop="id" label="ID" width="80" ></el-table-column>
+                <el-table-column prop="username" label="登录名" ></el-table-column>
+                <el-table-column prop="name" label="姓名" ></el-table-column>
+                <el-table-column prop="status" label="状态" >
                     <template slot-scope="scope">
                         <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
                             {{ scope.row.status === 1 ? '正常' : '停用' }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="createdAt" label="创建时间" width="180" sortable ></el-table-column>
+                <el-table-column prop="createdAt" label="创建时间" width="180" ></el-table-column>
                 <el-table-column label="操作" width="220" fixed="right">
                     <template slot-scope="scope">
                         <el-button size="mini" @click="handleEdit(scope.row)">编辑</el-button>

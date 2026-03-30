@@ -1,57 +1,97 @@
 <template>
-  <div class="spare-part-container">
-    <!-- 顶部工具栏 -->
-    <div class="toolbar">
-      <span class="title">备件列表</span>
-      <div class="action-buttons">
-        <el-button type="success" icon="el-icon-upload2" @click="importDialogVisible = true">批量导入</el-button>
-        <el-button type="primary" icon="el-icon-plus" @click="dialogVisible = true">增加备件</el-button>
+  <div class="page-container">
+    <div class="page-section">
+      <div class="phead header">
+        <i class="el-icon-s-data" />
+        <div class="title">备件列表</div>
+        <div class="head-btn-group">
+          <el-button size="mini" icon="el-icon-search" @click="handleFilter">查询</el-button>
+          <el-button size="mini" icon="el-icon-refresh" @click="resetFilter">重置</el-button>
+          <el-button size="mini" type="success" icon="el-icon-upload2" @click="importDialogVisible = true">批量导入</el-button>
+          <el-button size="mini" type="primary" icon="el-icon-plus" @click="dialogVisible = true">增加备件</el-button>
+        </div>
+      </div>
+
+      <div class="filter-card">
+        <div class="filter-row">
+          <el-input
+            v-model="search.keyword"
+            placeholder="搜索编码 / 名称 / 型号"
+            prefix-icon="el-icon-search"
+            clearable
+            style="width: 260px"
+            @clear="handleFilter"
+            @keyup.enter.native="handleFilter"
+          />
+          <el-select v-model="search.categoryId" placeholder="全部类别" clearable filterable style="width: 190px" @change="handleFilter">
+            <template v-if="hasSubCategories">
+              <el-option-group v-for="group in categoryOptions" :key="group.id" :label="group.name">
+                <el-option v-for="item in group.children" :key="item.id" :label="item.name" :value="item.id" />
+              </el-option-group>
+            </template>
+            <template v-else>
+              <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id" />
+            </template>
+          </el-select>
+          <span class="total-hint">共 {{ filteredList.length }} 条</span>
+        </div>
       </div>
     </div>
 
-    <!-- 备件表格 -->
-    <el-table :data="list" border stripe v-loading="loading" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="60" sortable />
-      <el-table-column prop="code" label="备件编码" width="100" sortable />
-      <el-table-column prop="name" label="备件名称" min-width="120" sortable />
-      <el-table-column prop="model" label="型号规格" min-width="120" sortable />
-      <el-table-column prop="categoryId" label="类别" width="120" show-overflow-tooltip sortable >
+    <section id="data-table" class="page-section table-wrap">
+      <el-table :data="pagedList" border stripe v-loading="loading" style="width: 100%"
+        :default-sort="{ prop: 'code', order: 'ascending' }" @sort-change="handleSortChange">
+      <el-table-column type="index" label="#" width="50" :index="indexMethod" />
+      <el-table-column prop="code" label="备件编码" width="110" sortable="custom" />
+      <el-table-column prop="name" label="备件名称" min-width="130" show-overflow-tooltip />
+      <el-table-column prop="model" label="型号规格" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="categoryId" label="类别" width="110" show-overflow-tooltip>
         <template slot-scope="{ row }">
           {{ getCategoryName(row.categoryId) }}
         </template>
       </el-table-column>
-      <el-table-column prop="quantity" label="库存数量" width="90" align="center" sortable />
-      <el-table-column prop="unit" label="单位" width="70" align="center" sortable />
-      <el-table-column prop="price" label="单价（元）" width="110" align="right" sortable >
+      <el-table-column prop="quantity" label="库存数量" width="90" align="center">
+        <template slot-scope="{ row }">
+          <span :class="{ 'low-stock': row.quantity <= 5 && row.quantity > 0, 'zero-stock': row.quantity === 0 }">
+            {{ row.quantity }}
+          </span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="unit" label="单位" width="60" align="center" />
+      <el-table-column prop="price" label="单价（元）" width="100" align="right">
         <template slot-scope="{ row }">
           {{ row.price != null ? Number(row.price).toFixed(2) : '—' }}
         </template>
       </el-table-column>
-      <el-table-column prop="supplierId" label="供应商" min-width="120" show-overflow-tooltip sortable >
+      <el-table-column prop="supplierId" label="供应商" min-width="120" show-overflow-tooltip>
         <template slot-scope="{ row }">
           {{ getSupplierName(row.supplierId) }}
         </template>
       </el-table-column>
-      <el-table-column prop="locationId" label="所属货位" min-width="120" show-overflow-tooltip sortable >
+      <el-table-column prop="locationId" label="所属货位" width="140" show-overflow-tooltip>
         <template slot-scope="{ row }">
           {{ getLocationName(row.locationId) }}
         </template>
       </el-table-column>
-      <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip sortable />
-      <el-table-column prop="createdAt" label="创建时间" width="160" sortable >
+      <el-table-column label="操作" width="150" align="center" fixed="right">
         <template slot-scope="{ row }">
-          {{ formatDate(row.createdAt) }}
+          <el-button type="text" size="small" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
+          <el-button type="text" size="small" icon="el-icon-delete" style="color: #F56C6C" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" align="center">
-        <template slot-scope="{ row }">
-          <div class="action-buttons">
-            <el-button type="primary" size="mini" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" size="mini" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
-          </div>
-        </template>
-      </el-table-column>
-    </el-table>
+      </el-table>
+    </section>
+
+    <div class="pagination-container pagination-wrap">
+      <el-pagination
+        background
+        layout="total, sizes, prev, pager, next, jumper"
+        :current-page.sync="pagination.page"
+        :page-size.sync="pagination.size"
+        :page-sizes="[15, 30, 50, 100]"
+        :total="filteredList.length"
+      />
+    </div>
 
     <!-- 增加/修改备件对话框 -->
     <el-dialog :title="form.id ? '修改备件' : '增加备件'" :visible.sync="dialogVisible" width="560px" @close="resetForm">
@@ -86,12 +126,20 @@
           <el-col :span="12">
             <el-form-item label="类别" prop="categoryId">
               <el-select v-model="form.categoryId" placeholder="请选择类别" style="width: 100%" filterable>
-                <el-option-group v-for="group in categoryOptions" :key="group.id" :label="group.name">
-                  <el-option v-for="item in group.children" :key="item.id" :label="item.name" :value="item.id">
+                <template v-if="hasSubCategories">
+                  <el-option-group v-for="group in categoryOptions" :key="group.id" :label="group.name">
+                    <el-option v-for="item in group.children" :key="item.id" :label="item.name" :value="item.id">
+                      <span style="float: left">{{ item.name }}</span>
+                      <span style="float: right; color: #8492a6; font-size: 13px">{{ item.code }}</span>
+                    </el-option>
+                  </el-option-group>
+                </template>
+                <template v-else>
+                  <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id">
                     <span style="float: left">{{ item.name }}</span>
                     <span style="float: right; color: #8492a6; font-size: 13px">{{ item.code }}</span>
                   </el-option>
-                </el-option-group>
+                </template>
               </el-select>
             </el-form-item>
           </el-col>
@@ -157,6 +205,18 @@ export default {
       importDialogVisible: false,
       submitting: false,
       importing: false,
+      search: {
+        keyword: '',
+        categoryId: null
+      },
+      pagination: {
+        page: 1,
+        size: 15
+      },
+      sortState: {
+        prop: 'code',
+        order: 'ascending'
+      },
       form: {
         id: null,
         code: '',
@@ -178,12 +238,61 @@ export default {
     }
   },
   computed: {
+    hasSubCategories() {
+      return this.categories.some(c => c.parentId)
+    },
     categoryOptions() {
       const topLevel = this.categories.filter(c => !c.parentId)
       return topLevel.map(parent => ({
         ...parent,
         children: this.categories.filter(c => c.parentId === parent.id)
       }))
+    },
+    filteredList() {
+      let result = this.list
+      if (this.search.categoryId) {
+        result = result.filter(r => r.categoryId === this.search.categoryId)
+      }
+      if (this.search.keyword) {
+        const kw = this.search.keyword.toLowerCase()
+        result = result.filter(r =>
+          (r.code && r.code.toLowerCase().includes(kw)) ||
+          (r.name && r.name.toLowerCase().includes(kw)) ||
+          (r.model && r.model.toLowerCase().includes(kw))
+        )
+      }
+      return result
+    },
+    sortedList() {
+      const { prop, order } = this.sortState
+      if (!prop || !order) {
+        return this.filteredList
+      }
+      const sorted = [...this.filteredList]
+      const factor = order === 'ascending' ? 1 : -1
+      sorted.sort((a, b) => {
+        const left = a[prop]
+        const right = b[prop]
+
+        if (left === null || left === undefined) return 1
+        if (right === null || right === undefined) return -1
+
+        if (typeof left === 'number' && typeof right === 'number') {
+          return (left - right) * factor
+        }
+
+        return String(left).localeCompare(String(right), 'zh-Hans-CN') * factor
+      })
+      return sorted
+    },
+    pagedList() {
+      const start = (this.pagination.page - 1) * this.pagination.size
+      return this.sortedList.slice(start, start + this.pagination.size)
+    }
+  },
+  watch: {
+    filteredList() {
+      this.pagination.page = 1
     }
   },
   created() {
@@ -193,6 +302,24 @@ export default {
     this.fetchCategories()
   },
   methods: {
+    indexMethod(index) {
+      return (this.pagination.page - 1) * this.pagination.size + index + 1
+    },
+    handleFilter() {
+      this.pagination.page = 1
+    },
+    resetFilter() {
+      this.search.keyword = ''
+      this.search.categoryId = null
+      this.pagination.page = 1
+    },
+    handleSortChange({ prop, order }) {
+      this.sortState = {
+        prop,
+        order
+      }
+      this.pagination.page = 1
+    },
     async fetchLocations() {
       try {
         const res = await request.get('/locations')
@@ -258,7 +385,7 @@ export default {
           this.dialogVisible = false
           this.fetchList()
         } catch (e) {
-          this.$message.error('添加失败，请重试')
+          this.$message.error('操作失败，请重试')
         } finally {
           this.submitting = false
         }
@@ -276,7 +403,7 @@ export default {
         const res = await request.post('/spare-parts/import', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
-        const data = res.data || res // 兼容不同的拦截器返回结构
+        const data = res.data || res
         this.$message.success(`导入完成：成功 ${data.successCount} 条，失败 ${data.failCount} 条。${data.failMsgs || ''}`)
         this.importDialogVisible = false
         this.fetchList()
@@ -304,41 +431,51 @@ export default {
           this.$message.error('删除失败，请重试')
         }
       }).catch(() => { })
-    },
-    formatDate(val) {
-      if (!val) return '—'
-      return new Date(val).toLocaleString('zh-CN', { hour12: false })
     }
   }
 }
 </script>
 
 <style scoped>
-.spare-part-container {
-  padding: 24px;
+.table-wrap {
+  padding: 0 12px 12px;
 }
 
-.toolbar {
+.total-hint {
+  color: #909399;
+  font-size: 13px;
+  margin-left: auto;
+}
+
+.pagination-wrap {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  justify-content: flex-end;
+  background: #fff;
+  border: 1px solid #e8eaee;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ecedf2;
 }
 
-.title {
-  font-size: 18px;
+.low-stock {
+  color: #E6A23C;
   font-weight: 600;
-  color: #303133;
 }
 
-.action-buttons {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
+.zero-stock {
+  color: #F56C6C;
+  font-weight: 600;
 }
 
-.action-buttons .el-button {
-  margin-left: 0;
+@media (max-width: 960px) {
+  .table-wrap {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .pagination-wrap {
+    margin-top: 8px;
+  }
 }
 </style>

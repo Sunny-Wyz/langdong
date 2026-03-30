@@ -1,9 +1,13 @@
 <template>
-    <div style="padding:24px">
+    <div class="page-container">
         <el-card style="margin-bottom:16px">
-            <div slot="header" style="display:flex;justify-content:space-between;align-items:center">
-                <span>库存分析报告</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">库存分析报告</div>
+                <div class="head-btn-group">
                 <el-button type="success" size="small" icon="el-icon-download" @click="exportCsv">导出 CSV</el-button>
+            
+                </div>
             </div>
 
             <el-row :gutter="20" style="margin-bottom:20px">
@@ -19,25 +23,28 @@
         </el-card>
 
         <el-card>
-            <div slot="header">
-                <span>滞库备件清单</span>
-                <span style="margin-left:12px;font-size:12px;color:#999">超过
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">滞库备件清单</div>
+                <div class="head-btn-group"><span style="margin-left:12px;font-size:12px;color:#999">超过
                     <el-input-number v-model="thresholdDays" :min="30" :max="365" size="mini" style="width:80px"
                         @change="loadStagnant"></el-input-number>
                     天未流动
                 </span>
+            
+                </div>
             </div>
             <el-table :data="stagnantList" border size="small" v-loading="loading">
-                <el-table-column prop="partCode" label="编码" width="110" sortable ></el-table-column>
-                <el-table-column prop="partName" label="名称" sortable ></el-table-column>
-                <el-table-column prop="currentStock" label="库存" width="80" align="center" sortable ></el-table-column>
-                <el-table-column prop="stockAmount" label="金额(元)" width="100" align="right" sortable ></el-table-column>
-                <el-table-column prop="stagnantDays" label="滞库天数" width="95" align="center" sortable >
+                <el-table-column prop="partCode" label="编码" width="110"  sortable="custom"></el-table-column>
+                <el-table-column prop="partName" label="名称" ></el-table-column>
+                <el-table-column prop="currentStock" label="库存" width="80" align="center" ></el-table-column>
+                <el-table-column prop="stockAmount" label="金额(元)" width="100" align="right" ></el-table-column>
+                <el-table-column prop="stagnantDays" label="滞库天数" width="95" align="center" >
                     <template slot-scope="scope">
                         <el-tag type="danger" size="small">{{ scope.row.stagnantDays }}天</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="lastMovementTime" label="最后流动时间" width="160" sortable ></el-table-column>
+                <el-table-column prop="lastMovementTime" label="最后流动时间" width="160" ></el-table-column>
             </el-table>
         </el-card>
     </div>

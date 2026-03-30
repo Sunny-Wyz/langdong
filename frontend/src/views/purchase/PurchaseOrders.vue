@@ -1,8 +1,11 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header">
-                <span>采购订单管理</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">采购订单管理</div>
+                <div class="head-btn-group">
+                </div>
             </div>
 
             <!-- 筛选 -->
@@ -25,20 +28,20 @@
             </el-form>
 
             <el-table :data="orders" border v-loading="loading" :row-class-name="overdueClass">
-                <el-table-column prop="orderNo" label="订单号" width="180" sortable ></el-table-column>
-                <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
-                <el-table-column prop="sparePartCode" label="备件编码" width="110" sortable ></el-table-column>
-                <el-table-column prop="supplierName" label="供应商" width="150" sortable ></el-table-column>
-                <el-table-column prop="orderQty" label="数量" width="70" align="center" sortable ></el-table-column>
-                <el-table-column prop="unitPrice" label="单价(元)" width="90" align="right" sortable ></el-table-column>
-                <el-table-column prop="totalAmount" label="总额(元)" width="100" align="right" sortable ></el-table-column>
-                <el-table-column prop="orderStatus" label="状态" width="100" align="center" sortable >
+                <el-table-column prop="orderNo" label="订单号" width="180" ></el-table-column>
+                <el-table-column prop="sparePartName" label="备件名称" ></el-table-column>
+                <el-table-column prop="sparePartCode" label="备件编码" width="110"  sortable="custom"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="150" ></el-table-column>
+                <el-table-column prop="orderQty" label="数量" width="70" align="center" ></el-table-column>
+                <el-table-column prop="unitPrice" label="单价(元)" width="90" align="right" ></el-table-column>
+                <el-table-column prop="totalAmount" label="总额(元)" width="100" align="right" ></el-table-column>
+                <el-table-column prop="orderStatus" label="状态" width="100" align="center" >
                     <template slot-scope="scope">
                         <el-tag :type="statusType(scope.row.orderStatus)" size="small">{{ scope.row.orderStatus
                         }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="expectedDate" label="期望到货" width="105" sortable ></el-table-column>
+                <el-table-column prop="expectedDate" label="期望到货" width="105" ></el-table-column>
                 <el-table-column label="操作" width="200" align="center">
                     <template slot-scope="scope">
                         <el-button v-if="scope.row.orderStatus === '已下单'" size="mini"

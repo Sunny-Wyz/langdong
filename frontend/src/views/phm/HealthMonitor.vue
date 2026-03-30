@@ -1,5 +1,5 @@
 <template>
-  <div class="health-monitor-page">
+  <div class="page-container health-monitor-page">
     <!-- ============================================================
          顶部统计卡片区域
          ============================================================ -->
@@ -76,18 +76,21 @@
          风险设备排行榜
          ============================================================ -->
     <el-card class="ranking-card" shadow="never">
-      <div slot="header">
-        <span>风险设备排行榜</span>
-        <span class="card-tip">（按健康评分升序，最多显示20台）</span>
-      </div>
+      <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">风险设备排行榜</div>
+                <div class="head-btn-group"><span class="card-tip">（按健康评分升序，最多显示20台）</span>
+      
+                </div>
+            </div>
 
       <el-table v-loading="rankingLoading" :data="rankingData" border stripe style="width:100%">
         <el-table-column type="index" label="排名" width="60" align="center" />
-        <el-table-column prop="deviceCode" label="设备编码" width="120" sortable />
-        <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip sortable />
+        <el-table-column prop="deviceCode" label="设备编码" width="120" sortable="custom" />
+        <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
         <el-table-column prop="deviceModel" label="设备型号" width="120" show-overflow-tooltip />
 
-        <el-table-column label="健康评分" width="100" align="center" sortable>
+        <el-table-column label="健康评分" width="100" align="center">
           <template slot-scope="{ row }">
             <span :style="{ color: getScoreColor(row.healthScore) }">
               {{ formatDecimal(row.healthScore) }}
@@ -95,7 +98,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="风险等级" width="100" align="center" sortable>
+        <el-table-column label="风险等级" width="100" align="center">
           <template slot-scope="{ row }">
             <el-tag :type="getRiskTagType(row.riskLevel)" size="small">
               {{ getRiskLevelText(row.riskLevel) }}

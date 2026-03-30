@@ -1,5 +1,5 @@
 <template>
-    <div class="dashboard-container">
+    <div class="page-container dashboard-container">
         <!-- 顶部待办摘要条 -->
         <div class="todo-bar" v-if="todoBar.total > 0">
             <i class="el-icon-bell todo-icon"></i>
@@ -69,19 +69,21 @@
         <el-row :gutter="16" class="chart-row">
             <el-col :xs="24" :md="12">
                 <el-card shadow="hover" class="chart-card">
-                    <div slot="header" class="card-header">
-                        <span>本月维修费用构成</span>
-                        <span v-if="maintenanceTotal > 0" class="header-sub">
-                            合计 ¥{{ maintenanceTotal.toLocaleString() }}
-                        </span>
+                    <div slot="header" class="phead header">
+                        <i class="el-icon-s-data" />
+                        <div class="title">本月维修费用构成</div>
+                        <div class="head-btn-group">
+                            <span v-if="maintenanceTotal > 0" class="header-sub">合计 ¥{{ maintenanceTotal.toLocaleString() }}</span>
+                        </div>
                     </div>
                     <div ref="maintenanceChart" style="height:280px"></div>
                 </el-card>
             </el-col>
             <el-col :xs="24" :md="12">
                 <el-card shadow="hover" class="chart-card">
-                    <div slot="header" class="card-header">
-                        <span>备件消耗趋势（近6月）</span>
+                    <div slot="header" class="phead header">
+                        <i class="el-icon-s-data" />
+                        <div class="title">备件消耗趋势（近6月）</div>
                     </div>
                     <div ref="trendChart" style="height:280px"></div>
                 </el-card>
@@ -90,11 +92,13 @@
 
         <!-- 库存预警表格 -->
         <el-card shadow="hover" class="warning-table-card" v-if="lowStockList.length > 0">
-            <div slot="header" class="card-header">
-                <i class="el-icon-warning" style="color:#F56C6C;margin-right:6px"></i>
-                <span>库存预警</span>
-                <el-badge :value="lowStockList.length" type="danger" style="margin-left:8px"></el-badge>
-                <el-button type="text" size="small" class="header-link" @click="goToWarning">查看全部 →</el-button>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">库存预警</div>
+                <div class="head-btn-group">
+                    <el-badge :value="lowStockList.length" type="danger"></el-badge>
+                    <el-button type="text" size="small" class="header-link" @click="goToWarning">查看全部 →</el-button>
+                </div>
             </div>
             <el-table :data="lowStockList.slice(0, 10)" size="small" border stripe>
                 <el-table-column prop="severity" label="紧急程度" width="90" align="center">

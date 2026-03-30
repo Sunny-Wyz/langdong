@@ -1,5 +1,5 @@
 <template>
-  <div class="fault-prediction-page">
+  <div class="page-container fault-prediction-page">
     <!-- ============================================================
          顶部统计卡片区域
          ============================================================ -->
@@ -86,17 +86,20 @@
          预测结果列表
          ============================================================ -->
     <el-card class="table-card" shadow="never">
-      <div slot="header">
-        <span>故障预测结果</span>
-        <span class="card-tip">（显示最新预测记录）</span>
-      </div>
+      <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">故障预测结果</div>
+                <div class="head-btn-group"><span class="card-tip">（显示最新预测记录）</span>
+      
+                </div>
+            </div>
 
       <el-table v-loading="tableLoading" :data="predictionList" border stripe style="width:100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="deviceCode" label="设备编码" width="120" sortable />
-        <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip sortable />
+        <el-table-column prop="deviceCode" label="设备编码" width="120" sortable="custom" />
+        <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
 
-        <el-table-column label="故障概率" width="110" align="center" sortable sort-by="failureProbability">
+        <el-table-column label="故障概率" width="110" align="center" sort-by="failureProbability">
           <template slot-scope="{ row }">
             <el-tag :type="getProbabilityTagType(row.failureProbability)" size="small">
               {{ formatPercent(row.failureProbability) }}
@@ -104,7 +107,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="预测故障数" width="110" align="center" sortable sort-by="predictedFaultCount">
+        <el-table-column label="预测故障数" width="110" align="center" sort-by="predictedFaultCount">
           <template slot-scope="{ row }">
             <span style="font-weight: bold; color: #E6A23C">{{ row.predictedFaultCount || 0 }}</span>
           </template>
@@ -118,8 +121,8 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="targetMonth" label="目标月份" width="100" align="center" sortable />
-        <el-table-column prop="predictionDate" label="预测日期" width="110" align="center" sortable />
+        <el-table-column prop="targetMonth" label="目标月份" width="100" align="center" />
+        <el-table-column prop="predictionDate" label="预测日期" width="110" align="center" />
         <el-table-column prop="modelType" label="模型类型" width="150" show-overflow-tooltip />
 
         <el-table-column label="操作" width="180" align="center" fixed="right">
@@ -162,15 +165,17 @@
          高风险设备提示卡片
          ============================================================ -->
     <el-card v-if="highRiskDevices.length > 0" class="high-risk-card" shadow="never">
-      <div slot="header">
-        <i class="el-icon-warning" style="color: #F56C6C; margin-right: 5px" />
-        <span>高风险设备警告</span>
-        <span class="card-tip">（故障概率 > 70%）</span>
+      <div slot="header" class="phead header">
+        <i class="el-icon-s-data" />
+        <div class="title">高风险设备警告</div>
+        <div class="head-btn-group">
+          <span class="card-tip">（故障概率 > 70%）</span>
+        </div>
       </div>
 
       <el-table :data="highRiskDevices" border size="small" style="width:100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="deviceCode" label="设备编码" width="120" />
+        <el-table-column prop="deviceCode" label="设备编码" width="120" sortable="custom" />
         <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
         <el-table-column label="故障概率" width="110" align="center">
           <template slot-scope="{ row }">

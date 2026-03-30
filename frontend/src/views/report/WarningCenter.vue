@@ -1,9 +1,12 @@
 <template>
-    <div style="padding:24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header">
-                <span>预警任务中心</span>
-                <el-badge :value="totalCount" :max="99" type="danger" style="margin-left:12px"></el-badge>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">预警任务中心</div>
+                <div class="head-btn-group"><el-badge :value="totalCount" :max="99" type="danger" style="margin-left:12px"></el-badge>
+            
+                </div>
             </div>
 
             <el-tabs v-model="activeTab" @tab-click="onTabClick">
@@ -15,14 +18,14 @@
                             style="margin-left:4px"></el-badge>
                     </template>
                     <el-table :data="warnings.lowStock" border size="small" v-loading="loading">
-                        <el-table-column prop="severity" label="紧急程度" width="90" align="center" sortable >
+                        <el-table-column prop="severity" label="紧急程度" width="90" align="center" >
                             <template slot-scope="scope">
                                 <el-tag :type="scope.row.severity === '紧急' ? 'danger' : 'warning'" size="small">{{
                                     scope.row.severity }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="title" label="预警标题" sortable ></el-table-column>
-                        <el-table-column prop="detail" label="详情" sortable ></el-table-column>
+                        <el-table-column prop="title" label="预警标题" ></el-table-column>
+                        <el-table-column prop="detail" label="详情" ></el-table-column>
                         <el-table-column label="操作" width="100" align="center">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="primary" @click="navigate(scope.row)">去处理</el-button>
@@ -39,8 +42,8 @@
                             style="margin-left:4px"></el-badge>
                     </template>
                     <el-table :data="warnings.overdueWO" border size="small" v-loading="loading">
-                        <el-table-column prop="title" label="预警标题" sortable ></el-table-column>
-                        <el-table-column prop="detail" label="详情" sortable ></el-table-column>
+                        <el-table-column prop="title" label="预警标题" ></el-table-column>
+                        <el-table-column prop="detail" label="详情" ></el-table-column>
                         <el-table-column label="操作" width="100" align="center">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="warning" @click="navigate(scope.row)">去处理</el-button>
@@ -57,8 +60,8 @@
                             style="margin-left:4px"></el-badge>
                     </template>
                     <el-table :data="warnings.overduePO" border size="small" v-loading="loading">
-                        <el-table-column prop="title" label="预警标题" sortable ></el-table-column>
-                        <el-table-column prop="detail" label="详情" sortable ></el-table-column>
+                        <el-table-column prop="title" label="预警标题" ></el-table-column>
+                        <el-table-column prop="detail" label="详情" ></el-table-column>
                         <el-table-column label="操作" width="100" align="center">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="warning" @click="navigate(scope.row)">去处理</el-button>

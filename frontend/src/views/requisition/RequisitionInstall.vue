@@ -1,27 +1,30 @@
 <template>
-    <div style="padding: 24px">
+    <div class="page-container">
         <el-card>
-            <div slot="header">
-                <span>领用安装登记</span>
-                <el-button type="primary" size="small" @click="loadData" icon="el-icon-refresh"
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">领用安装登记</div>
+                <div class="head-btn-group"><el-button type="primary" size="small" @click="loadData" icon="el-icon-refresh"
                     style="float: right">刷新</el-button>
+            
+                </div>
             </div>
 
             <el-table :data="list" border stripe style="width: 100%" v-loading="loading">
-                <el-table-column prop="reqNo" label="单号" width="180" sortable ></el-table-column>
-                <el-table-column prop="applicantName" label="申请人" width="120" sortable ></el-table-column>
-                <el-table-column prop="deviceName" label="关联设备" width="180" sortable >
+                <el-table-column prop="reqNo" label="单号" width="180" ></el-table-column>
+                <el-table-column prop="applicantName" label="申请人" width="120" ></el-table-column>
+                <el-table-column prop="deviceName" label="关联设备" width="180" >
                     <template slot-scope="{row}">
                         {{ row.deviceName ? `${row.deviceName}(${row.deviceCode})` : '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="isUrgent" label="加急" width="80" align="center" sortable >
+                <el-table-column prop="isUrgent" label="加急" width="80" align="center" >
                     <template slot-scope="{row}">
                         <el-tag :type="row.isUrgent ? 'danger' : 'info'" size="small">{{ row.isUrgent ? '是' : '否'
                             }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="applyTime" label="申请时间" width="180" sortable >
+                <el-table-column prop="applyTime" label="申请时间" width="180" >
                     <template slot-scope="{row}">
                         {{ formatTime(row.applyTime) }}
                     </template>
@@ -44,14 +47,14 @@
                 </el-descriptions>
 
                 <el-table :data="currentItems" border style="width: 100%">
-                    <el-table-column prop="sparePartCode" label="备件编码" width="150" sortable ></el-table-column>
-                    <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
-                    <el-table-column prop="outQty" label="实领数量" width="100" align="center" sortable >
+                    <el-table-column prop="sparePartCode" label="备件编码" width="150"  sortable="custom"></el-table-column>
+                    <el-table-column prop="sparePartName" label="备件名称" ></el-table-column>
+                    <el-table-column prop="outQty" label="实领数量" width="100" align="center" >
                         <template slot-scope="{row}">
                             <el-tag type="success" size="medium">{{ row.outQty }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="安装位置说明 (如：3号电机左后盖)" min-width="200" sortable >
+                    <el-table-column label="安装位置说明 (如：3号电机左后盖)" min-width="200" >
                         <template slot-scope="{row}">
                             <el-input v-model="row.installLoc" placeholder="请输入实际安装部位"></el-input>
                         </template>

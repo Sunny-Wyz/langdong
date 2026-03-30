@@ -1,9 +1,13 @@
 <template>
-    <div style="padding:24px">
+    <div class="page-container">
         <el-card style="margin-bottom:16px">
-            <div slot="header" style="display:flex;justify-content:space-between;align-items:center">
-                <span>供应商绩效报告</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">供应商绩效报告</div>
+                <div class="head-btn-group">
                 <el-button type="success" size="small" icon="el-icon-download" @click="exportCsv">导出 CSV</el-button>
+            
+                </div>
             </div>
 
             <el-row :gutter="20">
@@ -19,19 +23,22 @@
         </el-card>
 
         <el-card>
-            <div slot="header">供应商绩效排名</div>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">供应商绩效排名</div>
+            </div>
             <el-table :data="tableData" border size="small" v-loading="loading">
-                <el-table-column prop="supplierName" label="供应商" sortable ></el-table-column>
-                <el-table-column prop="totalOrders" label="订单数" width="80" align="center" sortable ></el-table-column>
-                <el-table-column prop="qualityRate" label="合格率(%)" width="95" align="center" sortable >
+                <el-table-column prop="supplierName" label="供应商" ></el-table-column>
+                <el-table-column prop="totalOrders" label="订单数" width="80" align="center" ></el-table-column>
+                <el-table-column prop="qualityRate" label="合格率(%)" width="95" align="center" >
                     <template slot-scope="scope">
                         <el-tag :type="scope.row.qualityRate >= 90 ? 'success' : 'danger'" size="small">
                             {{ scope.row.qualityRate || '—' }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="onTimeRate" label="准时率(%)" width="95" align="center" sortable ></el-table-column>
-                <el-table-column prop="avgUnitPrice" label="均价(元)" width="100" align="right" sortable ></el-table-column>
+                <el-table-column prop="onTimeRate" label="准时率(%)" width="95" align="center" ></el-table-column>
+                <el-table-column prop="avgUnitPrice" label="均价(元)" width="100" align="right" ></el-table-column>
             </el-table>
         </el-card>
     </div>

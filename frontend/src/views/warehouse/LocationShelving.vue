@@ -1,17 +1,21 @@
 <template>
-    <div class="shelving-container" style="padding: 24px">
+    <div class="page-container shelving-container">
         <el-card>
-            <div slot="header" style="display: flex; justify-content: space-between; align-items: center">
-                <span>货位上架工作台 (Pending Shelving)</span>
+            <div slot="header" class="phead header">
+                <i class="el-icon-s-data" />
+                <div class="title">货位上架工作台 (Pending Shelving)</div>
+                <div class="head-btn-group">
                 <el-button type="primary" size="small" @click="fetchPendingItems" icon="el-icon-refresh">刷新</el-button>
+            
+                </div>
             </div>
 
             <!-- 待上架明细列表 -->
             <el-table :data="pendingItems" border style="width: 100%" v-loading="loading">
-                <el-table-column prop="receiptCode" label="收货入库单号" width="180" sortable ></el-table-column>
-                <el-table-column prop="sparePartCode" label="备件编码" width="120" sortable ></el-table-column>
-                <el-table-column prop="sparePartName" label="备件名称" sortable ></el-table-column>
-                <el-table-column label="上架进度" width="200" align="center" sortable >
+                <el-table-column prop="receiptCode" label="收货入库单号" width="180"  sortable="custom"></el-table-column>
+                <el-table-column prop="sparePartCode" label="备件编码" width="120"  sortable="custom"></el-table-column>
+                <el-table-column prop="sparePartName" label="备件名称" ></el-table-column>
+                <el-table-column label="上架进度" width="200" align="center" >
                     <template slot-scope="{row}">
                         <el-progress :percentage="Math.round((row.shelvedQuantity || 0) / row.actualQuantity * 100)"
                             :format="() => `${row.shelvedQuantity || 0} / ${row.actualQuantity}`"
@@ -39,7 +43,7 @@
             </div>
 
             <el-table :data="distributions" border size="small">
-                <el-table-column label="选择目标货位" sortable >
+                <el-table-column label="选择目标货位" >
                     <template slot-scope="scope">
                         <el-select v-model="scope.row.locationId" filterable placeholder="选择货位" style="width: 100%">
                             <el-option v-for="loc in locationOptions" :key="loc.id"
@@ -48,7 +52,7 @@
                         </el-select>
                     </template>
                 </el-table-column>
-                <el-table-column label="分配数量" width="150" sortable >
+                <el-table-column label="分配数量" width="150" >
                     <template slot-scope="scope">
                         <el-input-number v-model="scope.row.putQty" :min="1" :max="remainingQty" size="small"
                             style="width: 100%"></el-input-number>

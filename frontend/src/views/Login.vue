@@ -1,7 +1,7 @@
 <template>
   <div class="login-wrap">
     <el-card class="login-card">
-      <h2 style="text-align:center; margin-bottom:24px">备件管理系统</h2>
+      <h2 class="login-title">备件管理系统</h2>
       <el-form :model="form" :rules="rules" ref="form">
         <el-form-item prop="username">
           <el-input v-model="form.username" placeholder="用户名" prefix-icon="el-icon-user" />
@@ -11,7 +11,7 @@
                     show-password @keyup.enter.native="submit" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" style="width:100%" :loading="loading" @click="submit">
+          <el-button type="primary" class="login-submit" :loading="loading" @click="submit">
             登 录
           </el-button>
         </el-form-item>
@@ -61,10 +61,26 @@ export default {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: #f0f2f5;
+  background: linear-gradient(180deg, #f6f8fc 0%, #ecf1fb 100%);
 }
+
 .login-card {
   width: 380px;
-  padding: 20px;
+  border: 1px solid #e8eaee;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 48, 134, 0.08);
+}
+
+.login-title {
+  margin: 0 0 24px;
+  text-align: center;
+  color: #0f3086;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.login-submit {
+  width: 100%;
+  letter-spacing: 2px;
 }
 </style>
