@@ -15,3 +15,13 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local runtime files
+.run/
+
+# Local env
+.env.local

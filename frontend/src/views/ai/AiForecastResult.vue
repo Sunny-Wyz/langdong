@@ -5,6 +5,7 @@
                 <i class="el-icon-s-data" />
                 <div class="title">需求预测结果</div>
                 <div class="head-btn-group">
+                    <el-button type="text" @click="goJobCenter" v-if="hasJobCenterPermission">任务中心</el-button>
                     <el-button type="text" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算</el-button>
                 </div>
             </div>
@@ -108,6 +109,11 @@ export default {
             const permissions = this.$store.state.permissions || []
             const username = this.$store.state.username
             return permissions.includes('ai:forecast:trigger') || username === 'admin'
+        },
+        hasJobCenterPermission() {
+            const permissions = this.$store.state.permissions || []
+            const username = this.$store.state.username
+            return permissions.includes('ai:forecast:list') || username === 'admin'
         }
     },
     created() {
@@ -160,6 +166,9 @@ export default {
                     // 不立即刷新，提示用户稍后再看
                 })
             }).catch(() => { })
+        },
+        goJobCenter() {
+            this.$router.push('/ai/job-center')
         },
         getAlgoTagType(algo) {
             if (algo === 'RF') return 'success'

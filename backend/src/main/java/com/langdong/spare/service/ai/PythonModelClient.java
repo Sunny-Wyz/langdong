@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -67,6 +68,43 @@ public class PythonModelClient {
             return response.getBody() == null ? Collections.emptyList() : response.getBody();
         } catch (Exception ex) {
             log.error("[PythonModelClient] suggestReplenishment call failed: ids={}", sparePartIds, ex);
+            throw ex;
+        }
+    }
+
+    public Map<String, Object> submitReplenishmentJob(List<Integer> sparePartIds) {
+        String url = pythonBaseUrl + "/api/v1/jobs/replenishment";
+        Map<String, Object> body = new HashMap<>();
+        body.put("spare_part_ids", sparePartIds);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        try {
+            ResponseEntity<Map> response = pythonRestTemplate.postForEntity(
+                    url,
+                    new HttpEntity<>(body, headers),
+                    Map.class
+            );
+            return response.getBody() == null ? new HashMap<>() : response.getBody();
+        } catch (Exception ex) {
+            log.error("[PythonModelClient] submitReplenishmentJob call failed: ids={}", sparePartIds, ex);
+            throw ex;
+        }
+    }
+
+    public Map<String, Object> queryJobStatus(String taskId) {
+        String url = UriComponentsBuilder
+                .fromHttpUrl(pythonBaseUrl)
+                .path("/api/v1/jobs/{taskId}")
+                .buildAndExpand(taskId)
+                .toUriString();
+
+        try {
+            ResponseEntity<Map> response = pythonRestTemplate.getForEntity(url, Map.class);
+            return response.getBody() == null ? new HashMap<>() : response.getBody();
+        } catch (Exception ex) {
+            log.error("[PythonModelClient] queryJobStatus call failed: taskId={}", taskId, ex);
             throw ex;
         }
     }

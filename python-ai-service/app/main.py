@@ -11,6 +11,7 @@ import os
 from dotenv import load_dotenv
 from app.api.v1.maintenance import router as maintenance_router
 from app.api.v1.replenishment import router as replenishment_router
+from app.api.v1.jobs import router as jobs_router
 
 # 加载环境变量
 load_dotenv()
@@ -58,6 +59,7 @@ def root():
 # ==================== API 路由（后续添加）====================
 app.include_router(maintenance_router)
 app.include_router(replenishment_router)
+app.include_router(jobs_router)
 
 if __name__ == "__main__":
     import uvicorn

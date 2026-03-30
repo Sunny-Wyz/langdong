@@ -35,11 +35,20 @@ from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
-# TensorFlow / Keras（抑制冗余日志）
+# TensorFlow / Keras（可选 — 若不可用，自动降级为统计方法）
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers, callbacks, models
+try:
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers, callbacks, models
+    TENSORFLOW_AVAILABLE = True
+except (ImportError, OSError):
+    TENSORFLOW_AVAILABLE = False
+    keras = None
+    tf = None
+    layers = None
+    callbacks = None
+    models = None
 
 # 数据库
 import pymysql
@@ -63,7 +72,7 @@ DB_CONFIG: Dict[str, Any] = {
     "host":     "localhost",
     "port":     3306,
     "user":     "root",
-    "password": "your_password",   # ← 生产环境从环境变量读取：os.environ["DB_PASSWORD"]
+    "password": os.environ.get("DB_PASSWORD", "123456"),  # 从环境变量读取，默认为 123456
     "database": "spare_db",
     "charset":  "utf8mb4",
 }

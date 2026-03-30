@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import store from '../store'
 import Login from '../views/Login.vue'
 import Home from '../views/Home.vue'
 import SparePartList from '../views/SparePartList.vue'
@@ -45,6 +46,8 @@ import ClassifyResult from '../views/classify/ClassifyResult.vue'
 
 // AI 智能分析模块
 import AiForecastResult from '../views/ai/AiForecastResult.vue'
+import AiJobCenter from '../views/ai/AiJobCenter.vue'
+import AiTrainDataDashboard from '../views/ai/AiTrainDataDashboard.vue'
 
 // PHM 预测性维护模块
 import HealthMonitor from '../views/phm/HealthMonitor.vue'
@@ -127,7 +130,9 @@ const router = new VueRouter({
       component: Home,
       meta: { requiresAuth: true },
       children: [
-        { path: 'forecast-result', component: AiForecastResult, meta: { requiresAuth: true } }
+        { path: 'forecast-result', component: AiForecastResult, meta: { requiresAuth: true } },
+        { path: 'job-center', component: AiJobCenter, meta: { requiresAuth: true } },
+        { path: 'train-data-dashboard', component: AiTrainDataDashboard, meta: { requiresAuth: true } }
       ]
     },
     {
@@ -145,6 +150,14 @@ const router = new VueRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !localStorage.getItem('token')) {
     next('/login')
+  } else if (to.path === '/ai/job-center') {
+    const permissions = store.state.permissions || []
+    const username = store.state.username || localStorage.getItem('username') || ''
+    if (permissions.length > 0 && username !== 'admin' && !permissions.includes('ai:forecast:list')) {
+      next('/ai/forecast-result')
+    } else {
+      next()
+    }
   } else {
     next()
   }

@@ -36,6 +36,13 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findByCode" resultMap="SparePartResultMap">
+        SELECT id, code, name, model, quantity, unit, price, category_id, supplier, remark, location_id, supplier_id, created_at, updated_at
+        FROM spare_part
+        WHERE UPPER(code) = UPPER(#{code})
+        LIMIT 1
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO spare_part (code, name, model, quantity, unit, price, category_id, supplier, remark, location_id, supplier_id)
         VALUES (#{code}, #{name}, #{model}, #{quantity}, #{unit}, #{price}, #{categoryId}, #{supplier}, #{remark}, #{locationId}, #{supplierId})

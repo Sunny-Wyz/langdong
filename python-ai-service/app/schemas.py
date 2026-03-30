@@ -46,3 +46,15 @@ class ReplenishmentItem(BaseModel):
 class ErrorResponse(BaseModel):
     code: int
     message: str
+
+
+class AsyncJobCreateResponse(BaseModel):
+    task_id: str
+    status: str
+
+
+class AsyncJobStatusResponse(BaseModel):
+    task_id: str
+    status: str
+    payload: dict[str, Any] | None = None
+    error: str | None = None

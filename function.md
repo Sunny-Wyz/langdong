@@ -131,6 +131,28 @@
 
 ---
 
+### F13: Python 异步外联能力（Redis+Celery）与 Java 回调闭环
+- **功能描述**：在既有同步外联基础上，新增“任务提交 + 状态查询 + 回调落地”的异步链路，满足批量预测场景；采用 Redis + Celery 执行任务，由 Python 主动回调 Java。
+- **落实情况**：
+  - Python 新增异步模块：`python-ai-service/app/services/celery_app.py`、`app/services/async_tasks.py`、`app/services/task_registry.py` 与 `app/api/v1/jobs.py`；
+  - 提供接口：`POST /api/v1/jobs/replenishment`（提交任务）、`GET /api/v1/jobs/{task_id}`（查询状态）；
+  - Java 新增回调接收：`backend/src/main/java/com/langdong/spare/controller/PythonCallbackController.java` 与 `service/ai/PythonCallbackStoreService.java`；
+  - 安全加固：仅放行 POST 回调入口、强制 `PYTHON_CALLBACK_TOKEN`、校验 `task_id/status`、回调失败重试、错误信息脱敏、内存存储上限控制；
+  - 验证结果：Python 测试 `5 passed`，Java 编译 `JAVA_OK`。
+
+---
+
+### F14: 全栈一键启停与状态自检脚本
+- **功能描述**：为本地开发环境新增“一键启动/停止/状态检查”脚本，覆盖 Redis、Python API、Celery Worker、Java 后端与前端服务，降低多终端手工操作复杂度。
+- **落实情况**：
+  - 新增脚本：`scripts/start_all.sh`、`scripts/stop_all.sh`、`scripts/status_all.sh`；
+  - `start_all.sh` 支持按依赖顺序启动并生成 PID 与日志到 `.run/`；
+  - `stop_all.sh` 支持按 PID 清理进程并尝试关闭 Redis；
+  - `status_all.sh` 支持进程态与健康检查双维度巡检；
+  - 已完成执行权限与语法校验（`bash -n` 全通过）。
+
+---
+
 ### F25: AI 预测结果查询接口空参数兼容修复
 - **功能描述**：修复 `/api/ai/forecast/result` 在 `month=`、`partCode=` 为空字符串时返回 400 的兼容性问题，保持原有业务语义（空 month 仍查询最新月份，空 partCode 仍表示不按编码过滤）。
 - **落实情况**：已在 `AiForecastController.queryResult` 中新增参数归一化逻辑：将 `month` 与 `partCode` 先 `trim`，空字符串统一转为 `null`；仅对非空 `month` 执行 `yyyy-MM` 格式校验，再传入 service 查询。后端编译验证通过。
@@ -212,3 +234,57 @@
 ### F24: 全界面排序规则统一（仅保留编码列排序）
 - **功能描述**：将“仅保留按编码排序”规则推广到所有界面，统一数据列表排序入口。
 - **落实情况**：批量移除 `frontend/src/views/**` 中非编码列的 `sortable` 配置，仅保留 `code/partCode/deviceCode/sparePartCode` 等编码字段列的排序按钮；全量构建通过。
+
+---
+
+### F25: 一键启动脚本稳定性修复（Redis + Python 解释器锁定 + 状态探活）
+- **功能描述**：修复 `scripts/start_all.sh` 的启动失败与 `scripts/status_all.sh` 的误报问题，确保本地一键启动可稳定运行。
+- **落实情况**：安装并启用 Redis 后，脚本层面将 Python API/Celery 启动命令统一改为 `conda run -n langdong python -m ...`，避免误用系统 Python；并将后端探活逻辑改为“HTTP 可达即健康”，规避 401/405 误判；`stop_all.sh` 新增端口清理与残留进程清理，防止端口占用导致重启失败。当前 `python-api/celery/backend/frontend/redis` 状态均为 UP。
+
+---
+
+### F26: Callback Token 本地固化（免手工传参）
+- **功能描述**：将 `PYTHON_CALLBACK_TOKEN` 从“每次命令临时传入”升级为“本地配置自动加载”，降低启动复杂度。
+- **落实情况**：新增根目录 `.env.local`（仅本地使用）并在 `scripts/start_all.sh` 启动前自动 `source`；`.gitignore` 增加 `.env.local` 规则避免误提交。现已验证可直接执行 `./scripts/start_all.sh` 完成全栈启动，且无 callback token 警告。
+
+---
+
+### F27: 前端任务中心（异步任务提交与状态轮询）
+- **功能描述**：新增 AI 任务中心页面，支持提交 Python 异步补货任务、自动轮询状态、查看任务结果与错误信息。
+- **落实情况**：新增 `AiJobCenter.vue` 与 `/ai/job-center` 路由；后端新增 `/api/ai/forecast/jobs/replenishment`、`/api/ai/forecast/jobs/{taskId}` 代理接口；前端补充权限门控（提交/查询分权限）、轮询失败自动停机与本地任务缓存。已通过 `mvn -DskipTests compile` 与 `npm run build` 验证。
+
+---
+
+### F28: 任务中心数据库菜单落地（动态菜单可见）
+- **功能描述**：将“AI任务中心”从前端路由级能力升级为数据库动态菜单能力，保证登录后侧栏可按权限显示。
+- **落实情况**：新增并执行 `sql/add_ai_job_center_menu.sql`，以幂等方式插入/修正 `/ai/job-center` 菜单（组件 `ai/AiJobCenter`，权限 `ai:forecast:list`），并自动授权 ADMIN 角色；实测库内菜单记录已存在（path=`/ai/job-center`）。
+
+---
+
+### F29: 基于真实业务表生成过去2年按天训练数据
+- **功能描述**：新增“按天”训练数据集构建能力，从真实业务表汇总过去730天数据，供后续模型训练使用。
+- **落实情况**：新增并执行 `sql/generate_ai_daily_train_data_2y.sql`：创建 `ai_part_daily_train_data`，按 `日期骨架 x 备件` 生成全量日粒度样本，聚合来源包括 `biz_outbound_batch_trace`、`biz_requisition(_item)`、`biz_purchase_order`；支持重跑幂等（窗口删除重建）与事务保护。实测生成 `37230` 行（`51` 个备件，日期范围 `2024-03-30` 至 `2026-03-29`）。
+
+---
+
+### F30: 任务中心输入兼容升级（备件ID/编码混输）
+- **功能描述**：修复任务中心仅支持数字ID导致“输入备件编码报错”的问题，提升提交可用性。
+- **落实情况**：前端 `AiJobCenter` 输入从“备件ID”升级为“备件ID/编码”，支持混合输入并原样提交；后端 `AiForecastJobController` 增加编码映射逻辑，按 `spare_part.code` 转换为 `id` 后提交给 Python 任务接口，同时保留数字 ID 兼容。已通过 `mvn -DskipTests compile` 与 `npm run build` 验证。
+
+---
+
+### F31: 训练数据看板（侧边栏可访问）
+- **功能描述**：将训练数据从”仅数据库可查”升级为”前端侧边栏可视化查看”，支持筛选、分页与来源标记展示。
+- **落实情况**：新增后端 `AiTrainDataController` + `AiTrainDataMapper`（接口 `/api/ai/train-data/list`，权限 `ai:train-data:list`）；前端新增 `AiTrainDataDashboard.vue` 页面与 `/ai/train-data-dashboard` 路由；新增并执行 `sql/add_ai_train_data_dashboard_menu.sql` 将菜单落库（path=`/ai/train-data-dashboard`，component=`ai/AiTrainDataDashboard`）并授权 ADMIN。后端编译与前端构建均通过。
+
+---
+
+### F32: 训练数据看板 - 注入随机模拟数据替换全零数据
+- **功能描述**：`ai_part_daily_train_data` 表数据全部为 0（因原 SQL 依赖业务表数据为空），需生成真实感的随机数据用于看板展示与 AI 模型调试。
+- **落实情况**：新增 `sql/mock_ai_train_data.sql`，通过日期序列生成器 × 备件笛卡尔积，利用多个独立 `RAND()` 种子为每行生成不同的业务字段：工作日出库概率 35%（高频备件 60%）、周末减半；采购到货约 5% 天次批量到货；来源标记（TRACE/REQ_OUT/TRACE_REQ/NONE）与 is_imputed 随机分配。已执行入库，共生成 37,230 条记录（51 个备件 × 730 天），平均日出库量 1.08，看板数据全面非零。
+
+---
+
+### F33: 修复 Python 服务任务执行失败（数据库连接密码硬编码错误）
+- **功能描述**：诊断与修复任务执行 FAILURE 问题，确保 Celery worker 任务能正常提交与执行。
+- **落实情况**：根因分析：`smart_replenishment.py` 和 `predictive_maintenance.py` 中 `DB_CONFIG` 的密码字段被硬编码为占位符 `"your_password"`，导致数据库连接失败。解决方案：修改两个文件的密码配置，改为 `os.environ.get("DB_PASSWORD", "123456")`，支持从环境变量读取，默认值为正确的本地密码 `"123456"`。重启 Celery worker 后，新提交的任务即可正常连接数据库并执行。

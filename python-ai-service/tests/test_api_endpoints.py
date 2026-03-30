@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.api.v1 import maintenance, replenishment
+from app.api.v1 import maintenance, replenishment, jobs
 
 
 client = TestClient(app)
@@ -61,3 +61,37 @@ def test_replenishment_endpoint_keeps_suggestion_field(monkeypatch) -> None:
     body = response.json()
     assert body[0]["suggestion"]["suggested_qty"] == 15
     assert body[0]["alert_message"] == "need purchase"
+
+
+def test_submit_replenishment_job(monkeypatch) -> None:
+    class FakeTask:
+        id = "task-123"
+
+    class FakeDelay:
+        @staticmethod
+        def delay(spare_part_ids: list[int]):
+            assert spare_part_ids == [1, 2]
+            return FakeTask()
+
+    monkeypatch.setattr(jobs, "run_replenishment_job", FakeDelay)
+
+    response = client.post("/api/v1/jobs/replenishment", json={"spare_part_ids": [1, 2]})
+    assert response.status_code == 200
+    assert response.json()["task_id"] == "task-123"
+
+
+def test_get_job_status_success(monkeypatch) -> None:
+    class FakeResult:
+        status = "SUCCESS"
+        result = {"task_id": "task-123", "status": "SUCCESS", "result": []}
+
+    def fake_async_result(task_id: str, app=None):
+        assert task_id == "task-123"
+        return FakeResult()
+
+    monkeypatch.setattr(jobs, "has_task", lambda task_id: True)
+    monkeypatch.setattr(jobs, "AsyncResult", fake_async_result)
+
+    response = client.get("/api/v1/jobs/task-123")
+    assert response.status_code == 200
+    assert response.json()["status"] == "SUCCESS"

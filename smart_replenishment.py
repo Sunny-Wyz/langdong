@@ -40,11 +40,20 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
-# TensorFlow / Keras
+# TensorFlow / Keras（可选 — 若不可用，自动降级为统计方法）
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers, callbacks, models
+try:
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers, callbacks, models
+    TENSORFLOW_AVAILABLE = True
+except (ImportError, OSError):
+    TENSORFLOW_AVAILABLE = False
+    keras = None
+    tf = None
+    layers = None
+    callbacks = None
+    models = None
 
 # 数据库
 import pymysql
@@ -79,7 +88,7 @@ except ImportError:
         "host":     "localhost",
         "port":     3306,
         "user":     "root",
-        "password": "your_password",  # ← 生产环境建议: os.environ["DB_PASSWORD"]
+        "password": os.environ.get("DB_PASSWORD", "123456"),  # 从环境变量读取，默认为 123456
         "database": "spare_db",
         "charset":  "utf8mb4",
     }
@@ -540,7 +549,12 @@ def load_demand_model() -> Tuple[Optional[keras.Model], Optional[MinMaxScaler]]:
     """
     加载已保存的需求预测模型和标准化器。
     复用 predictive_maintenance.py 的加载模式。
+    若 TensorFlow 不可用，返回 None（自动降级到统计方法）。
     """
+    if not TENSORFLOW_AVAILABLE:
+        logger.warning("TensorFlow 不可用，自动降级为统计预测方法。")
+        return None, None
+    
     model_path  = DEMAND_CONFIG["model_path"]
     scaler_path = DEMAND_CONFIG["scaler_path"]
 

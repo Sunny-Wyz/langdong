@@ -13,6 +13,8 @@ public interface SparePartMapper {
 
     SparePart findById(Long id);
 
+    SparePart findByCode(@Param("code") String code);
+
     String findMaxCodeByPrefix(@org.apache.ibatis.annotations.Param("prefix") String prefix);
 
     int insert(SparePart sparePart);

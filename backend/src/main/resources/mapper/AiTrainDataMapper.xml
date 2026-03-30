@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.AiTrainDataMapper">
+
+    <resultMap id="AiTrainDataRecordMap" type="com.langdong.spare.entity.AiTrainDataRecord">
+        <id property="id" column="id"/>
+        <result property="bizDate" column="biz_date"/>
+        <result property="sparePartId" column="spare_part_id"/>
+        <result property="partCode" column="part_code"/>
+        <result property="dailyOutboundQty" column="daily_outbound_qty"/>
+        <result property="dailyRequisitionApplyQty" column="daily_requisition_apply_qty"/>
+        <result property="dailyRequisitionOutQty" column="daily_requisition_out_qty"/>
+        <result property="dailyInstallQty" column="daily_install_qty"/>
+        <result property="dailyWorkOrderCnt" column="daily_work_order_cnt"/>
+        <result property="dailyPurchaseArrivalQty" column="daily_purchase_arrival_qty"/>
+        <result property="dailyPurchaseArrivalOrders" column="daily_purchase_arrival_orders"/>
+        <result property="dayOfWeek" column="day_of_week"/>
+        <result property="isWeekend" column="is_weekend"/>
+        <result property="sourceLevel" column="source_level"/>
+        <result property="isImputed" column="is_imputed"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="WhereCondition">
+        <where>
+            <if test="startDate != null and startDate != ''">
+                AND biz_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND biz_date &lt;= #{endDate}
+            </if>
+            <if test="partCode != null and partCode != ''">
+                AND part_code LIKE CONCAT('%', #{partCode}, '%')
+            </if>
+            <if test="sourceLevel != null and sourceLevel != ''">
+                AND source_level = #{sourceLevel}
+            </if>
+            <if test="isImputed != null">
+                AND is_imputed = #{isImputed}
+            </if>
+        </where>
+    </sql>
+
+    <select id="findByPage" resultMap="AiTrainDataRecordMap">
+        SELECT
+            id, biz_date, spare_part_id, part_code,
+            daily_outbound_qty, daily_requisition_apply_qty, daily_requisition_out_qty,
+            daily_install_qty, daily_work_order_cnt, daily_purchase_arrival_qty,
+            daily_purchase_arrival_orders, day_of_week, is_weekend,
+            source_level, is_imputed, created_at, updated_at
+        FROM ai_part_daily_train_data
+        <include refid="WhereCondition"/>
+        ORDER BY biz_date DESC, part_code ASC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByPage" resultType="long">
+        SELECT COUNT(*)
+        FROM ai_part_daily_train_data
+        <include refid="WhereCondition"/>
+    </select>
+
+</mapper>
