@@ -334,3 +334,27 @@
 ### F40: AI异步回调三个月口径统一与补货建议按预测月联动写入
 - **功能描述**：修复 AI 任务中心与需求预测结果页在“未来3个月需求”指标上的口径差异，并完善异步回调后智能补货建议写入的月份联动，确保多月预测不会互相覆盖。
 - **落实情况**：后端 `AiForecastService` 已支持将异步回调 `predicted_demand.monthly_detail` 展开为连续月份写入 `ai_forecast_result`（并同步写入对应月置信区间）；当无明细时按 `total -> predict_qty -> monthly_detail[0]` 顺序兜底。`StockThresholdService` 已改为按 `forecastMonth` 写入 `biz_reorder_suggest.suggest_month`，并增加空值与长度保护，避免三个月结果覆盖到同一建议月份。已通过 `backend` 模块编译与测试验证。
+
+---
+
+### F41: supervisord 进程守护 + Celery Worker 健康检测
+- **功能描述**：用 supervisord 管理 FastAPI 和 Celery Worker 进程，实现崩溃自动重启。新增 `/health/worker` 端点检测 Worker 存活状态。Java 提交异步任务前自动检查 Worker 健康。
+- **落实情况**：新增 `python-ai-service/supervisord.conf`；改造 `scripts/start_all.sh` 优先使用 supervisord 启动（无 supervisord 时回退到原方式）；`app/main.py` 新增 `/health/worker` 端点；`PythonModelClient.java` 新增 `isWorkerHealthy()` 方法，`submitReplenishmentJob()` 调用前自动检查。
+
+---
+
+### F42: 回调结果数据库持久化（双写模式）
+- **功能描述**：将 `PythonCallbackStoreService` 从纯内存存储改为数据库+内存双写模式。Java 重启后回调数据不再丢失，轮询请求先查内存缓存、miss 后查数据库。30 天以上旧记录定时清理。
+- **落实情况**：新增 `sql/ai_task_result.sql` 建表脚本；新增 `AiTaskResult` 实体、`AiTaskResultMapper` 接口和 XML；改造 `PythonCallbackStoreService` 实现 `persistToDb()` + `loadFromDb()` 双写逻辑，定时清理 `@Scheduled(cron = "0 30 3 * * ?")`。
+
+---
+
+### F43: Python task_registry 迁移到 Redis
+- **功能描述**：将 Python 侧的 `task_registry` 从进程内存 `set()` 迁移到 Redis，服务重启后任务追踪状态不丢失，重复提交检测跨进程有效。
+- **落实情况**：改造 `python-ai-service/app/services/task_registry.py`，使用 `redis.Redis.from_url()` 连接已有 Redis 实例，key 格式 `ai:task:submitted:{task_id}`，TTL 24小时自动过期。
+
+---
+
+### F44: Java 内部 API + Python 数据源解耦
+- **功能描述**：在 Java 后端新增 `/internal/ai/` 内部 API，供 Python 获取备件数据（传感器、基本信息、月度消耗、需求估算、供应商绩效）。Python 可通过环境变量 `USE_JAVA_API=true` 切换数据源，无需修改 legacy 脚本源码。
+- **落实情况**：新增 `InternalAiDataController.java`（使用 `X-Internal-Token` 鉴权）+ `InternalAiDataMapper.java` + XML；`SecurityConfig` 放行 `/internal/ai/**`；新增 `python-ai-service/app/services/java_data_client.py`；改造 `legacy_bridge.py` 支持运行时 monkey-patch legacy 模块的数据函数。`.env.example` 新增 `USE_JAVA_API` 和 `JAVA_BASE_URL` 配置项。

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.AiTaskResultMapper">
+
+    <resultMap id="BaseResultMap" type="com.langdong.spare.entity.AiTaskResult">
+        <id property="taskId" column="task_id"/>
+        <result property="status" column="status"/>
+        <result property="payload" column="payload"/>
+        <result property="errorMsg" column="error_msg"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByTaskId" resultMap="BaseResultMap">
+        SELECT task_id, status, payload, error_msg, created_at, updated_at
+        FROM ai_task_result
+        WHERE task_id = #{taskId}
+    </select>
+
+    <insert id="insertOrUpdate">
+        INSERT INTO ai_task_result (task_id, status, payload, error_msg)
+        VALUES (#{taskId}, #{status}, #{payload}, #{errorMsg})
+        ON DUPLICATE KEY UPDATE
+            status    = VALUES(status),
+            payload   = VALUES(payload),
+            error_msg = VALUES(error_msg)
+    </insert>
+
+    <delete id="deleteOlderThan">
+        DELETE FROM ai_task_result
+        WHERE created_at &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY)
+    </delete>
+
+</mapper>

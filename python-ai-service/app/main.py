@@ -48,6 +48,27 @@ def health_check():
         "version": "1.0.0"
     }
 
+
+@app.get("/health/worker")
+def worker_health():
+    """Celery Worker 健康检测端点，Java 提交任务前可调用此接口确认 Worker 存活"""
+    from app.services.celery_app import celery_app
+    from fastapi import HTTPException
+
+    try:
+        inspect = celery_app.control.inspect(timeout=2)
+        active = inspect.active()
+    except Exception:
+        raise HTTPException(status_code=503, detail="Failed to inspect Celery workers")
+
+    if not active:
+        raise HTTPException(status_code=503, detail="No active Celery workers")
+
+    return {
+        "status": "ok",
+        "workers": list(active.keys()),
+    }
+
 @app.get("/")
 def root():
     """根路径"""

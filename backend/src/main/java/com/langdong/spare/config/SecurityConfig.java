@@ -68,6 +68,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/ai/forecast/callback/python/replenishment").permitAll()
+                    .requestMatchers("/internal/ai/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter(jwtUtil, userMapper, menuMapper),
                         UsernamePasswordAuthenticationFilter.class);

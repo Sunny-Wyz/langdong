@@ -58,38 +58,37 @@ start_redis() {
   exit 1
 }
 
-start_python_api() {
-  echo "[INFO] Starting Python API"
+start_python_services() {
+  echo "[INFO] Starting Python services (FastAPI + Celery) via supervisord"
   cd "$ROOT_DIR/python-ai-service"
-  export DB_USERNAME="$DB_USERNAME_VALUE"
-  export DB_PASSWORD="$DB_PASSWORD_VALUE"
-  export DB_HOST="$DB_HOST_VALUE"
-  export DB_PORT="$DB_PORT_VALUE"
-  export DB_NAME="$DB_NAME_VALUE"
-  export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
-  JAVA_CALLBACK_TOKEN="$CALLBACK_TOKEN" \
-  conda run -n langdong python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 \
-    > "$RUN_DIR/python-api.log" 2>&1 &
-  echo $! > "$RUN_DIR/python-api.pid"
-  sleep 2
-  echo "[OK] Python API started"
-}
+  mkdir -p logs
 
-start_celery_worker() {
-  echo "[INFO] Starting Celery worker"
-  cd "$ROOT_DIR/python-ai-service"
   export DB_USERNAME="$DB_USERNAME_VALUE"
   export DB_PASSWORD="$DB_PASSWORD_VALUE"
   export DB_HOST="$DB_HOST_VALUE"
   export DB_PORT="$DB_PORT_VALUE"
   export DB_NAME="$DB_NAME_VALUE"
+  export JAVA_CALLBACK_TOKEN="$CALLBACK_TOKEN"
   export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
-  JAVA_CALLBACK_TOKEN="$CALLBACK_TOKEN" \
-  conda run -n langdong python -m celery -A app.services.celery_app:celery_app worker -l info \
-    > "$RUN_DIR/celery.log" 2>&1 &
-  echo $! > "$RUN_DIR/celery.pid"
-  sleep 2
-  echo "[OK] Celery worker started"
+
+  if command -v supervisord >/dev/null 2>&1; then
+    conda run -n langdong supervisord -c "$ROOT_DIR/python-ai-service/supervisord.conf"
+    sleep 3
+    echo "[OK] Python services started via supervisord (auto-restart enabled)"
+  else
+    echo "[WARN] supervisord not found, falling back to direct process launch (no auto-restart)"
+    conda run -n langdong python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 \
+      > "$RUN_DIR/python-api.log" 2>&1 &
+    echo $! > "$RUN_DIR/python-api.pid"
+    sleep 2
+    echo "[OK] Python API started (no auto-restart)"
+
+    conda run -n langdong python -m celery -A app.services.celery_app:celery_app worker -l info \
+      > "$RUN_DIR/celery.log" 2>&1 &
+    echo $! > "$RUN_DIR/celery.pid"
+    sleep 2
+    echo "[OK] Celery worker started (no auto-restart)"
+  fi
 }
 
 start_backend() {
@@ -116,8 +115,7 @@ start_frontend() {
 }
 
 start_redis
-start_python_api
-start_celery_worker
+start_python_services
 start_backend
 start_frontend
 

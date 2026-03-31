@@ -1,0 +1,12 @@
+2026-03-31 19:13:03,520 INFO RPC interface 'supervisor' initialized
+2026-03-31 19:13:03,520 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-03-31 19:13:03,528 INFO daemonizing the supervisord process
+2026-03-31 19:13:03,529 INFO set current directory: '/Users/weiyaozhou/Documents/langdong/python-ai-service'
+2026-03-31 19:13:03,531 INFO supervisord started with pid 89215
+2026-03-31 19:13:04,551 INFO spawned: 'celery-worker' with pid 89314
+2026-03-31 19:13:04,560 INFO spawned: 'fastapi' with pid 89315
+2026-03-31 19:13:08,218 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+2026-03-31 19:13:10,222 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)
+2026-03-31 19:16:00,286 WARN exited: celery-worker (terminated by SIGKILL; not expected)
+2026-03-31 19:16:01,319 INFO spawned: 'celery-worker' with pid 92921
+2026-03-31 19:16:07,138 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)

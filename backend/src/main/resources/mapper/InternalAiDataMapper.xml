@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.InternalAiDataMapper">
+
+    <!-- 传感器历史数据 -->
+    <select id="findSensorData" resultType="java.util.Map">
+        SELECT recorded_at,
+               operating_hours, temperature, vibration,
+               pressure, current_load, rpm, error_code
+        FROM   spare_part_sensor_log
+        WHERE  spare_part_id = #{sparePartId}
+        ORDER  BY recorded_at ASC
+    </select>
+
+    <!-- 备件基本信息 -->
+    <select id="findSparePartInfo" resultType="java.util.Map">
+        SELECT id, name, quantity, price, supplier, category_id AS category
+        FROM spare_part
+        WHERE id = #{sparePartId}
+    </select>
+
+    <!-- 月度消耗日志（回退表） -->
+    <select id="findConsumptionLog" resultType="java.util.Map">
+        SELECT record_month, outbound_qty, repair_count, avg_unit_price, working_days
+        FROM   spare_part_consumption_log
+        WHERE  spare_part_id = #{sparePartId}
+        ORDER  BY record_month ASC
+    </select>
+
+    <!-- 从真实业务表聚合月度消耗 -->
+    <select id="findConsumptionFromBusiness" resultType="java.util.Map">
+        SELECT
+            DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m-01') AS record_month,
+            CAST(SUM(ri.out_qty) AS DECIMAL(18,2)) AS outbound_qty,
+            COUNT(DISTINCT r.id) AS repair_count,
+            AVG(COALESCE(sp.price, 0)) AS avg_unit_price,
+            22 AS working_days
+        FROM biz_requisition_item ri
+        INNER JOIN biz_requisition r ON ri.req_id = r.id
+        INNER JOIN spare_part sp ON ri.spare_part_id = sp.id
+        WHERE ri.spare_part_id = #{sparePartId}
+          AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+          AND ri.out_qty IS NOT NULL
+          AND ri.out_qty > 0
+          AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+        GROUP BY DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m-01')
+        ORDER BY record_month ASC
+    </select>
+
+    <!-- 备件级别月均需求估算 -->
+    <select id="estimatePartMonthlyDemand" resultType="java.lang.Double">
+        SELECT AVG(month_qty) AS est
+        FROM (
+            SELECT DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m') AS ym,
+                   SUM(ri.out_qty) AS month_qty
+            FROM biz_requisition_item ri
+            INNER JOIN biz_requisition r ON ri.req_id = r.id
+            WHERE ri.spare_part_id = #{sparePartId}
+              AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+              AND ri.out_qty IS NOT NULL
+              AND ri.out_qty > 0
+              AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+            GROUP BY DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m')
+        ) t
+    </select>
+
+    <!-- 类目级别月均需求估算 -->
+    <select id="estimateCategoryMonthlyDemand" resultType="java.lang.Double">
+        SELECT AVG(month_qty) AS est
+        FROM (
+            SELECT
+                sp.id AS spare_part_id,
+                DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m') AS ym,
+                SUM(ri.out_qty) AS month_qty
+            FROM biz_requisition_item ri
+            INNER JOIN biz_requisition r ON ri.req_id = r.id
+            INNER JOIN spare_part sp ON ri.spare_part_id = sp.id
+            WHERE sp.category_id = #{categoryId}
+              AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+              AND ri.out_qty IS NOT NULL
+              AND ri.out_qty > 0
+              AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+            GROUP BY sp.id, DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m')
+        ) t
+    </select>
+
+    <!-- 全局月均需求估算 -->
+    <select id="estimateGlobalMonthlyDemand" resultType="java.lang.Double">
+        SELECT AVG(month_qty) AS est
+        FROM (
+            SELECT
+                ri.spare_part_id,
+                DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m') AS ym,
+                SUM(ri.out_qty) AS month_qty
+            FROM biz_requisition_item ri
+            INNER JOIN biz_requisition r ON ri.req_id = r.id
+            WHERE r.req_status IN ('OUTBOUND', 'INSTALLED')
+              AND ri.out_qty IS NOT NULL
+              AND ri.out_qty > 0
+              AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+            GROUP BY ri.spare_part_id, DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m')
+        ) t
+    </select>
+
+    <!-- 供应商绩效数据 -->
+    <select id="findSupplierPerformance" resultType="java.util.Map">
+        SELECT supplier_name, quality_score, price_score, on_time_rate, lead_time_days
+        FROM   supplier_performance
+        WHERE  spare_part_id = #{sparePartId} OR spare_part_id IS NULL
+        ORDER  BY spare_part_id DESC
+    </select>
+
+</mapper>

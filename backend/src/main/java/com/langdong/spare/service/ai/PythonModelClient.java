@@ -72,7 +72,22 @@ public class PythonModelClient {
         }
     }
 
+    public boolean isWorkerHealthy() {
+        String url = pythonBaseUrl + "/health/worker";
+        try {
+            ResponseEntity<Map> response = pythonRestTemplate.getForEntity(url, Map.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception ex) {
+            log.warn("[PythonModelClient] Worker health check failed", ex);
+            return false;
+        }
+    }
+
     public Map<String, Object> submitReplenishmentJob(List<Integer> sparePartIds) {
+        if (!isWorkerHealthy()) {
+            throw new RuntimeException("Celery Worker is not available. Cannot submit async job.");
+        }
+
         String url = pythonBaseUrl + "/api/v1/jobs/replenishment";
         Map<String, Object> body = new HashMap<>();
         body.put("spare_part_ids", sparePartIds);
