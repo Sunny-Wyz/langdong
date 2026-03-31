@@ -30,6 +30,7 @@ aiohttp==3.9.1
 # 异步任务队列
 celery==5.3.6
 redis==5.0.1
+async-timeout==4.0.3
 
 # 工具库
 python-dotenv==1.0.0

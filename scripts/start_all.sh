@@ -18,8 +18,18 @@ load_local_env() {
 load_local_env
 
 CALLBACK_TOKEN="${PYTHON_CALLBACK_TOKEN:-langdong-local-callback-token-change-me}"
+DB_USERNAME_VALUE="${DB_USERNAME:-}"
+DB_PASSWORD_VALUE="${DB_PASSWORD:-}"
+DB_HOST_VALUE="${DB_HOST:-localhost}"
+DB_PORT_VALUE="${DB_PORT:-3306}"
+DB_NAME_VALUE="${DB_NAME:-spare_db}"
 if [[ "$CALLBACK_TOKEN" == "langdong-local-callback-token-change-me" ]]; then
   echo "[WARN] Using default callback token for local dev. Set PYTHON_CALLBACK_TOKEN for safer setup."
+fi
+
+if [[ -z "$DB_USERNAME_VALUE" || -z "$DB_PASSWORD_VALUE" ]]; then
+  echo "[ERROR] Missing DB credentials. Set DB_USERNAME and DB_PASSWORD in .env.local or shell environment."
+  exit 1
 fi
 
 start_redis() {
@@ -51,6 +61,12 @@ start_redis() {
 start_python_api() {
   echo "[INFO] Starting Python API"
   cd "$ROOT_DIR/python-ai-service"
+  export DB_USERNAME="$DB_USERNAME_VALUE"
+  export DB_PASSWORD="$DB_PASSWORD_VALUE"
+  export DB_HOST="$DB_HOST_VALUE"
+  export DB_PORT="$DB_PORT_VALUE"
+  export DB_NAME="$DB_NAME_VALUE"
+  export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
   JAVA_CALLBACK_TOKEN="$CALLBACK_TOKEN" \
   conda run -n langdong python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 \
     > "$RUN_DIR/python-api.log" 2>&1 &
@@ -62,6 +78,12 @@ start_python_api() {
 start_celery_worker() {
   echo "[INFO] Starting Celery worker"
   cd "$ROOT_DIR/python-ai-service"
+  export DB_USERNAME="$DB_USERNAME_VALUE"
+  export DB_PASSWORD="$DB_PASSWORD_VALUE"
+  export DB_HOST="$DB_HOST_VALUE"
+  export DB_PORT="$DB_PORT_VALUE"
+  export DB_NAME="$DB_NAME_VALUE"
+  export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
   JAVA_CALLBACK_TOKEN="$CALLBACK_TOKEN" \
   conda run -n langdong python -m celery -A app.services.celery_app:celery_app worker -l info \
     > "$RUN_DIR/celery.log" 2>&1 &

@@ -48,3 +48,9 @@ Q - 新提交的任务（如 f0fa2633-5028-477c-b985-3c3dba65e46b）为什么显
 - 代码自动降级机制确保即使 Pytorch 也不装也能用统计方法
 
 **验证方法**：执行 `./scripts/start_all.sh`，系统会自动处理所有依赖和环境变量。
+
+Q - api/ai/forecast/jobs/replenishment 报 500 提示 Python 服务不可用 - 根因是 Python API 本身在线，但 Celery worker 启动失败，`kombu` 加载 Redis 传输层时报 `AttributeError: 'NoneType' object has no attribute 'Redis'`，进一步定位为 `langdong` 环境缺少 `async_timeout` 依赖导致 `redis` 包导入失败；已在 `langdong` 环境执行 `python -m pip install async-timeout==4.0.3`，并将 `async-timeout==4.0.3` 固化到 `python-ai-service/requirements.txt` 与 `python-ai-service/environment.yml`，重启后 `scripts/status_all.sh` 显示 celery 为 UP，接口已恢复为可提交任务（返回 `task_id` + `PENDING/STARTED`）。
+
+Q - /api/ai/forecast/jobs/{taskId} 返回 SUCCESS 但 result 内出现数据库连接失败 1045/1054，无法得到补货建议 - 根因是两段配置与库结构不一致：其一，Python 任务链路在部分路径下回退到 `root` 账号或读取占位配置，导致 MySQL 1045；其二，`smart_replenishment.py` 查询 `spare_part.category` 字段，而真实库字段为 `category_id`，触发 1054。已修复为：启动脚本统一向 Python API/Celery 注入 `DB_USERNAME=admin` 等数据库变量并注入 `PYTHONPATH`；`predictive_maintenance.py` 与 `smart_replenishment.py` 默认账号改为与后端一致（admin）；`legacy_bridge.py` 补充项目根路径到 `sys.path`；并将 SQL 改为 `category_id AS category`。复测任务 `be7780ae-28d7-4230-ad95-6671f4505a93` 状态 SUCCESS，已返回真实补货建议对象。
+
+Q - /api/ai/forecast/jobs/{taskId} 返回 SUCCESS 但 result 内含数据库连接失败 1045 - 根因是 Python 补货脚本在数据库连接异常时返回“带 error 的普通列表”而非抛异常，导致 Celery 任务状态仍为 SUCCESS；同时 Python AI 服务 `.env` 默认 `DB_PASSWORD=your_password`，在未覆盖时会触发 MySQL 1045。最小修复策略：1）在 `smart_replenishment.suggest_replenishment` 的数据库连接失败分支改为抛出异常（或返回结构化失败并由任务层转失败）；2）在 `async_tasks.run_replenishment_job` 增加结果校验，发现 `result` 中包含 `error` 时显式抛错；3）在 jobs 查询接口将“SUCCESS + payload.status=FAILURE/error”映射为失败态，避免上游误判；4）启动阶段校验 DB 配置（至少校验 `DB_PASSWORD` 非占位符），并用测试覆盖该回归场景。

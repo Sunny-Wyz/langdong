@@ -85,11 +85,11 @@ except ImportError:
     _PM_AVAILABLE = False
 
     DB_CONFIG: Dict[str, Any] = {
-        "host":     "localhost",
-        "port":     3306,
-        "user":     "root",
-        "password": os.environ.get("DB_PASSWORD", "123456"),  # 从环境变量读取，默认为 123456
-        "database": "spare_db",
+        "host":     os.environ.get("DB_HOST", "localhost"),
+        "port":     int(os.environ.get("DB_PORT", "3306")),
+        "user":     os.environ.get("DB_USERNAME") or os.environ.get("DB_USER") or "admin",
+        "password": os.environ.get("DB_PASSWORD", ""),
+        "database": os.environ.get("DB_NAME", "spare_db"),
         "charset":  "utf8mb4",
     }
 
@@ -238,7 +238,7 @@ def load_spare_part_info(spare_part_id: int, engine) -> Optional[Dict[str, Any]]
         备件不存在时返回 None。
     """
     sql = text("""
-        SELECT id, name, quantity, price, supplier, category
+        SELECT id, name, quantity, price, supplier, category_id AS category
         FROM spare_part WHERE id = :sid
     """)
     with engine.connect() as conn:

@@ -69,11 +69,11 @@ warnings.filterwarnings("ignore")
 
 # 数据库连接参数（根据实际环境修改）
 DB_CONFIG: Dict[str, Any] = {
-    "host":     "localhost",
-    "port":     3306,
-    "user":     "root",
-    "password": os.environ.get("DB_PASSWORD", "123456"),  # 从环境变量读取，默认为 123456
-    "database": "spare_db",
+    "host":     os.environ.get("DB_HOST", "localhost"),
+    "port":     int(os.environ.get("DB_PORT", "3306")),
+    "user":     os.environ.get("DB_USERNAME") or os.environ.get("DB_USER") or "admin",
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "database": os.environ.get("DB_NAME", "spare_db"),
     "charset":  "utf8mb4",
 }
 
@@ -157,6 +157,8 @@ def get_db_engine():
     连接参数从 DB_CONFIG 读取，生产环境建议通过环境变量注入密码。
     """
     cfg = DB_CONFIG
+    if not cfg.get("user") or not cfg.get("password"):
+        raise RuntimeError("DB credentials missing. Please set DB_USERNAME and DB_PASSWORD.")
     url = (
         f"mysql+pymysql://{cfg['user']}:{cfg['password']}"
         f"@{cfg['host']}:{cfg['port']}/{cfg['database']}"

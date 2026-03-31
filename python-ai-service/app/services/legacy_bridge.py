@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+# Make root-level legacy modules importable when executed from python-ai-service.
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 
 def _load_module(module_name: str, file_name: str) -> ModuleType:

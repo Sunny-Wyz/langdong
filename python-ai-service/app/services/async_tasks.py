@@ -34,6 +34,8 @@ def run_replenishment_job(self, spare_part_ids: list[int]) -> dict[str, Any]:
 
     try:
         results = suggest_replenishment(spare_part_ids)
+        if any(isinstance(item, dict) and item.get("error") for item in results):
+            raise RuntimeError("REPLENISHMENT_RESULT_CONTAINS_ERRORS")
 
         payload = {
             "task_id": self.request.id,
