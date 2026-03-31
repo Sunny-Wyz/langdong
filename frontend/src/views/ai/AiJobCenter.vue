@@ -71,6 +71,7 @@
         <el-table-column label="操作" width="220" fixed="right">
           <template slot-scope="scope">
             <el-button type="text" size="small" @click="queryTask(scope.row.taskId)">刷新</el-button>
+            <el-button type="text" size="small" :disabled="!scope.row.payloadData" @click="openResultDialog(scope.row)">查看结果</el-button>
             <el-button type="text" size="small" @click="copyTaskId(scope.row.taskId)">复制ID</el-button>
             <el-button
               v-if="isRunning(scope.row.status)"
@@ -81,6 +82,58 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-dialog :visible.sync="resultDialogVisible" title="任务结果详情" width="70%">
+        <div v-if="selectedTask" style="margin-bottom: 12px; font-size: 13px; color: #606266;">
+          <div>任务ID：{{ selectedTask.taskId }}</div>
+          <div>状态：{{ selectedTask.status }}</div>
+          <div>更新时间：{{ selectedTask.updatedAt }}</div>
+        </div>
+
+        <el-table
+          v-if="selectedResultItems.length > 0"
+          :data="selectedResultItems"
+          border
+          style="width: 100%; margin-bottom: 12px"
+        >
+          <el-table-column prop="spare_part_id" label="备件ID" width="100" />
+          <el-table-column prop="spare_part_name" label="备件名称" min-width="150" />
+          <el-table-column label="未来3个月总需求" width="140">
+            <template slot-scope="scope">
+              {{ readThreeMonthDemand(scope.row) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="建议采购量" width="120">
+            <template slot-scope="scope">
+              {{ scope.row.suggestion ? scope.row.suggestion.suggested_qty : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="优先级" width="100">
+            <template slot-scope="scope">
+              <el-tag size="small" :type="priorityTagType(scope.row.priority)">{{ scope.row.priority || '-' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="alert_message" label="提示信息" min-width="220" show-overflow-tooltip />
+          <el-table-column label="错误" min-width="180" show-overflow-tooltip>
+            <template slot-scope="scope">
+              {{ scope.row.error || '-' }}
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-empty v-else description="暂无可展示结果" :image-size="80" />
+
+        <div v-if="selectedTask && selectedTask.payloadData">
+          <div style="font-weight: 600; margin-bottom: 8px;">原始返回(JSON)</div>
+          <el-input
+            type="textarea"
+            :rows="10"
+            resize="none"
+            :value="formatPayload(selectedTask.payloadData)"
+            readonly
+          />
+        </div>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -110,6 +163,8 @@ export default {
         status: ''
       },
       tasks: [],
+      resultDialogVisible: false,
+      selectedTask: null,
       pollers: {},
       pollFailureCount: {},
       pollInFlight: {}
@@ -134,6 +189,13 @@ export default {
         const statusOk = !this.filters.status || task.status === this.filters.status
         return taskIdOk && statusOk
       })
+    },
+    selectedResultItems() {
+      if (!this.selectedTask || !this.selectedTask.payloadData) {
+        return []
+      }
+      const result = this.selectedTask.payloadData.result
+      return Array.isArray(result) ? result : []
     }
   },
   created() {
@@ -202,6 +264,7 @@ export default {
           sparePartIdsText: sparePartTokens.join(','),
           status: (payload.status || 'PENDING').toUpperCase(),
           resultSummary: '-',
+          payloadData: null,
           error: '-',
           updatedAt: this.formatNow(),
           submitAt: Date.now()
@@ -237,6 +300,7 @@ export default {
           taskId,
           status,
           resultSummary,
+          payloadData: payload.payload || null,
           error: payload.error || '-',
           updatedAt: this.formatNow()
         }
@@ -256,6 +320,7 @@ export default {
             status: 'NOT_FOUND',
             error: '任务不存在或已过期',
             resultSummary: '-',
+            payloadData: null,
             updatedAt: this.formatNow()
           })
           this.stopPolling(taskId)
@@ -272,6 +337,7 @@ export default {
             taskId,
             status: 'FAILURE',
             error: statusCode === 403 ? '权限不足，已停止自动轮询' : '连续失败，已停止自动轮询',
+            payloadData: null,
             updatedAt: this.formatNow()
           })
         }
@@ -362,7 +428,32 @@ export default {
         .filter(task => !this.isRunning(task.status))
         .forEach(task => this.stopPolling(task.taskId))
       this.tasks = running
+      if (this.selectedTask && !running.find(task => task.taskId === this.selectedTask.taskId)) {
+        this.resultDialogVisible = false
+        this.selectedTask = null
+      }
       this.persistTasks()
+    },
+    openResultDialog(task) {
+      this.selectedTask = task
+      this.resultDialogVisible = true
+    },
+    priorityTagType(priority) {
+      if (priority === 'HIGH') return 'danger'
+      if (priority === 'MEDIUM') return 'warning'
+      if (priority === 'LOW') return 'success'
+      return 'info'
+    },
+    formatPayload(payload) {
+      try {
+        return JSON.stringify(payload, null, 2)
+      } catch (e) {
+        return String(payload)
+      }
+    },
+    readThreeMonthDemand(row) {
+      const demand = row && row.predicted_demand ? row.predicted_demand.total : null
+      return demand === null || demand === undefined ? '-' : demand
     },
     copyTaskId(taskId) {
       const el = document.createElement('textarea')

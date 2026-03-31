@@ -26,11 +26,27 @@ public class AiForecastController {
     @PreAuthorize("hasAuthority('ai:forecast:trigger')")
     public ResponseEntity<Map<String, Object>> triggerForecast() {
         aiForecastService.runFullForecast();
+        Map<String, Object> runStatus = aiForecastService.getRunStatus();
+        String status = String.valueOf(runStatus.getOrDefault("status", "IDLE"));
+        boolean accepted = "RUNNING".equals(status);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("code", 200);
-        resp.put("message", "AI预测及安全库存储备分析任务已启动");
+        resp.put("accepted", accepted);
+        resp.put("message", accepted
+            ? "AI预测及安全库存储备分析任务已启动"
+            : "重算任务未进入运行态，请稍后重试");
+        resp.put("runStatus", runStatus);
         return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * 查询手动重算运行进度
+     */
+    @GetMapping("/trigger/status")
+    @PreAuthorize("hasAnyAuthority('ai:forecast:list', 'ai:forecast:trigger')")
+    public ResponseEntity<Map<String, Object>> queryTriggerStatus() {
+        return ResponseEntity.ok(aiForecastService.getRunStatus());
     }
 
     /**

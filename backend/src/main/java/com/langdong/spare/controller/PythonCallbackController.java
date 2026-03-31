@@ -1,6 +1,7 @@
 package com.langdong.spare.controller;
 
 import com.langdong.spare.dto.PythonCallbackPayload;
+import com.langdong.spare.service.ai.AiForecastService;
 import com.langdong.spare.service.ai.PythonCallbackStoreService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +17,15 @@ import java.util.Map;
 public class PythonCallbackController {
 
     private final PythonCallbackStoreService callbackStoreService;
+    private final AiForecastService aiForecastService;
 
     @Value("${ai.python.callback-token}")
     private String callbackToken;
 
-    public PythonCallbackController(PythonCallbackStoreService callbackStoreService) {
+    public PythonCallbackController(PythonCallbackStoreService callbackStoreService,
+                                    AiForecastService aiForecastService) {
         this.callbackStoreService = callbackStoreService;
+        this.aiForecastService = aiForecastService;
     }
 
     @PostMapping("/replenishment")
@@ -56,6 +60,21 @@ public class PythonCallbackController {
         normalized.put("status", status);
         normalized.put("result", payload.result());
         normalized.put("error", payload.error());
+
+        if ("SUCCESS".equals(status)) {
+            try {
+                aiForecastService.applyAsyncForecastResult(payload.result());
+            } catch (Exception ex) {
+                normalized.put("status", "FAILURE");
+                normalized.put("error", "forecast overwrite failed: " + ex.getMessage());
+                callbackStoreService.save(payload.task_id(), normalized);
+
+                Map<String, Object> failed = new HashMap<>();
+                failed.put("code", 500);
+                failed.put("message", "Callback accepted but forecast overwrite failed");
+                return ResponseEntity.status(500).body(failed);
+            }
+        }
 
         callbackStoreService.save(payload.task_id(), normalized);
 

@@ -261,6 +261,24 @@
 
 ---
 
+### F34: AI 任务中心结果详情可视化增强
+- **功能描述**：在 AI 任务中心任务列表中增加“查看结果”能力，支持对单个任务展示完整计算明细，而不只显示“共 N 条建议”的摘要。
+- **落实情况**：已在 `frontend/src/views/ai/AiJobCenter.vue` 新增“查看结果”按钮与结果详情弹窗：任务行在轮询成功后会缓存 `payloadData`；弹窗内展示建议明细表（备件ID、备件名称、建议采购量、优先级、提示信息、错误信息）以及原始 JSON 文本，便于排查与业务核验。已通过 `npm run build` 编译验证。
+
+---
+
+### F35: AI任务中心异步重算结果覆盖需求预测结果页同条数据
+- **功能描述**：当 AI 任务中心异步任务成功回调后，将该结果覆盖写入 `ai_forecast_result` 的同月份同备件记录，使“需求预测结果”页面可直接体现任务中心重算值；同时保留原有 `/api/ai/forecast/trigger` 全量重算链路。
+- **落实情况**：已在 `AiForecastService` 新增回调结果落库方法（映射 `spare_part_id/part_code`、`predicted_demand`、置信区间等字段，并按 `partCode + forecastMonth` 执行删除后批量插入幂等覆盖）；在 `PythonCallbackController` 的 SUCCESS 回调分支中接入该方法。联调验证：提交任务后，`/api/ai/forecast/result` 中对应备件的 `predictQty` 已被覆盖更新。
+
+---
+
+### F36: 预测口径双展示与任务中心口径命名统一
+- **功能描述**：同时执行两项口径优化：①在“需求预测结果”页面同时展示单月“预测消耗量”和“未来3个月累计需求”；②在任务中心结果详情明确展示“未来3个月总需求”字段，避免与单月口径混淆。
+- **落实情况**：后端 `AiForecastService.queryResult` 为每条记录补充 `demand3Months` 字段（按历史记录从当前月起累计最多3个月）；实体 `AiForecastResult` 新增展示字段 `demand3Months`。前端 `AiForecastResult.vue` 新增“未来3个月累计需求”列；`AiJobCenter.vue` 在结果详情弹窗新增“未来3个月总需求”列（读取 `predicted_demand.total`）。已完成后端编译、前端构建与接口联调验证。
+
+---
+
 ### F29: 基于真实业务表生成过去2年按天训练数据
 - **功能描述**：新增“按天”训练数据集构建能力，从真实业务表汇总过去730天数据，供后续模型训练使用。
 - **落实情况**：新增并执行 `sql/generate_ai_daily_train_data_2y.sql`：创建 `ai_part_daily_train_data`，按 `日期骨架 x 备件` 生成全量日粒度样本，聚合来源包括 `biz_outbound_batch_trace`、`biz_requisition(_item)`、`biz_purchase_order`；支持重跑幂等（窗口删除重建）与事务保护。实测生成 `37230` 行（`51` 个备件，日期范围 `2024-03-30` 至 `2026-03-29`）。
@@ -288,3 +306,31 @@
 ### F33: 修复 Python 服务任务执行失败（数据库连接密码硬编码错误）
 - **功能描述**：诊断与修复任务执行 FAILURE 问题，确保 Celery worker 任务能正常提交与执行。
 - **落实情况**：根因分析：`smart_replenishment.py` 和 `predictive_maintenance.py` 中 `DB_CONFIG` 的密码字段被硬编码为占位符 `"your_password"`，导致数据库连接失败。解决方案：修改两个文件的密码配置，改为 `os.environ.get("DB_PASSWORD", "123456")`，支持从环境变量读取，默认值为正确的本地密码 `"123456"`。重启 Celery worker 后，新提交的任务即可正常连接数据库并执行。
+
+---
+
+### F37: 异步覆盖链路一致性加固（三个月口径 + 阈值联动）
+- **功能描述**：修复异步覆盖场景下的两项一致性问题：1）“未来3个月累计需求”改为严格连续自然月口径；2）回调覆盖写库后同步触发库存阈值/补货建议重算。
+- **落实情况**：后端 `AiForecastService` 中 `sumNextThreeMonthsDemand` 改为按 `startMonth` 连续三个月精确累加（缺失月按0）；`applyAsyncForecastResult` 写入 `ai_forecast_result` 后新增 `recalcThresholdsForAsyncOverwrite`，按受影响月份与备件编码过滤上下文后调用 `stockThresholdService.recalcAndPush`。已通过 `mvn -DskipTests compile` 验证。
+
+---
+
+### F38: 训练数据打通真实业务表 + 动态回退估算 + 重算进度可视化
+- **功能描述**：将智能补货训练数据源从日志表升级为真实业务表聚合，并修复手动重算“无法查看进度”的问题。
+- **落实情况**：
+  1) `smart_replenishment.py` 新增真实业务表聚合读取（`biz_requisition_item + biz_requisition`），`load_consumption_data` 改为“业务表优先、日志表兜底”；
+  2) 零数据回退由固定 5 改为动态估算（备件历史→同类目→全局→最小保护值），返回 `method=dynamic_fallback` 与 `fallback_source`；
+  3) 后端 `AiForecastService` 增加重算运行状态跟踪（阶段、处理进度、失败数、百分比），`AiForecastController` 新增 `/api/ai/forecast/trigger/status`；
+  4) 前端 `AiForecastResult.vue` 新增重算状态提示与进度条，触发后自动轮询，页面进入 RUNNING 状态时自动接续轮询，完成后自动刷新结果。
+
+---
+
+### F39: 真实业务聚合 SQL 与 MySQL ONLY_FULL_GROUP_BY 兼容修复
+- **功能描述**：修复 AI 任务中心补货任务在真实业务聚合场景下因 SQL 分组规则导致的 `TASK_FAILED`。
+- **落实情况**：定位到 `smart_replenishment.py` 的 `load_consumption_data_from_business` 在 MySQL 严格分组模式触发 1055。已将月度字段改为 `DATE_FORMAT(...,'%Y-%m-01')` 并使用同一表达式 `GROUP BY/ORDER BY`，避免选择列与分组列不一致。复测新任务 `5748c34e-4da4-4849-bf14-fc49251b1cf9` 状态 `SUCCESS`，回调结果正常可查。
+
+---
+
+### F40: AI异步回调三个月口径统一与补货建议按预测月联动写入
+- **功能描述**：修复 AI 任务中心与需求预测结果页在“未来3个月需求”指标上的口径差异，并完善异步回调后智能补货建议写入的月份联动，确保多月预测不会互相覆盖。
+- **落实情况**：后端 `AiForecastService` 已支持将异步回调 `predicted_demand.monthly_detail` 展开为连续月份写入 `ai_forecast_result`（并同步写入对应月置信区间）；当无明细时按 `total -> predict_qty -> monthly_detail[0]` 顺序兜底。`StockThresholdService` 已改为按 `forecastMonth` 写入 `biz_reorder_suggest.suggest_month`，并增加空值与长度保护，避免三个月结果覆盖到同一建议月份。已通过 `backend` 模块编译与测试验证。

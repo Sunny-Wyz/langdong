@@ -252,9 +252,17 @@ def load_consumption_data(spare_part_id: int, engine) -> pd.DataFrame:
     """
     加载指定备件的月度消耗历史，按月份升序排列。
 
+    优先使用真实业务表聚合数据；若业务表暂无记录，再回退到
+    spare_part_consumption_log（兼容历史导入场景）。
+
     返回：
         DataFrame，列包含 record_month, outbound_qty, repair_count, avg_unit_price, working_days。
     """
+    business_df = load_consumption_data_from_business(spare_part_id, engine)
+    if not business_df.empty:
+        logger.info(f"备件 ID={spare_part_id}：从真实业务表聚合到 {len(business_df)} 个月消耗记录。")
+        return business_df
+
     sql = text("""
         SELECT record_month, outbound_qty, repair_count, avg_unit_price, working_days
         FROM   spare_part_consumption_log
@@ -263,8 +271,112 @@ def load_consumption_data(spare_part_id: int, engine) -> pd.DataFrame:
     """)
     with engine.connect() as conn:
         df = pd.read_sql(sql, conn, params={"sid": spare_part_id})
-    logger.info(f"备件 ID={spare_part_id}：加载 {len(df)} 个月消耗记录。")
+    logger.info(f"备件 ID={spare_part_id}：业务表无记录，回退日志表读取 {len(df)} 个月记录。")
     return df
+
+
+def load_consumption_data_from_business(spare_part_id: int, engine) -> pd.DataFrame:
+    """
+    从真实业务表聚合月度消耗：领用单状态为 OUTBOUND/INSTALLED 且 out_qty > 0。
+    """
+    sql = text("""
+        SELECT
+            DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m-01') AS record_month,
+            CAST(SUM(ri.out_qty) AS DECIMAL(18,2)) AS outbound_qty,
+            COUNT(DISTINCT r.id) AS repair_count,
+            AVG(COALESCE(sp.price, 0)) AS avg_unit_price,
+            22 AS working_days
+        FROM biz_requisition_item ri
+        INNER JOIN biz_requisition r ON ri.req_id = r.id
+        INNER JOIN spare_part sp ON ri.spare_part_id = sp.id
+        WHERE ri.spare_part_id = :sid
+          AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+          AND ri.out_qty IS NOT NULL
+          AND ri.out_qty > 0
+          AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+                GROUP BY DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m-01')
+        ORDER BY record_month ASC
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(sql, conn, params={"sid": spare_part_id})
+
+
+def estimate_dynamic_monthly_demand(
+    spare_part_id: int,
+    category_id: Optional[int],
+    engine,
+) -> Tuple[float, str]:
+    """
+    无历史数据时的动态月度需求估算。
+    回退顺序：备件历史 -> 同类目 -> 全局 -> 最小保护值。
+    """
+    part_sql = text("""
+        SELECT AVG(month_qty) AS est
+        FROM (
+            SELECT DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m') AS ym,
+                   SUM(ri.out_qty) AS month_qty
+            FROM biz_requisition_item ri
+            INNER JOIN biz_requisition r ON ri.req_id = r.id
+            WHERE ri.spare_part_id = :sid
+              AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+              AND ri.out_qty IS NOT NULL
+              AND ri.out_qty > 0
+              AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+            GROUP BY DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m')
+        ) t
+    """)
+
+    category_sql = text("""
+        SELECT AVG(month_qty) AS est
+        FROM (
+            SELECT
+                sp.id AS spare_part_id,
+                DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m') AS ym,
+                SUM(ri.out_qty) AS month_qty
+            FROM biz_requisition_item ri
+            INNER JOIN biz_requisition r ON ri.req_id = r.id
+            INNER JOIN spare_part sp ON ri.spare_part_id = sp.id
+            WHERE sp.category_id = :categoryId
+              AND r.req_status IN ('OUTBOUND', 'INSTALLED')
+              AND ri.out_qty IS NOT NULL
+              AND ri.out_qty > 0
+              AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+            GROUP BY sp.id, DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m')
+        ) t
+    """)
+
+    global_sql = text("""
+        SELECT AVG(month_qty) AS est
+        FROM (
+            SELECT
+                ri.spare_part_id,
+                DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m') AS ym,
+                SUM(ri.out_qty) AS month_qty
+            FROM biz_requisition_item ri
+            INNER JOIN biz_requisition r ON ri.req_id = r.id
+            WHERE r.req_status IN ('OUTBOUND', 'INSTALLED')
+              AND ri.out_qty IS NOT NULL
+              AND ri.out_qty > 0
+              AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+            GROUP BY ri.spare_part_id, DATE_FORMAT(COALESCE(r.approve_time, r.apply_time), '%Y-%m')
+        ) t
+    """)
+
+    with engine.connect() as conn:
+        part_est = conn.execute(part_sql, {"sid": spare_part_id}).scalar()
+        if part_est is not None and float(part_est) > 0:
+            return round(float(part_est), 1), "PART_HISTORY"
+
+        if category_id is not None:
+            category_est = conn.execute(category_sql, {"categoryId": category_id}).scalar()
+            if category_est is not None and float(category_est) > 0:
+                return round(float(category_est), 1), "CATEGORY"
+
+        global_est = conn.execute(global_sql).scalar()
+        if global_est is not None and float(global_est) > 0:
+            return round(float(global_est), 1), "GLOBAL"
+
+    return 1.0, "MIN_GUARD"
 
 
 def load_supplier_performance(spare_part_id: int, engine) -> pd.DataFrame:
@@ -736,6 +848,8 @@ def predict_demand(
     df: pd.DataFrame,
     model: Optional[keras.Model] = None,
     scaler: Optional[MinMaxScaler] = None,
+    dynamic_monthly_estimate: Optional[float] = None,
+    fallback_source: str = "UNKNOWN",
 ) -> Dict[str, Any]:
     """
     预测指定备件未来 M 个月的需求量。
@@ -762,18 +876,22 @@ def predict_demand(
     cfg    = DEMAND_CONFIG
     pred_m = cfg["predict_months"]
 
-    # --- 零数据：保守默认 ---
+    # --- 零数据：动态回退估算 ---
     if len(df) == 0:
-        default_demand = np.full(pred_m, 5.0)  # 保守估计每月 5 件
+        estimated = float(dynamic_monthly_estimate) if dynamic_monthly_estimate is not None else 1.0
+        estimated = max(1.0, estimated)
+        default_demand = np.full(pred_m, estimated)
+        upper = max(estimated * 3, 10.0)
         return {
-            "method":              "default",
+            "method":              "dynamic_fallback",
+            "fallback_source":     fallback_source,
             "monthly_demand":      default_demand.tolist(),
             "total_demand":        float(default_demand.sum()),
             "confidence_interval": {
                 "lower": [0.0] * pred_m,
-                "upper": [20.0] * pred_m,
+                "upper": [round(upper, 1)] * pred_m,
             },
-            "daily_avg":           round(5.0 / cfg["default_working_days"], 2),
+            "daily_avg":           round(estimated / cfg["default_working_days"], 2),
         }
 
     # --- 数据不足 LSTM：统计降级 ---
@@ -1062,7 +1180,16 @@ def suggest_replenishment(
             except ValueError as exc:
                 logger.warning(f"备件 ID={sid} 模型训练失败：{exc}")
 
-        demand_result = predict_demand(sid, proc_df, model, scaler)
+        category_id = part_info.get("category")
+        dynamic_estimate, dynamic_source = estimate_dynamic_monthly_demand(sid, category_id, engine)
+        demand_result = predict_demand(
+            sid,
+            proc_df,
+            model,
+            scaler,
+            dynamic_monthly_estimate=dynamic_estimate,
+            fallback_source=dynamic_source,
+        )
 
         total_demand   = demand_result["total_demand"]
         daily_avg      = demand_result["daily_avg"]
@@ -1153,6 +1280,7 @@ def suggest_replenishment(
             "current_stock":       current_stock,
             "predicted_demand": {
                 "method":              pred_method,
+                "fallback_source":     demand_result.get("fallback_source"),
                 "monthly_detail":      demand_result["monthly_demand"],
                 "total":               total_demand,
                 "confidence_interval": demand_result["confidence_interval"],

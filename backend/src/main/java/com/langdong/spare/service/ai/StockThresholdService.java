@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -36,15 +37,28 @@ public class StockThresholdService {
      * @param contexts  配套的预测上下文（包含提前期、当前库存等）
      */
     public void recalcAndPush(List<AiForecastResult> forecasts, List<PredictContextDTO> contexts) {
-        if (forecasts == null || forecasts.isEmpty())
+        if (forecasts == null || forecasts.isEmpty() || contexts == null || contexts.isEmpty())
             return;
 
         int suggestCount = 0;
         String currentMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        int loopSize = Math.min(forecasts.size(), contexts.size());
 
-        for (int i = 0; i < forecasts.size(); i++) {
+        for (int i = 0; i < loopSize; i++) {
             AiForecastResult fr = forecasts.get(i);
             PredictContextDTO ctx = contexts.get(i);
+            if (fr == null || ctx == null || fr.getPredictQty() == null || ctx.getPartCode() == null) {
+                continue;
+            }
+
+            String suggestMonth = currentMonth;
+            if (fr.getForecastMonth() != null) {
+                try {
+                    suggestMonth = YearMonth.parse(fr.getForecastMonth()).toString();
+                } catch (Exception ignored) {
+                    suggestMonth = currentMonth;
+                }
+            }
 
             // 1. 获取模型预测的日均消耗量 d̄ = (当月预测总量) / 30
             double meanDailyDemand = fr.getPredictQty().doubleValue() / 30.0;
@@ -82,7 +96,7 @@ public class StockThresholdService {
             if (currentStock <= reorderPoint) {
                 ReorderSuggest suggest = new ReorderSuggest();
                 suggest.setPartCode(ctx.getPartCode());
-                suggest.setSuggestMonth(currentMonth);
+                suggest.setSuggestMonth(suggestMonth);
                 suggest.setCurrentStock(currentStock);
                 suggest.setReorderPoint(reorderPoint);
                 suggest.setSuggestQty(fr.getPredictQty().intValue());
@@ -93,7 +107,7 @@ public class StockThresholdService {
                 suggest.setStatus("待处理");
 
                 // 同月同备件仅保留一条待处理建议，重复运行时覆盖旧建议
-                reorderSuggestMapper.deletePendingByPartAndMonth(suggest.getPartCode(), currentMonth);
+                reorderSuggestMapper.deletePendingByPartAndMonth(suggest.getPartCode(), suggestMonth);
                 reorderSuggestMapper.insert(suggest);
                 suggestCount++;
             }

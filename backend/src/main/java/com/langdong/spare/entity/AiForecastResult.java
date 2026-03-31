@@ -42,4 +42,7 @@ public class AiForecastResult {
     // ---- JOIN 展示字段 ----
     /** 备件名称（联查显示用） */
     private String partName;
+
+    /** 未来3个月累计需求（查询展示字段，非持久化） */
+    private BigDecimal demand3Months;
 }

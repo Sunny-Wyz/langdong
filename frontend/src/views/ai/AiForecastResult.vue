@@ -6,8 +6,26 @@
                 <div class="title">需求预测结果</div>
                 <div class="head-btn-group">
                     <el-button type="text" @click="goJobCenter" v-if="hasJobCenterPermission">任务中心</el-button>
-                    <el-button type="text" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算</el-button>
+                    <el-button type="text" :loading="triggeringForecast" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算</el-button>
                 </div>
+            </div>
+
+            <div v-if="hasProgressPermission && runStatus" style="margin-bottom: 14px;">
+                <el-alert
+                    :title="runStatusTitle"
+                    :type="runStatusAlertType"
+                    :closable="false"
+                    show-icon
+                >
+                    <div v-if="isRunActive" style="margin-top: 8px;">
+                        <el-progress :percentage="runStatus.percent || 0" :stroke-width="14" />
+                        <div style="font-size: 12px; color: #606266; margin-top: 4px;">
+                            阶段：{{ runStatus.stage || '-' }}
+                            ｜处理：{{ runStatus.processed || 0 }}/{{ runStatus.total || 0 }}
+                            ｜失败：{{ runStatus.failed || 0 }}
+                        </div>
+                    </div>
+                </el-alert>
             </div>
 
             <!-- 搜索栏 -->
@@ -41,6 +59,11 @@
                 <el-table-column prop="predictQty" label="预测消耗量" width="120" >
                     <template slot-scope="scope">
                         <span style="font-weight: bold; color: #409EFF">{{ scope.row.predictQty }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="demand3Months" label="未来3个月累计需求" width="150" >
+                    <template slot-scope="scope">
+                        <span style="font-weight: bold; color: #67C23A">{{ scope.row.demand3Months ?? 'N/A' }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="90% 置信区间" width="180" >
@@ -100,7 +123,10 @@ export default {
             chartLoading: false,
             chartTitle: '预测趋势分析',
             chartInstance: null,
-            currentChartData: null
+            currentChartData: null,
+            triggeringForecast: false,
+            runStatus: null,
+            progressPollTimer: null
         }
     },
     computed: {
@@ -114,10 +140,54 @@ export default {
             const permissions = this.$store.state.permissions || []
             const username = this.$store.state.username
             return permissions.includes('ai:forecast:list') || username === 'admin'
+        },
+        hasProgressPermission() {
+            const permissions = this.$store.state.permissions || []
+            const username = this.$store.state.username
+            return permissions.includes('ai:forecast:list') || permissions.includes('ai:forecast:trigger') || username === 'admin'
+        },
+        isRunActive() {
+            return this.runStatus && this.runStatus.status === 'RUNNING'
+        },
+        runStatusTitle() {
+            if (!this.runStatus) {
+                return ''
+            }
+            if (this.runStatus.status === 'RUNNING') {
+                return this.runStatus.message || '重算任务执行中'
+            }
+            if (this.runStatus.status === 'SUCCESS') {
+                return this.runStatus.message || '重算任务已完成'
+            }
+            if (this.runStatus.status === 'FAILED') {
+                return this.runStatus.message || '重算任务执行失败'
+            }
+            return this.runStatus.message || '暂无运行中的重算任务'
+        },
+        runStatusAlertType() {
+            if (!this.runStatus) {
+                return 'info'
+            }
+            if (this.runStatus.status === 'RUNNING') {
+                return 'warning'
+            }
+            if (this.runStatus.status === 'SUCCESS') {
+                return 'success'
+            }
+            if (this.runStatus.status === 'FAILED') {
+                return 'error'
+            }
+            return 'info'
         }
     },
     created() {
         this.fetchData()
+        if (this.hasProgressPermission) {
+            this.fetchRunStatus(true)
+        }
+    },
+    beforeDestroy() {
+        this.stopProgressPolling()
     },
     methods: {
         fetchData() {
@@ -161,11 +231,68 @@ export default {
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
+                this.triggeringForecast = true
                 request.post('/ai/forecast/trigger').then(res => {
+                    if (res && res.data && res.data.runStatus) {
+                        this.runStatus = res.data.runStatus
+                    }
                     this.$message.success(res.data.message || '重算任务已启动')
-                    // 不立即刷新，提示用户稍后再看
+                    this.startProgressPolling()
+                }).catch(error => {
+                    const msg = (error && error.response && error.response.data && error.response.data.message)
+                        ? error.response.data.message
+                        : '触发重算失败'
+                    this.$message.error(msg)
+                }).finally(() => {
+                    this.triggeringForecast = false
                 })
             }).catch(() => { })
+        },
+        fetchRunStatus(silent = true) {
+            if (!this.hasProgressPermission) {
+                return Promise.resolve()
+            }
+            return request.get('/ai/forecast/trigger/status')
+                .then(res => {
+                    this.runStatus = res.data || null
+                    if (this.isRunActive && !this.progressPollTimer) {
+                        this.startProgressPolling()
+                    }
+                    if (!this.isRunActive) {
+                        this.stopProgressPolling()
+                        if (this.runStatus && this.runStatus.status === 'SUCCESS') {
+                            this.fetchData()
+                        }
+                    }
+                })
+                .catch(error => {
+                    if (error && error.response && error.response.status === 403) {
+                        this.stopProgressPolling()
+                        return
+                    }
+                    if (!silent) {
+                        const msg = (error && error.response && error.response.data && error.response.data.message)
+                            ? error.response.data.message
+                            : '获取重算进度失败'
+                        this.$message.error(msg)
+                    }
+                })
+        },
+        startProgressPolling() {
+            if (this.progressPollTimer) {
+                return
+            }
+            this.progressPollTimer = setInterval(() => {
+                this.fetchRunStatus(true)
+            }, 3000)
+            this.fetchRunStatus(true)
+        },
+        stopProgressPolling() {
+            if (!this.progressPollTimer) {
+                return
+            }
+            clearInterval(this.progressPollTimer)
+            this.progressPollTimer = null
         },
         goJobCenter() {
             this.$router.push('/ai/job-center')
