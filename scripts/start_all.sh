@@ -59,7 +59,7 @@ start_redis() {
 }
 
 start_python_services() {
-  echo "[INFO] Starting Python services (FastAPI + Celery) via supervisord"
+  echo "[INFO] Starting Python services (FastAPI + Celery)"
   cd "$ROOT_DIR/python-ai-service"
   mkdir -p logs
 
@@ -71,12 +71,23 @@ start_python_services() {
   export JAVA_CALLBACK_TOKEN="$CALLBACK_TOKEN"
   export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
 
-  if command -v supervisord >/dev/null 2>&1; then
-    conda run -n langdong supervisord -c "$ROOT_DIR/python-ai-service/supervisord.conf"
+  local SUPERVISOR_CONF="$ROOT_DIR/python-ai-service/supervisord.conf"
+  local SUPERVISOR_SOCK="$ROOT_DIR/python-ai-service/logs/supervisor.sock"
+
+  # 检测 conda 环境内是否有 supervisord
+  if conda run -n langdong supervisord --version >/dev/null 2>&1; then
+    # 如果旧的 supervisord 还在跑，先停掉
+    if [[ -S "$SUPERVISOR_SOCK" ]]; then
+      echo "[INFO] Stopping existing supervisord instance"
+      conda run -n langdong supervisorctl -c "$SUPERVISOR_CONF" shutdown >/dev/null 2>&1 || true
+      sleep 2
+    fi
+
+    conda run -n langdong supervisord -c "$SUPERVISOR_CONF"
     sleep 3
     echo "[OK] Python services started via supervisord (auto-restart enabled)"
   else
-    echo "[WARN] supervisord not found, falling back to direct process launch (no auto-restart)"
+    echo "[WARN] supervisord not found in conda env, falling back to direct process launch"
     conda run -n langdong python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 \
       > "$RUN_DIR/python-api.log" 2>&1 &
     echo $! > "$RUN_DIR/python-api.pid"

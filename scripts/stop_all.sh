@@ -48,9 +48,20 @@ stop_by_pidfile "backend" "$RUN_DIR/backend.pid"
 stop_by_pidfile "celery" "$RUN_DIR/celery.pid"
 stop_by_pidfile "python-api" "$RUN_DIR/python-api.pid"
 
+# 停掉 supervisord 管理的 Python 进程
+SUPERVISOR_CONF="$ROOT_DIR/python-ai-service/supervisord.conf"
+SUPERVISOR_SOCK="$ROOT_DIR/python-ai-service/logs/supervisor.sock"
+if [[ -S "$SUPERVISOR_SOCK" ]]; then
+  echo "[INFO] Shutting down supervisord"
+  conda run -n langdong supervisorctl -c "$SUPERVISOR_CONF" shutdown >/dev/null 2>&1 || true
+  sleep 2
+  echo "[OK] supervisord stopped"
+fi
+
 pkill -f "spring-boot:run" >/dev/null 2>&1 || true
 pkill -f "app.main:app --host 0.0.0.0 --port 8001" >/dev/null 2>&1 || true
 pkill -f "celery -A app.services.celery_app:celery_app worker" >/dev/null 2>&1 || true
+pkill -f "supervisord.*supervisord.conf" >/dev/null 2>&1 || true
 
 stop_by_port "backend" "8080"
 stop_by_port "python-api" "8001"
