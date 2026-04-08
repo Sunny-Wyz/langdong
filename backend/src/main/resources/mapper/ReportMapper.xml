@@ -186,7 +186,14 @@
                 COALESCE(wo.outsource_cost,0)
             ), 0)                                       AS totalCost
         FROM biz_work_order wo
-        WHERE wo.report_time >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+        <where>
+            <if test="yearMonth != null and yearMonth != ''">
+                AND DATE_FORMAT(wo.report_time, '%Y-%m') = #{yearMonth}
+            </if>
+            <if test="yearMonth == null or yearMonth == ''">
+                AND wo.report_time >= DATE_SUB(NOW(), INTERVAL #{months} MONTH)
+            </if>
+        </where>
         GROUP BY DATE_FORMAT(wo.report_time, '%Y-%m')
         ORDER BY month ASC
     </select>

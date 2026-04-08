@@ -48,8 +48,8 @@ public class ReportService {
         return reportMapper.getSupplierPerformance();
     }
 
-    public List<Map<String, Object>> getMaintenanceCostByMonth(int months) {
-        return reportMapper.getMaintenanceCostByMonth(months);
+    public List<Map<String, Object>> getMaintenanceCostByMonth(int months, String yearMonth) {
+        return reportMapper.getMaintenanceCostByMonth(months, yearMonth);
     }
 
     public List<Map<String, Object>> getMaintenanceCostByDevice() {

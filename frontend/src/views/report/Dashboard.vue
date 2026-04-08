@@ -29,7 +29,7 @@
                     placeholder="选择月份"
                     size="small"
                     style="width:140px"
-                    @change="loadKpi"
+                    @change="handleMonthChange"
                 />
                 <el-button
                     size="small"
@@ -173,8 +173,11 @@ export default {
             await Promise.all([this.loadKpi(), this.loadWarnings(), this.renderCharts()]);
             this.loading = false;
         },
-        async handleRefresh() {
+        async handleMonthChange() {
             await this.loadAll();
+        },
+        async handleRefresh() {
+            await this.handleMonthChange();
         },
         async loadKpi() {
             try {
@@ -251,9 +254,10 @@ export default {
         },
         async renderCharts() {
             try {
+                const ym = this.selectedMonth || this.currentMonth();
                 const [mRes, tRes] = await Promise.all([
-                    this.$http.get('/report/maintenance/cost-by-month?months=1'),
-                    this.$http.get('/report/consumption/trend?months=6'),
+                    this.$http.get('/report/maintenance/cost-by-month', { params: { months: 1, yearMonth: ym } }),
+                    this.$http.get('/report/consumption/trend', { params: { months: 6 } }),
                 ]);
 
                 // 维修费用环形图

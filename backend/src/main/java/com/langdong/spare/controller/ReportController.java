@@ -83,11 +83,12 @@ public class ReportController {
     @GetMapping("/maintenance/cost-by-month")
     @PreAuthorize("hasAuthority('report:maintenance:view')")
     public ResponseEntity<List<Map<String, Object>>> getMaintenanceCostByMonth(
-            @RequestParam(required = false, defaultValue = "6") int months) {
+            @RequestParam(required = false, defaultValue = "6") int months,
+            @RequestParam(required = false) String yearMonth) {
         if (months < 1 || months > 24) {
             months = 6;
         }
-        return ResponseEntity.ok(reportService.getMaintenanceCostByMonth(months));
+        return ResponseEntity.ok(reportService.getMaintenanceCostByMonth(months, yearMonth));
     }
 
     @GetMapping("/maintenance/cost-by-device")

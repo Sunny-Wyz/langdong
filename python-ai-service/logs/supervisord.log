@@ -49,3 +49,15 @@
 2026-03-31 19:22:57,776 INFO spawned: 'fastapi' with pid 98205
 2026-03-31 19:23:01,289 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
 2026-03-31 19:23:03,292 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)
+2026-04-08 15:45:44,025 INFO waiting for celery-worker, fastapi to die
+2026-04-08 15:45:44,338 INFO stopped: fastapi (exit status 0)
+2026-04-08 15:45:46,556 INFO stopped: celery-worker (exit status 0)
+2026-04-08 15:45:46,768 INFO RPC interface 'supervisor' initialized
+2026-04-08 15:45:46,769 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-04-08 15:45:46,775 INFO daemonizing the supervisord process
+2026-04-08 15:45:46,776 INFO set current directory: '/Users/weiyaozhou/Documents/langdong/python-ai-service'
+2026-04-08 15:45:46,777 INFO supervisord started with pid 4553
+2026-04-08 15:45:47,788 INFO spawned: 'celery-worker' with pid 4555
+2026-04-08 15:45:47,794 INFO spawned: 'fastapi' with pid 4556
+2026-04-08 15:45:51,408 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+2026-04-08 15:45:53,417 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)

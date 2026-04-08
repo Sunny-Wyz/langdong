@@ -28,7 +28,7 @@ public interface ReportMapper {
     List<Map<String, Object>> getSupplierPerformance();
 
     // ---- Maintenance Report ----
-    List<Map<String, Object>> getMaintenanceCostByMonth(@Param("months") int months);
+    List<Map<String, Object>> getMaintenanceCostByMonth(@Param("months") int months, @Param("yearMonth") String yearMonth);
 
     List<Map<String, Object>> getMaintenanceCostByDevice();
 }
