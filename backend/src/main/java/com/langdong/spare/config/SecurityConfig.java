@@ -31,6 +31,7 @@ import com.langdong.spare.mapper.UserMapper;
 import com.langdong.spare.mapper.MenuMapper;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -38,8 +39,13 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${app.cors.allowed-origin:http://localhost:3000}")
+    private static final String DEFAULT_ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001";
+
+    @Value("${app.cors.allowed-origin:}")
     private String allowedOrigin;
+
+    @Value("${app.cors.allowed-origins:}")
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -49,13 +55,24 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOrigin));
+        config.setAllowedOrigins(resolveAllowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
+    }
+
+    private List<String> resolveAllowedOrigins() {
+        String configuredOrigins = StringUtils.hasText(allowedOrigins)
+                ? allowedOrigins
+                : StringUtils.hasText(allowedOrigin) ? allowedOrigin : DEFAULT_ALLOWED_ORIGINS;
+
+        return Arrays.stream(configuredOrigins.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .toList();
     }
 
     @Bean

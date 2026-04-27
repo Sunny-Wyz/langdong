@@ -61,3 +61,49 @@
 2026-04-08 15:45:47,794 INFO spawned: 'fastapi' with pid 4556
 2026-04-08 15:45:51,408 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
 2026-04-08 15:45:53,417 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)
+2026-04-27 17:17:19,494 INFO RPC interface 'supervisor' initialized
+2026-04-27 17:17:19,494 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-04-27 17:17:19,501 INFO daemonizing the supervisord process
+2026-04-27 17:17:19,502 INFO set current directory: '/Users/weiyaozhou/Documents/langdong/python-ai-service'
+2026-04-27 17:17:19,503 INFO supervisord started with pid 4979
+2026-04-27 17:17:20,522 INFO spawned: 'celery-worker' with pid 4987
+2026-04-27 17:17:20,535 INFO spawned: 'fastapi' with pid 4988
+2026-04-27 17:17:24,098 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+2026-04-27 17:17:26,100 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)
+2026-04-27 17:34:28,605 INFO waiting for celery-worker, fastapi to die
+2026-04-27 17:34:28,844 INFO stopped: fastapi (exit status 0)
+2026-04-27 17:34:30,875 INFO stopped: celery-worker (exit status 0)
+2026-04-27 17:34:30,875 WARN received SIGTERM indicating exit request
+2026-04-27 17:40:54,040 INFO RPC interface 'supervisor' initialized
+2026-04-27 17:40:54,041 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-04-27 17:40:54,048 INFO daemonizing the supervisord process
+2026-04-27 17:40:54,049 INFO set current directory: '/Users/weiyaozhou/Documents/langdong/python-ai-service'
+2026-04-27 17:40:54,050 INFO supervisord started with pid 17748
+2026-04-27 17:40:55,063 INFO spawned: 'celery-worker' with pid 17750
+2026-04-27 17:40:55,070 INFO spawned: 'fastapi' with pid 17751
+2026-04-27 17:40:58,736 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+2026-04-27 17:41:00,739 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)
+2026-04-27 17:42:39,991 INFO waiting for celery-worker, fastapi to die
+2026-04-27 17:42:40,206 INFO stopped: fastapi (exit status 0)
+2026-04-27 17:42:41,826 INFO stopped: celery-worker (exit status 0)
+2026-04-27 17:42:43,756 INFO RPC interface 'supervisor' initialized
+2026-04-27 17:42:43,756 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-04-27 17:42:43,763 INFO daemonizing the supervisord process
+2026-04-27 17:42:43,764 INFO set current directory: '/Users/weiyaozhou/Documents/langdong/python-ai-service'
+2026-04-27 17:42:43,766 INFO supervisord started with pid 18785
+2026-04-27 17:42:44,776 INFO spawned: 'celery-worker' with pid 18795
+2026-04-27 17:42:44,783 INFO spawned: 'fastapi' with pid 18796
+2026-04-27 17:42:48,304 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+2026-04-27 17:42:50,307 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)
+2026-04-27 17:48:04,411 INFO waiting for celery-worker, fastapi to die
+2026-04-27 17:48:04,656 INFO stopped: fastapi (exit status 0)
+2026-04-27 17:48:06,887 INFO stopped: celery-worker (exit status 0)
+2026-04-27 17:48:07,146 INFO RPC interface 'supervisor' initialized
+2026-04-27 17:48:07,146 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-04-27 17:48:07,154 INFO daemonizing the supervisord process
+2026-04-27 17:48:07,155 INFO set current directory: '/Users/weiyaozhou/Documents/langdong/python-ai-service'
+2026-04-27 17:48:07,156 INFO supervisord started with pid 21415
+2026-04-27 17:48:08,164 INFO spawned: 'celery-worker' with pid 21425
+2026-04-27 17:48:08,173 INFO spawned: 'fastapi' with pid 21426
+2026-04-27 17:48:11,770 INFO success: fastapi entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+2026-04-27 17:48:13,773 INFO success: celery-worker entered RUNNING state, process has stayed up for > than 5 seconds (startsecs)

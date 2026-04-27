@@ -21,8 +21,10 @@ check_pid() {
 check_http() {
   local name="$1"
   local url="$2"
-  if curl -sS -o /dev/null "$url" >/dev/null 2>&1; then
-    echo "[UP]   $name health"
+  local status
+  status="$(curl -sS -o /dev/null -w '%{http_code}' "$url" || true)"
+  if [[ "$status" != "000" ]]; then
+    echo "[UP]   $name health (HTTP $status)"
   else
     echo "[DOWN] $name health"
   fi

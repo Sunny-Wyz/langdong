@@ -66,6 +66,7 @@ pkill -f "supervisord.*supervisord.conf" >/dev/null 2>&1 || true
 stop_by_port "backend" "8080"
 stop_by_port "python-api" "8001"
 stop_by_port "frontend" "3000"
+stop_by_port "frontend" "3001"
 
 if command -v redis-cli >/dev/null 2>&1 && redis-cli -p 6379 ping >/dev/null 2>&1; then
   redis-cli -p 6379 shutdown >/dev/null 2>&1 || true

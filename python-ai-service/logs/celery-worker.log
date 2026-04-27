@@ -229,3 +229,151 @@ you should set broker_connection_retry_on_startup to True.
 [2026-04-08 15:45:48,385: INFO/MainProcess] mingle: searching for neighbors
 [2026-04-08 15:45:49,393: INFO/MainProcess] mingle: all alone
 [2026-04-08 15:45:49,406: INFO/MainProcess] celery@Mac.local ready.
+ 
+ -------------- celery@Mac.local v5.3.6 (emerald-rush)
+--- ***** ----- 
+-- ******* ---- macOS-26.4.1-arm64-i386-64bit 2026-04-27 17:17:20
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         langdong_ai:0x105a84250
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/0
+- *** --- * --- .> concurrency: 2 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . ai.replenishment.forecast
+
+[2026-04-27 17:17:21,054: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:17:21,061: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2026-04-27 17:17:21,061: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:17:21,063: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-27 17:17:22,072: INFO/MainProcess] mingle: all alone
+[2026-04-27 17:17:22,094: INFO/MainProcess] celery@Mac.local ready.
+
+worker: Warm shutdown (MainProcess)
+
+worker: Warm shutdown (MainProcess)
+ 
+ -------------- celery@Mac.local v5.3.6 (emerald-rush)
+--- ***** ----- 
+-- ******* ---- macOS-26.4.1-arm64-i386-64bit 2026-04-27 17:40:55
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         langdong_ai:0x11077f050
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/0
+- *** --- * --- .> concurrency: 2 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . ai.replenishment.forecast
+
+[2026-04-27 17:40:55,683: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:40:55,701: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2026-04-27 17:40:55,701: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:40:55,706: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-27 17:40:56,717: INFO/MainProcess] mingle: all alone
+[2026-04-27 17:40:56,734: INFO/MainProcess] celery@Mac.local ready.
+
+worker: Warm shutdown (MainProcess)
+ 
+ -------------- celery@Mac.local v5.3.6 (emerald-rush)
+--- ***** ----- 
+-- ******* ---- macOS-26.4.1-arm64-i386-64bit 2026-04-27 17:42:45
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         langdong_ai:0x1021c3550
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/0
+- *** --- * --- .> concurrency: 2 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . ai.replenishment.forecast
+
+[2026-04-27 17:42:45,261: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:42:45,268: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2026-04-27 17:42:45,268: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:42:45,271: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-27 17:42:46,285: INFO/MainProcess] mingle: all alone
+[2026-04-27 17:42:46,302: INFO/MainProcess] celery@Mac.local ready.
+
+worker: Warm shutdown (MainProcess)
+ 
+ -------------- celery@Mac.local v5.3.6 (emerald-rush)
+--- ***** ----- 
+-- ******* ---- macOS-26.4.1-arm64-i386-64bit 2026-04-27 17:48:08
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         langdong_ai:0x12037fcd0
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/0
+- *** --- * --- .> concurrency: 2 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . ai.replenishment.forecast
+
+[2026-04-27 17:48:08,714: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:48:08,725: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2026-04-27 17:48:08,726: WARNING/MainProcess] /opt/anaconda3/envs/langdong/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:507: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-27 17:48:08,727: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-27 17:48:09,743: INFO/MainProcess] mingle: all alone
+[2026-04-27 17:48:09,768: INFO/MainProcess] celery@Mac.local ready.
