@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import pickle
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,7 @@ from app.models.feature_engineering import (
 from app.models.mlflow_utils import EXPERIMENT_DEMAND, log_training_run
 
 logger = logging.getLogger(__name__)
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 HORIZON = 12          # 预测未来 12 周
 FREQ = "W-MON"        # 周一对齐
@@ -55,6 +57,8 @@ def _build_tft(horizon: int):
         enable_progress_bar=False,
         logger=False,
         enable_checkpointing=False,
+        accelerator="cpu",
+        devices=1,
     )
 
 
@@ -74,6 +78,8 @@ def _build_deepar(horizon: int):
         enable_progress_bar=False,
         logger=False,
         enable_checkpointing=False,
+        accelerator="cpu",
+        devices=1,
     )
 
 
@@ -150,7 +156,7 @@ class DemandForecaster(BasePredictor):
                        if self._cls_map is not None else [])
             df_tft = df[df["unique_id"].isin(tft_ids)] if tft_ids else pd.DataFrame()
             if not df_tft.empty:
-                preds = self._nf_tft.predict(df_tft)
+                preds = self._nf_tft.predict(df_tft, futr_df=self._build_future_temporal_features(df_tft))
                 results.extend(self._format_predictions(preds, "TFT"))
 
         # DeepAR 预测
@@ -163,6 +169,15 @@ class DemandForecaster(BasePredictor):
                 results.extend(self._format_predictions(preds, "DeepAR"))
 
         return results
+
+    def _build_future_temporal_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        rows = []
+        for unique_id, grp in df.groupby("unique_id"):
+            last_ds = pd.to_datetime(grp["ds"]).max()
+            future_dates = pd.date_range(last_ds + pd.Timedelta(weeks=1), periods=self.horizon, freq=FREQ)
+            for ds in future_dates:
+                rows.append({"unique_id": unique_id, "ds": ds})
+        return add_temporal_features(pd.DataFrame(rows))
 
     def _ensure_hist_exog(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
@@ -243,13 +258,19 @@ class DemandForecaster(BasePredictor):
         tft_path = path / "tft"
         dar_path = path / "deepar"
         if tft_path.exists():
-            self._nf_tft = NeuralForecast.load(str(tft_path))
-        elif (path / "tft.pkl").exists():
+            try:
+                self._nf_tft = NeuralForecast.load(str(tft_path))
+            except Exception as exc:
+                logger.warning("TFT NeuralForecast.load 失败，尝试 pickle 兜底加载: %s", exc)
+        if self._nf_tft is None and (path / "tft.pkl").exists():
             with open(path / "tft.pkl", "rb") as f:
                 self._nf_tft = pickle.load(f)
         if dar_path.exists():
-            self._nf_deepar = NeuralForecast.load(str(dar_path))
-        elif (path / "deepar.pkl").exists():
+            try:
+                self._nf_deepar = NeuralForecast.load(str(dar_path))
+            except Exception as exc:
+                logger.warning("DeepAR NeuralForecast.load 失败，尝试 pickle 兜底加载: %s", exc)
+        if self._nf_deepar is None and (path / "deepar.pkl").exists():
             with open(path / "deepar.pkl", "rb") as f:
                 self._nf_deepar = pickle.load(f)
         cls_file = path / "cls_map.pkl"

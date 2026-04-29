@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/v1/weekly", tags=["weekly-forecast"])
 
 _MODEL_DIR = Path(os.getenv("MODEL_DIR", "/tmp/langdong_models"))
 _JAVA_BASE_URL = os.getenv("JAVA_BASE_URL", "http://localhost:8080")
-_CALLBACK_TOKEN = os.getenv("JAVA_CALLBACK_TOKEN", "")
+_CALLBACK_TOKEN = os.getenv("JAVA_CALLBACK_TOKEN") or os.getenv("PYTHON_CALLBACK_TOKEN", "")
 
 # 全局单例（lazy 初始化）
 _forecaster = None
@@ -287,6 +287,7 @@ def _push_to_java(results: list[dict[str, Any]]) -> None:
             json={"forecasts": forecasts},
             headers={"X-Callback-Token": _CALLBACK_TOKEN},
             timeout=30.0,
+            trust_env=False,
         )
         resp.raise_for_status()
         logger.info("预测结果已推送 Java: %d 条", len(forecasts))

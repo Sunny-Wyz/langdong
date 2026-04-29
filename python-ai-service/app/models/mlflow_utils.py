@@ -12,6 +12,12 @@ EXPERIMENT_DEMAND = "demand-forecast"
 EXPERIMENT_RUL = "rul-prediction"
 
 
+def _local_tracking_uri() -> str:
+    local_dir = Path("mlruns")
+    local_dir.mkdir(exist_ok=True)
+    return local_dir.resolve().as_uri()
+
+
 def init_mlflow(tracking_uri: str | None = None) -> None:
     """初始化 MLflow，失败时回退到本地文件追踪。"""
     import mlflow
@@ -36,19 +42,34 @@ def log_training_run(
     artifacts: list[str] | None = None,
     tags: dict[str, str] | None = None,
 ) -> str:
-    """记录一次训练 run，返回 run_id。"""
+    """记录一次训练 run，返回 run_id；记录失败不影响主训练流程。"""
     import mlflow
 
-    mlflow.set_experiment(experiment_name)
-    with mlflow.start_run(run_name=run_name, tags=tags or {}) as run:
-        mlflow.log_params(params)
-        mlflow.log_metrics(metrics)
-        for path in artifacts or []:
-            if Path(path).exists():
-                mlflow.log_artifact(path)
-        run_id = run.info.run_id
-    logger.info("MLflow run 记录完成: %s / %s (run_id=%s)", experiment_name, run_name, run_id)
-    return run_id
+    def _write_run() -> str:
+        mlflow.set_experiment(experiment_name)
+        with mlflow.start_run(run_name=run_name, tags=tags or {}) as run:
+            mlflow.log_params(params)
+            mlflow.log_metrics(metrics)
+            for path in artifacts or []:
+                if Path(path).exists():
+                    mlflow.log_artifact(path)
+            return run.info.run_id
+
+    try:
+        run_id = _write_run()
+        logger.info("MLflow run 记录完成: %s / %s (run_id=%s)", experiment_name, run_name, run_id)
+        return run_id
+    except Exception as exc:
+        logger.warning("MLflow 远程记录失败，回退到本地追踪: %s", exc)
+
+    try:
+        mlflow.set_tracking_uri(_local_tracking_uri())
+        run_id = _write_run()
+        logger.info("MLflow 本地 run 记录完成: %s / %s (run_id=%s)", experiment_name, run_name, run_id)
+        return run_id
+    except Exception as exc:
+        logger.warning("MLflow 本地记录失败，已忽略，不影响训练结果: %s", exc)
+        return ""
 
 
 def register_model(run_id: str, model_uri: str, model_name: str) -> str:

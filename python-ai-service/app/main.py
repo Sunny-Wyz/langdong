@@ -8,14 +8,17 @@ FastAPI 主应用入口
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+
+# 先加载环境变量，再导入路由模块；路由模块会在 import 时读取回调 token 等配置。
+load_dotenv(Path(__file__).resolve().parents[2] / ".env.local")
+load_dotenv()
+
 from app.api.v1.maintenance import router as maintenance_router
 from app.api.v1.replenishment import router as replenishment_router
 from app.api.v1.jobs import router as jobs_router
 from app.api.v1.weekly_forecast import router as weekly_forecast_router
-
-# 加载环境变量
-load_dotenv()
 
 # 创建 FastAPI 应用
 app = FastAPI(
