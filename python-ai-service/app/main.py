@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from app.api.v1.maintenance import router as maintenance_router
 from app.api.v1.replenishment import router as replenishment_router
 from app.api.v1.jobs import router as jobs_router
+from app.api.v1.weekly_forecast import router as weekly_forecast_router
 
 # 加载环境变量
 load_dotenv()
@@ -25,7 +26,10 @@ app = FastAPI(
 
 allow_origins = [
     origin.strip()
-    for origin in os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+    for origin in os.getenv(
+        "CORS_ALLOW_ORIGINS",
+        "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://localhost:8080,http://127.0.0.1:8080",
+    ).split(",")
     if origin.strip()
 ]
 
@@ -81,6 +85,7 @@ def root():
 app.include_router(maintenance_router)
 app.include_router(replenishment_router)
 app.include_router(jobs_router)
+app.include_router(weekly_forecast_router)
 
 if __name__ == "__main__":
     import uvicorn

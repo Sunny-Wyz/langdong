@@ -120,6 +120,21 @@ public class InternalAiDataController {
         return ok(Map.of("estimate", 1.0, "source", "MIN_GUARD"));
     }
 
+    // ==================== 日粒度训练数据（深度学习用）====================
+
+    @GetMapping("/train-data/daily")
+    public ResponseEntity<Map<String, Object>> getDailyTrainData(
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestHeader(value = "X-Internal-Token", required = false) String token
+    ) {
+        ResponseEntity<Map<String, Object>> authError = checkToken(token);
+        if (authError != null) return authError;
+
+        List<Map<String, Object>> data = dataMapper.findDailyTrainData(startDate, endDate);
+        return ok(data);
+    }
+
     // ==================== 供应商绩效 ====================
 
     @GetMapping("/spare-parts/{id}/supplier-performance")

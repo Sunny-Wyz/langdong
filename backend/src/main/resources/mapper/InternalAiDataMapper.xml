@@ -104,6 +104,34 @@
         ) t
     </select>
 
+    <!-- 日粒度出库训练数据（支持日期范围过滤） -->
+    <select id="findDailyTrainData" resultType="java.util.Map">
+        SELECT
+            sp.part_code,
+            DATE(COALESCE(r.approve_time, r.apply_time))   AS date,
+            SUM(ri.out_qty)                                  AS outbound_qty,
+            COUNT(DISTINCT r.id)                             AS requisition_apply_qty,
+            SUM(CASE WHEN r.req_status = 'INSTALLED' THEN ri.out_qty ELSE 0 END) AS install_qty,
+            COUNT(DISTINCT wo.id)                            AS work_order_cnt,
+            COALESCE(SUM(poi.accept_qty), 0)                AS purchase_arrival_qty
+        FROM biz_requisition_item ri
+        INNER JOIN biz_requisition r    ON ri.req_id       = r.id
+        INNER JOIN spare_part sp        ON ri.spare_part_id = sp.id
+        LEFT  JOIN biz_work_order wo
+               ON wo.spare_part_id = sp.id
+              AND DATE(wo.created_at) = DATE(COALESCE(r.approve_time, r.apply_time))
+        LEFT  JOIN biz_purchase_order_item poi
+               ON poi.spare_part_id = sp.id
+              AND DATE(poi.accept_time) = DATE(COALESCE(r.approve_time, r.apply_time))
+        WHERE r.req_status IN ('OUTBOUND', 'INSTALLED')
+          AND ri.out_qty IS NOT NULL AND ri.out_qty > 0
+          AND COALESCE(r.approve_time, r.apply_time) IS NOT NULL
+          <if test="startDate != null">AND DATE(COALESCE(r.approve_time, r.apply_time)) &gt;= #{startDate}</if>
+          <if test="endDate != null">AND DATE(COALESCE(r.approve_time, r.apply_time)) &lt;= #{endDate}</if>
+        GROUP BY sp.part_code, DATE(COALESCE(r.approve_time, r.apply_time))
+        ORDER BY sp.part_code ASC, date ASC
+    </select>
+
     <!-- 供应商绩效数据 -->
     <select id="findSupplierPerformance" resultType="java.util.Map">
         SELECT supplier_name, quality_score, price_score, on_time_rate, lead_time_days

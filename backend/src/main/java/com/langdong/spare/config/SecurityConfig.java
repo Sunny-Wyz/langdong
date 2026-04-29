@@ -84,7 +84,9 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/ai/forecast/callback/python/replenishment").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/python/callback/weekly").permitAll()
                     .requestMatchers("/internal/ai/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter(jwtUtil, userMapper, menuMapper),

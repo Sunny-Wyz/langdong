@@ -123,4 +123,53 @@ public class PythonModelClient {
             throw ex;
         }
     }
+
+    public Map<String, Object> submitWeeklyTraining(Map<String, Object> request) {
+        String url = pythonBaseUrl + "/api/v1/weekly/train";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        try {
+            ResponseEntity<Map> response = pythonRestTemplate.postForEntity(
+                    url,
+                    new HttpEntity<>(request == null ? new HashMap<>() : request, headers),
+                    Map.class
+            );
+            return response.getBody() == null ? new HashMap<>() : response.getBody();
+        } catch (Exception ex) {
+            log.error("[PythonModelClient] submitWeeklyTraining call failed", ex);
+            throw ex;
+        }
+    }
+
+    public Map<String, Object> queryWeeklyTrainingStatus() {
+        String url = pythonBaseUrl + "/api/v1/weekly/train/status";
+        try {
+            ResponseEntity<Map> response = pythonRestTemplate.getForEntity(url, Map.class);
+            return response.getBody() == null ? new HashMap<>() : response.getBody();
+        } catch (Exception ex) {
+            log.error("[PythonModelClient] queryWeeklyTrainingStatus call failed", ex);
+            throw ex;
+        }
+    }
+
+    public Map<String, Object> triggerWeeklyPredict(Map<String, Object> request) {
+        String url = pythonBaseUrl + "/api/v1/weekly/predict";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        try {
+            ResponseEntity<Map> response = pythonRestTemplate.postForEntity(
+                    url,
+                    new HttpEntity<>(request == null ? new HashMap<>() : request, headers),
+                    Map.class
+            );
+            return response.getBody() == null ? new HashMap<>() : response.getBody();
+        } catch (Exception ex) {
+            log.error("[PythonModelClient] triggerWeeklyPredict call failed", ex);
+            throw ex;
+        }
+    }
 }

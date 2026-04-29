@@ -36,6 +36,7 @@ dependencies:
   # pip 依赖
   - pip:
     - fastapi==0.109.0
+    - starlette==0.35.1
     - uvicorn[standard]==0.27.0
     - pydantic==2.6.0
     - aiofiles==23.2.1

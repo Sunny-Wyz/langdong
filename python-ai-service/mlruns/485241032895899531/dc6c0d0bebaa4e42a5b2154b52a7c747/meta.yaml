@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/weiyaozhou/Documents/langdong/python-ai-service/mlruns/485241032895899531/dc6c0d0bebaa4e42a5b2154b52a7c747/artifacts
+end_time: 1777455563744
+entry_point_name: ''
+experiment_id: '485241032895899531'
+lifecycle_stage: active
+run_id: dc6c0d0bebaa4e42a5b2154b52a7c747
+run_name: train-h12
+run_uuid: dc6c0d0bebaa4e42a5b2154b52a7c747
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1777455563738
+status: 3
+tags: []
+user_id: weiyaozhou

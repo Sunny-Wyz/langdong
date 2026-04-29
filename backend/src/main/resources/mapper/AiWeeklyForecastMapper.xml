@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.langdong.spare.mapper.AiWeeklyForecastMapper">
+
+    <resultMap id="BaseRM" type="com.langdong.spare.entity.AiWeeklyForecast">
+        <id     column="id"           property="id"/>
+        <result column="part_code"    property="partCode"/>
+        <result column="week_start"   property="weekStart"/>
+        <result column="predict_qty"  property="predictQty"/>
+        <result column="p10"          property="p10"/>
+        <result column="p25"          property="p25"/>
+        <result column="p75"          property="p75"/>
+        <result column="p90"          property="p90"/>
+        <result column="dist_mu"      property="distMu"/>
+        <result column="dist_sigma"   property="distSigma"/>
+        <result column="algo_type"    property="algoType"/>
+        <result column="model_version" property="modelVersion"/>
+        <result column="adi"          property="adi"/>
+        <result column="cv2"          property="cv2"/>
+        <result column="create_time"  property="createTime"/>
+        <result column="part_name"    property="partName"/>
+    </resultMap>
+
+    <select id="findPage" resultMap="BaseRM">
+        SELECT w.*, sp.name AS part_name
+        FROM ai_weekly_forecast w
+        LEFT JOIN spare_part sp ON sp.code = w.part_code
+        <where>
+            <if test="partCode != null and partCode != ''">AND w.part_code LIKE CONCAT('%', #{partCode}, '%')</if>
+            <if test="weekStart != null and weekStart != ''">AND w.week_start >= #{weekStart}</if>
+            <if test="algoType != null and algoType != ''">AND w.algo_type = #{algoType}</if>
+        </where>
+        ORDER BY w.week_start DESC, w.part_code ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="int">
+        SELECT COUNT(*)
+        FROM ai_weekly_forecast w
+        <where>
+            <if test="partCode != null and partCode != ''">AND w.part_code LIKE CONCAT('%', #{partCode}, '%')</if>
+            <if test="weekStart != null and weekStart != ''">AND w.week_start >= #{weekStart}</if>
+            <if test="algoType != null and algoType != ''">AND w.algo_type = #{algoType}</if>
+        </where>
+    </select>
+
+    <select id="findByPartCode" resultMap="BaseRM">
+        SELECT w.*, sp.name AS part_name
+        FROM ai_weekly_forecast w
+        LEFT JOIN spare_part sp ON sp.code = w.part_code
+        WHERE w.part_code = #{partCode}
+          AND w.week_start >= CURDATE()
+        ORDER BY w.week_start ASC
+        LIMIT #{limit}
+    </select>
+
+    <insert id="insertBatch">
+        INSERT INTO ai_weekly_forecast
+            (part_code, week_start, predict_qty, p10, p25, p75, p90,
+             dist_mu, dist_sigma, algo_type, model_version, adi, cv2)
+        VALUES
+        <foreach collection="list" item="r" separator=",">
+            (#{r.partCode}, #{r.weekStart}, #{r.predictQty},
+             #{r.p10}, #{r.p25}, #{r.p75}, #{r.p90},
+             #{r.distMu}, #{r.distSigma}, #{r.algoType}, #{r.modelVersion},
+             #{r.adi}, #{r.cv2})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            predict_qty  = VALUES(predict_qty),
+            p10 = VALUES(p10), p25 = VALUES(p25),
+            p75 = VALUES(p75), p90 = VALUES(p90),
+            dist_mu = VALUES(dist_mu), dist_sigma = VALUES(dist_sigma),
+            algo_type = VALUES(algo_type), model_version = VALUES(model_version),
+            adi = VALUES(adi), cv2 = VALUES(cv2),
+            create_time = CURRENT_TIMESTAMP
+    </insert>
+
+    <delete id="deleteByPartAndWeek">
+        DELETE FROM ai_weekly_forecast
+        WHERE part_code = #{partCode} AND week_start = #{weekStart}
+    </delete>
+
+</mapper>

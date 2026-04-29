@@ -48,6 +48,8 @@ import ClassifyResult from '../views/classify/ClassifyResult.vue'
 import AiForecastResult from '../views/ai/AiForecastResult.vue'
 import AiJobCenter from '../views/ai/AiJobCenter.vue'
 import AiTrainDataDashboard from '../views/ai/AiTrainDataDashboard.vue'
+import WeeklyForecastResult from '../views/ai/WeeklyForecastResult.vue'
+import AiTrainingProgress from '../views/ai/AiTrainingProgress.vue'
 
 // PHM 预测性维护模块
 import HealthMonitor from '../views/phm/HealthMonitor.vue'
@@ -131,6 +133,8 @@ const router = new VueRouter({
       meta: { requiresAuth: true },
       children: [
         { path: 'forecast-result', component: AiForecastResult, meta: { requiresAuth: true } },
+        { path: 'weekly-forecast', component: WeeklyForecastResult, meta: { requiresAuth: true } },
+        { path: 'training-progress', component: AiTrainingProgress, meta: { requiresAuth: true } },
         { path: 'job-center', component: AiJobCenter, meta: { requiresAuth: true } },
         { path: 'train-data-dashboard', component: AiTrainDataDashboard, meta: { requiresAuth: true } }
       ]

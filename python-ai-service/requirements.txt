@@ -1,5 +1,6 @@
 # FastAPI 框架
 fastapi==0.109.0
+starlette==0.35.1
 uvicorn[standard]==0.27.0
 pydantic==2.6.0
 aiofiles==23.2.1
@@ -19,6 +20,12 @@ scipy==1.11.4
 # 数据库
 sqlalchemy==2.0.25
 pymysql==1.1.0
+
+# 深度学习时序模型
+neuralforecast>=1.7.0
+tsai>=0.3.9
+pytorch-lightning>=2.1.0
+shap>=0.43.0
 
 # 模型管理
 mlflow==2.11.0

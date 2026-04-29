@@ -34,6 +34,11 @@ public interface InternalAiDataMapper {
     /** 全局月均需求估算 */
     Double estimateGlobalMonthlyDemand();
 
+    /** 日粒度出库数据（深度学习训练用），可按日期范围过滤 */
+    List<Map<String, Object>> findDailyTrainData(
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate);
+
     /** 加载供应商绩效数据 */
     List<Map<String, Object>> findSupplierPerformance(@Param("sparePartId") int sparePartId);
 }
