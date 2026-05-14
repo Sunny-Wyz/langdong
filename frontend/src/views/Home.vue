@@ -12,7 +12,7 @@
             :key="'sub-' + menu.id">
             <template slot="title">
               <i :class="menu.icon || 'el-icon-folder'"></i>
-              <span>{{ menu.name }}</span>
+              <span>{{ displayMenuName(menu) }}</span>
             </template>
             <!-- 第二级 -->
             <template v-for="child in menu.children">
@@ -75,6 +75,12 @@ export default {
     this.fetchMenus()
   },
   methods: {
+    displayMenuName(menu) {
+      if (menu && menu.path === '/ai') {
+        return '需求预测与辅助决策模块'
+      }
+      return menu && menu.name ? menu.name : ''
+    },
     async fetchMenus() {
       try {
         const res = await this.$http.get('/menus/my')

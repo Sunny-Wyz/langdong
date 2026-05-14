@@ -147,7 +147,7 @@ INSERT INTO `menu` (`id`, `parent_id`, `name`, `path`, `component`, `permission`
 (13, NULL, '领用管理模块', '/requisition', 'Layout', NULL, 1, 'el-icon-sell', 4),
 (14, NULL, '维修工单管理模块', '/maintenance', 'Layout', NULL, 1, 'el-icon-s-tools', 5),
 (15, NULL, '采购管理模块', '/procurement', 'Layout', NULL, 1, 'el-icon-shopping-cart-full', 6),
-(16, NULL, 'AI智能分析模块', '/ai', 'Layout', NULL, 1, 'el-icon-cpu', 7),
+(16, NULL, '需求预测与辅助决策模块', '/ai', 'Layout', NULL, 1, 'el-icon-cpu', 7),
 (17, NULL, '报表与看板模块', '/reports', 'Layout', NULL, 1, 'el-icon-data-board', 8);
 
 INSERT INTO `role_menu` (`role_id`, `menu_id`) VALUES

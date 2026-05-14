@@ -43,9 +43,9 @@ CREATE TABLE IF NOT EXISTS `ai_device_feature` (
 --    使用 auto-increment，通过路径查询后再关联 role_menu
 -- ================================================================
 
--- 3.1 插入 AI 智能分析 一级目录（type=1 为目录）
+-- 3.1 插入 需求预测与辅助决策 一级目录（type=1 为目录）
 INSERT INTO `menu` (`parent_id`, `name`, `path`, `component`, `permission`, `type`, `icon`, `sort`)
-VALUES (0, 'AI智能分析', '/ai', NULL, NULL, 1, 'el-icon-cpu', 9);
+VALUES (0, '需求预测与辅助决策模块', '/ai', NULL, NULL, 1, 'el-icon-cpu', 9);
 
 -- 3.2 插入子菜单：需求预测结果（type=2 为菜单页面）
 INSERT INTO `menu` (`parent_id`, `name`, `path`, `component`, `permission`, `type`, `icon`, `sort`)

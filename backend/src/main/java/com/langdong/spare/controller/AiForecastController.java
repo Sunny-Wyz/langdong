@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * AI智能分析模块 Controller
+ * 需求预测与辅助决策模块 Controller
  */
 @RestController
 @RequestMapping("/api/ai/forecast")

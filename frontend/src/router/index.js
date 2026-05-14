@@ -126,7 +126,7 @@ const router = new VueRouter({
         { path: 'maintenance-suggestion', component: MaintenanceSuggestion, meta: { requiresAuth: true } }
       ]
     },
-    // AI 智能分析模块
+    // 需求预测与辅助决策模块
     {
       path: '/ai',
       component: Home,

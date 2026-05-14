@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * AI智能预测核心调度服务
+ * 需求预测核心调度服务
  *
  * 负责串联：
  * 1. 特征工程 (AiFeatureService)

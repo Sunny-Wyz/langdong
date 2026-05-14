@@ -120,6 +120,12 @@
 
 ---
 
+### F14: AI 侧边栏模块更名为需求预测与辅助决策模块
+- **功能描述**：将前端左侧导航中原有的 AI 智能分析模块展示名称调整为“需求预测与辅助决策模块”，确保用户在首页侧边栏看到的新模块名与当前业务定位一致。
+- **落实情况**：`frontend/src/views/Home.vue` 在渲染一级菜单标题时增加了 `displayMenuName(menu)` 兜底方法，对 `/ai` 根菜单统一显示新名称；同时 `frontend/src/router/index.js` 中对应模块注释同步改为“需求预测与辅助决策模块”，保持源码语义一致。
+
+---
+
 ### F12: Python 外联 AI 推理服务接入骨架（FastAPI + Java Client）
 - **功能描述**：执行“下一步工作清单”前 3 项，完成 Python 推理服务 API 化与 Java 外联调用骨架搭建，实现现有 `predictive_maintenance.py`、`smart_replenishment.py` 可被外部 HTTP 调用。
 - **落实情况**：

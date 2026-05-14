@@ -12,7 +12,7 @@ SET @ai_parent_id := (
 );
 
 INSERT INTO menu (parent_id, name, path, component, permission, type, icon, sort)
-SELECT NULL, 'AI智能分析模块', '/ai', 'Layout', NULL, 1, 'el-icon-cpu', 7
+SELECT NULL, '需求预测与辅助决策模块', '/ai', 'Layout', NULL, 1, 'el-icon-cpu', 7
 FROM DUAL
 WHERE @ai_parent_id IS NULL;
 
