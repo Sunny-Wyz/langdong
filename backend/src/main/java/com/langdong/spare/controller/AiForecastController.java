@@ -1,16 +1,19 @@
 package com.langdong.spare.controller;
 
+import com.langdong.spare.forecast.scheduler.MonthlyForecastScheduler;
 import com.langdong.spare.service.ai.AiForecastService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 需求预测与辅助决策模块 Controller
+ * 需求预测与辅助决策模块 Controller (重写适配为新两阶段XGBoost)
  */
 @RestController
 @RequestMapping("/api/ai/forecast")
@@ -19,14 +22,20 @@ public class AiForecastController {
     @Autowired
     private AiForecastService aiForecastService;
 
+    @Autowired
+    private MonthlyForecastScheduler monthlyForecastScheduler;
+
     /**
-     * 手动触发全量预测与分析（异步，仅超级管理员可调用）
+     * 手动触发两阶段 XGBoost 预测与库存决策分析（异步）
      */
     @PostMapping("/trigger")
     @PreAuthorize("hasAuthority('ai:forecast:trigger')")
     public ResponseEntity<Map<String, Object>> triggerForecast() {
-        aiForecastService.runFullForecast();
-        Map<String, Object> runStatus = aiForecastService.getRunStatus();
+        // 目标月份默认为下个月（对应定时调度的运行逻辑）
+        String targetMonth = LocalDate.now().plusMonths(1).format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        monthlyForecastScheduler.triggerForecastPipeline(targetMonth);
+
+        Map<String, Object> runStatus = monthlyForecastScheduler.getRunStatus();
         String status = String.valueOf(runStatus.getOrDefault("status", "IDLE"));
         boolean accepted = "RUNNING".equals(status);
 
@@ -34,23 +43,23 @@ public class AiForecastController {
         resp.put("code", 200);
         resp.put("accepted", accepted);
         resp.put("message", accepted
-            ? "AI预测及安全库存储备分析任务已启动"
+            ? "两阶段AI预测重算与安全库存分析任务已启动"
             : "重算任务未进入运行态，请稍后重试");
         resp.put("runStatus", runStatus);
         return ResponseEntity.ok(resp);
     }
 
     /**
-     * 查询手动重算运行进度
+     * 查询手动重算两阶段模型的运行进度
      */
     @GetMapping("/trigger/status")
     @PreAuthorize("hasAnyAuthority('ai:forecast:list', 'ai:forecast:trigger')")
     public ResponseEntity<Map<String, Object>> queryTriggerStatus() {
-        return ResponseEntity.ok(aiForecastService.getRunStatus());
+        return ResponseEntity.ok(monthlyForecastScheduler.getRunStatus());
     }
 
     /**
-     * 分页查询预测结果列表
+     * 分页查询预测结果列表 (自动装载六标准字段与3月预测量)
      */
     @GetMapping("/result")
     @PreAuthorize("hasAuthority('ai:forecast:list')")

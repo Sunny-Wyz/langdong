@@ -42,11 +42,11 @@
         </el-card>
 
         <!-- KPI 卡片区 -->
-        <el-row :gutter="16" class="kpi-row" v-loading="loading">
-            <el-col
+        <div class="kpi-grid" v-loading="loading">
+            <div
                 v-for="kpi in kpiCards"
                 :key="kpi.key"
-                :xs="24" :sm="12" :md="8" :lg="6" :xl="6"
+                class="kpi-grid-item"
             >
                 <div class="kpi-card" :style="{ background: kpi.gradient }">
                     <div class="kpi-icon-wrap">
@@ -62,8 +62,8 @@
                         </div>
                     </div>
                 </div>
-            </el-col>
-        </el-row>
+            </div>
+        </div>
 
         <!-- 图表区 -->
         <el-row :gutter="16" class="chart-row">
@@ -380,9 +380,32 @@ export default {
 .filter-icon { color: #1890ff; font-size: 16px; }
 .filter-label { font-size: 14px; font-weight: 600; color: #333; white-space: nowrap; }
 
-/* KPI 卡片 */
-.kpi-row { margin-bottom: 16px; }
-.kpi-row .el-col { margin-bottom: 16px; }
+/* KPI 卡片 CSS Grid Layout */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.kpi-grid-item {
+    min-width: 0;
+}
+@media (max-width: 1400px) {
+    .kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+@media (max-width: 992px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 576px) {
+    .kpi-grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+}
+
 .kpi-card {
     border-radius: 10px;
     padding: 20px;

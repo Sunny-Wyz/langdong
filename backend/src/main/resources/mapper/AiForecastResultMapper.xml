@@ -5,30 +5,37 @@
 
     <resultMap id="AiForecastResultMap" type="com.langdong.spare.entity.AiForecastResult">
         <id property="id" column="id"/>
-        <result property="partCode"      column="part_code"/>
-        <result property="forecastMonth" column="forecast_month"/>
-        <result property="predictQty"    column="predict_qty"/>
-        <result property="lowerBound"    column="lower_bound"/>
-        <result property="upperBound"    column="upper_bound"/>
-        <result property="algoType"      column="algo_type"/>
-        <result property="mase"          column="mase"/>
-        <result property="modelVersion"  column="model_version"/>
-        <result property="createTime"    column="create_time"/>
+        <result property="partCode"          column="part_code"/>
+        <result property="forecastMonth"     column="forecast_month"/>
+        <result property="predictQty"        column="predict_qty"/>
+        <result property="lowerBound"        column="lower_bound"/>
+        <result property="upperBound"        column="upper_bound"/>
+        <result property="algoType"          column="algo_type"/>
+        <result property="mase"              column="mase"/>
+        <result property="modelVersion"      column="model_version"/>
+        <result property="occurrenceProb"    column="occurrence_prob"/>
+        <result property="positiveQty"       column="positive_qty"/>
+        <result property="leadTimeQuantile"  column="lead_time_quantile"/>
+        <result property="createTime"        column="create_time"/>
         <!-- 联查字段 -->
-        <result property="partName"      column="part_name"/>
+        <result property="partName"          column="part_name"/>
+        <result property="safetyStock"       column="safety_stock"/>
+        <result property="reorderPoint"      column="reorder_point"/>
+        <result property="serviceLevel"      column="service_level"/>
     </resultMap>
 
     <!-- 批量插入预测结果 -->
     <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO ai_forecast_result (
             part_code, forecast_month, predict_qty, lower_bound, upper_bound,
-            algo_type, mase, model_version, create_time
+            algo_type, mase, model_version, occurrence_prob, positive_qty, lead_time_quantile, create_time
         ) VALUES
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.partCode}, #{item.forecastMonth}, #{item.predictQty},
                 #{item.lowerBound}, #{item.upperBound},
-                #{item.algoType}, #{item.mase}, #{item.modelVersion}, NOW()
+                #{item.algoType}, #{item.mase}, #{item.modelVersion},
+                #{item.occurrenceProb}, #{item.positiveQty}, #{item.leadTimeQuantile}, NOW()
             )
         </foreach>
     </insert>
@@ -42,26 +49,30 @@
           </foreach>
     </delete>
 
-    <!-- 查询指定备件的历史预测（按月升序） -->
+    <!-- 查询指定备件的历史预测（按月升序，联查分类结果表以获取 ROP/SS） -->
     <select id="findByPartCode" resultMap="AiForecastResultMap">
         SELECT
             r.id, r.part_code, r.forecast_month, r.predict_qty, r.lower_bound, r.upper_bound,
-            r.algo_type, r.mase, r.model_version, r.create_time,
-            sp.name AS part_name
+            r.algo_type, r.mase, r.model_version, r.occurrence_prob, r.positive_qty, r.lead_time_quantile, r.create_time,
+            sp.name AS part_name,
+            c.safety_stock, c.reorder_point, c.service_level
         FROM ai_forecast_result r
         LEFT JOIN spare_part sp ON r.part_code = sp.code
+        LEFT JOIN biz_part_classify c ON r.part_code = c.part_code AND r.forecast_month = c.classify_month
         WHERE r.part_code = #{partCode}
         ORDER BY r.forecast_month ASC
     </select>
 
-    <!-- 分页查询预测结果（支持按月份、备件编码过滤） -->
+    <!-- 分页查询预测结果（支持按月份、备件编码过滤，联查分类结果表以获取 ROP/SS） -->
     <select id="findByPage" resultMap="AiForecastResultMap">
         SELECT
             r.id, r.part_code, r.forecast_month, r.predict_qty, r.lower_bound, r.upper_bound,
-            r.algo_type, r.mase, r.model_version, r.create_time,
-            sp.name AS part_name
+            r.algo_type, r.mase, r.model_version, r.occurrence_prob, r.positive_qty, r.lead_time_quantile, r.create_time,
+            sp.name AS part_name,
+            c.safety_stock, c.reorder_point, c.service_level
         FROM ai_forecast_result r
         LEFT JOIN spare_part sp ON r.part_code = sp.code
+        LEFT JOIN biz_part_classify c ON r.part_code = c.part_code AND r.forecast_month = c.classify_month
         WHERE r.forecast_month = (
             <choose>
                 <when test="month != null and month != ''">

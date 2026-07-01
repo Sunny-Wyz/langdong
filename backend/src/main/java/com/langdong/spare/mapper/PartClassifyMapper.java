@@ -90,4 +90,9 @@ public interface PartClassifyMapper {
      * 当某月份只有Z类时，回填X/Y/Z分布，确保矩阵可视化可用
      */
     int rebalanceXyzForMonth(@Param("month") String month);
+
+    /**
+     * 删除指定月份和备件编码的分类记录（用于重算幂等覆盖）
+     */
+    int deleteByMonthAndPartCodes(@Param("month") String month, @Param("partCodes") List<String> partCodes);
 }

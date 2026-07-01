@@ -216,4 +216,14 @@
         WHERE classify_month = #{month}
     </update>
 
+    <!-- 按月份和备件编码删除分类记录 -->
+    <delete id="deleteByMonthAndPartCodes">
+        DELETE FROM biz_part_classify
+        WHERE classify_month = #{month}
+          AND part_code IN
+          <foreach collection="partCodes" item="code" open="(" separator="," close=")">
+              #{code}
+          </foreach>
+    </delete>
+
 </mapper>

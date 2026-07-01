@@ -36,6 +36,15 @@ public class AiForecastResult {
     /** 模型版本号 */
     private String modelVersion;
 
+    /** 需求发生概率 */
+    private BigDecimal occurrenceProb;
+
+    /** 正需求量预测均值 */
+    private BigDecimal positiveQty;
+
+    /** 提前期分位数 */
+    private BigDecimal leadTimeQuantile;
+
     /** 预测计算时间 */
     private LocalDateTime createTime;
 
@@ -45,4 +54,13 @@ public class AiForecastResult {
 
     /** 未来3个月累计需求（查询展示字段，非持久化） */
     private BigDecimal demand3Months;
+
+    /** 安全库存SS（件，联查自分类结果） */
+    private Integer safetyStock;
+
+    /** 补货触发点ROP（件，联查自分类结果） */
+    private Integer reorderPoint;
+
+    /** 目标服务水平（%，联查自分类结果） */
+    private BigDecimal serviceLevel;
 }

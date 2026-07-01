@@ -49,10 +49,10 @@
                 <el-table-column prop="partCode" label="备件编码" width="120"  sortable="custom"></el-table-column>
                 <el-table-column prop="partName" label="备件名称" min-width="150" show-overflow-tooltip ></el-table-column>
                 <el-table-column prop="forecastMonth" label="预测月份" width="100" ></el-table-column>
-                <el-table-column prop="algoType" label="算法" width="100" >
+                <el-table-column prop="algoType" label="算法" width="160" >
                     <template slot-scope="scope">
                         <el-tag :type="getAlgoTagType(scope.row.algoType)" size="small">
-                            {{ scope.row.algoType }}
+                            {{ getAlgoDisplayName(scope.row.algoType) }}
                         </el-tag>
                     </template>
                 </el-table-column>
@@ -66,9 +66,38 @@
                         <span style="font-weight: bold; color: #67C23A">{{ scope.row.demand3Months ?? 'N/A' }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="90% 置信区间" width="180" >
+                <el-table-column label="90% 置信区间" width="150" >
                     <template slot-scope="scope">
                         [ {{ scope.row.lowerBound }} , {{ scope.row.upperBound }} ]
+                    </template>
+                </el-table-column>
+                <el-table-column prop="occurrenceProb" label="发生概率 (pt)" width="110" >
+                    <template slot-scope="scope">
+                        {{ scope.row.occurrenceProb != null ? (scope.row.occurrenceProb * 100).toFixed(1) + '%' : 'N/A' }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="positiveQty" label="正需求均值 (ŷt)" width="120" >
+                    <template slot-scope="scope">
+                        {{ scope.row.positiveQty ?? 'N/A' }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="leadTimeQuantile" label="提前期需求分位数" width="140" >
+                    <template slot-scope="scope">
+                        {{ scope.row.leadTimeQuantile ?? 'N/A' }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="safetyStock" label="安全库存 (SS)" width="110" >
+                    <template slot-scope="scope">
+                        <span :style="{ fontWeight: 'bold', color: scope.row.safetyStock > 0 ? '#E6A23C' : '#909399' }">
+                            {{ scope.row.safetyStock ?? 'N/A' }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="reorderPoint" label="补货触发点 (ROP)" width="130" >
+                    <template slot-scope="scope">
+                        <span :style="{ fontWeight: 'bold', color: scope.row.reorderPoint > 0 ? '#E6A23C' : '#909399' }">
+                            {{ scope.row.reorderPoint ?? 'N/A' }}
+                        </span>
                     </template>
                 </el-table-column>
                 <el-table-column prop="mase" label="MASE指标" width="100" >
@@ -298,10 +327,18 @@ export default {
             this.$router.push('/ai/job-center')
         },
         getAlgoTagType(algo) {
+            if (algo === 'TWO_STAGE') return 'success'
             if (algo === 'RF') return 'success'
             if (algo === 'SBA') return 'warning'
             if (algo === 'FALLBACK') return 'info'
             return ''
+        },
+        getAlgoDisplayName(algo) {
+            if (algo === 'TWO_STAGE') return '两阶段 XGBoost 预测'
+            if (algo === 'RF') return '随机森林 (RF)'
+            if (algo === 'SBA') return 'SBA 算法'
+            if (algo === 'FALLBACK') return '两阶段概率预测模型'
+            return algo || '未知算法'
         },
 
         // 图表趋势

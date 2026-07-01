@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # 备件管理系统 (Spare Parts Management System)
 
 ## Project Overview
@@ -126,6 +130,11 @@ Default credentials: `admin` / `123456`
 | `PythonModelClient` | HTTP client calling Python AI service |
 | `PythonCallbackStoreService` | Stores async Python predictions |
 
+**Algorithm types** (stored in `algo_type` column):
+- `RF` — Random Forest (data-rich parts)
+- `SBA` — Syntetos-Boylan Approximation (intermittent demand)
+- `FALLBACK` — 两阶段概率预测模型 (data-insufficient fallback, displays as "两阶段概率预测模型" in frontend)
+
 ### Key Config (`application.yml`)
 
 ```yaml
@@ -150,6 +159,24 @@ ai.python.callback-token: ${PYTHON_CALLBACK_TOKEN}
 - **Entities**: Use Lombok `@Data`, `LocalDate`/`LocalDateTime`, `BigDecimal` for scores
 - **Mappers**: Parameterized with `@Param`, batch inserts via `insertBatch`, complex JOINs in XML
 - **Do not commit** real DB passwords or JWT secrets — use env vars or placeholders
+
+---
+
+## Python AI Service Architecture
+
+**Root**: `python-ai-service/app/`
+
+| Directory | Purpose |
+|---|---|
+| `api/v1/` | FastAPI routers (replenishment, forecast, etc.) |
+| `models/` | ML models: demand forecasting, feature engineering, RUL prediction |
+| `services/` | Async tasks (Celery), Java data client, task registry |
+| `schemas.py` | Pydantic request/response models |
+
+- **ML Stack**: PyTorch (TFT/deep learning), scikit-learn (classical ML), XGBoost (gradient boosting)
+- **MLflow**: Experiment tracking at `mlruns/`, logs metrics/params/artifacts
+- **Async**: Celery + Redis for long-running training jobs, results stored via `task_registry`
+- **Data flow**: Java backend calls Python via `PythonModelClient` → Python processes → callback to `/api/python/callback/**`
 
 ---
 
@@ -226,7 +253,8 @@ src/views/
 ├── ai/                          # AI analysis
 │   ├── AiForecastResult.vue
 │   ├── AiJobCenter.vue
-│   └── AiTrainDataDashboard.vue
+│   ├── AiTrainDataDashboard.vue
+│   └── WeeklyForecastResult.vue
 │
 └── sys/                         # System management
     ├── UserManage.vue
@@ -284,7 +312,9 @@ src/views/
 # Backend
 cd backend && mvn spring-boot:run        # Start dev server
 cd backend && mvn clean package          # Build JAR
-cd backend && mvn test                   # Run tests
+cd backend && mvn test                   # Run all tests
+cd backend && mvn test -Dtest=ClassifyCalculatorTest  # Run single test class
+cd backend && mvn test -Dtest=ClassifyCalculatorTest#testMethod  # Run single method
 
 # Frontend
 cd frontend && npm run serve             # Start dev server (port 3000)
