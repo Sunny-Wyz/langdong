@@ -59,12 +59,12 @@ if [[ -S "$SUPERVISOR_SOCK" ]]; then
 fi
 
 pkill -f "spring-boot:run" >/dev/null 2>&1 || true
-pkill -f "app.main:app --host 0.0.0.0 --port 8001" >/dev/null 2>&1 || true
+pkill -f "app.main:app --host 0.0.0.0 --port 8000" >/dev/null 2>&1 || true
 pkill -f "celery -A app.services.celery_app:celery_app worker" >/dev/null 2>&1 || true
 pkill -f "supervisord.*supervisord.conf" >/dev/null 2>&1 || true
 
 stop_by_port "backend" "8080"
-stop_by_port "python-api" "8001"
+stop_by_port "python-api" "8000"
 stop_by_port "frontend" "3000"
 stop_by_port "frontend" "3001"
 

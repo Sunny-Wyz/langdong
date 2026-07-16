@@ -171,7 +171,7 @@ start_python_services() {
     echo "[OK] Python services started via supervisord (auto-restart enabled)"
   else
     echo "[WARN] supervisord not found in conda env, falling back to direct process launch"
-    nohup conda run -n langdong python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 \
+    nohup conda run -n langdong python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 \
       < /dev/null \
       > "$RUN_DIR/python-api.log" 2>&1 &
     echo $! > "$RUN_DIR/python-api.pid"
@@ -210,7 +210,7 @@ start_frontend() {
   if port_listening "$FRONTEND_PORT"; then
     echo "[WARN] Port ${FRONTEND_PORT} already in use. Vue may switch to ${FRONTEND_FALLBACK_PORT}."
   fi
-  nohup npm run serve < /dev/null > "$RUN_DIR/frontend.log" 2>&1 &
+  nohup npm run dev < /dev/null > "$RUN_DIR/frontend.log" 2>&1 &
   echo $! > "$RUN_DIR/frontend.pid"
   sleep 5
 
