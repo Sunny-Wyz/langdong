@@ -29,6 +29,9 @@ plan/                 # Project planning documents
 
 ### Database
 ```bash
+# Start local MySQL 5.7 Server (Anaconda version)
+/opt/anaconda3/bin/mysql.server start
+
 # Initialize core schema
 mysql -u root -p < sql/init.sql
 

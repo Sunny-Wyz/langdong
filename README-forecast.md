@@ -87,3 +87,79 @@ cd backend
   - 提前期分位数 (`leadTimeQuantile`)
   - 安全库存 SS (`safetyStock`)
   - 补货点 ROP (`reorderPoint`)
+- **手动触发历史趋势查询 (GET)**：`GET /api/v1/forecast/result/{partCode}`，权限 `ai:forecast:list`，返回单个备件的历史预测趋势。
+
+---
+
+## 4. XGBoost 超参数清单 (论文表 3-3)
+
+配置集中在 [XGBoostProperties.java](file:///Users/weiyaozhou/Documents/langdong/backend/src/main/java/com/langdong/spare/forecast/config/XGBoostProperties.java)，可通过 `forecast.xgboost.*` 覆盖。共 **4 个 Booster**：1 个分类器（阶段一）+ 1 个点回归器 + 2 个分位数回归器（阶段二）。
+
+| 超参 | 阶段一（`classifier`，binary:logistic） | 阶段二（`regressor`，reg:squarederror / reg:quantileerror） |
+|---|---|---|
+| num_round | 100 | 150 |
+| max_depth | 4 | 5 |
+| eta | 0.1 | 0.08 |
+| min_child_weight | 3 | 2 |
+| subsample | 0.8 | 0.8 |
+| colsample_bytree | 0.8 | 0.8 |
+| reg_alpha | 0 | 0.01 |
+| reg_lambda | 1.0 | 1.0 |
+
+- **随机种子**：`forecast.xgboost.seed = 42`（论文硬约束，保证训练可复现）。
+- **分位数区间**：下界 τ `forecast.xgboost.quantileLower = 0.05`、上界 τ `quantileUpper = 0.95`（构造 90% 预测区间）。
+
+---
+
+## 5. 特征清单 (论文表 3-2，顺序固定)
+
+由 [FeatureBuilder.java](file:///Users/weiyaozhou/Documents/langdong/backend/src/main/java/com/langdong/spare/forecast/feature/FeatureBuilder.java) 构造，严格防泄露（统计窗口截止预测月前一月，`FeatureBuilderLeakTest` 断言）。
+
+**阶段一分类器（9 维）**：`lag_1`、`lag_3_mean`、`lag_3_std`、`zero_ratio_6`、`EquipHr`（上月设备运行时长）、`RepairCnt`（上月维修工单数）、`Month`、`ABC_code`、`XYZ_code`。
+**阶段二回归器（+2 维，仅正需求子集）**：`pos_lag_1`（最近一次正需求消耗量）、`pos_lag_3_mean`（最近三次正需求消耗均值）。
+
+- 新备件无历史记录时：预测任务**跳过并标注「数据不足」，不抛异常**（对应 TC-FC-04）。
+
+---
+
+## 6. 所有「⚠️待确认」参数当前取值（提示词点名，请逐条与论文核对）
+
+> 以下为提示词标注「⚠️待确认」、当前先用默认值的项，集中列出供核对。
+
+| ⚠️ 待确认项 | 当前取值 | 落点 |
+|---|---|---|
+| **设备关键度打分口径** | **关键=1、非关键=0**（二值） | `AbcXyzClassifier` 取 `is_critical` |
+| **`Month` 特征编码方式** | **整数 1~12**（未启用 sin/cos 周期编码） | `FeatureBuilder` |
+| **第一阶段概率校准方法** | 默认 **Isotonic Regression（保序回归）**；正样本极少/保序不稳定时回退 **Platt scaling** | `calibration/ProbabilityCalibrator` |
+| ABC 帕累托阈值 | A ≤ 0.70；B ≤ 0.90；其余 C | `ForecastProperties.Classify` |
+| XYZ CV² 阈值 | X<0.5；0.5≤Y<1.0；Z≥1.0 | 同上 |
+| **ABC_code / XYZ_code**（论文表 3-2 写死） | A=3/B=2/C=1；X=1/Y=2/Z=3 | 无覆盖入口 |
+
+- **Brier Score 对齐**：训练日志打印每次校准前后 Brier；论文报告两阶段平均 ≈ **0.15**，合成数据当前落在 **0.09–0.25**，需在真实 `spare_db` 上复核。
+
+---
+
+## 7. 真实业务库评估（待办）
+
+当前 `EvaluationRunner` 使用合成/可控数据核对指标量级，**不连真实库**。要用真实 `spare_db` 评估：注入 `ForecastFeatureLoader` 从业务表（`biz_requisition_item` 等）读取真实月度消耗序列，替换 `EvaluationRunner#buildSyntheticSeries()`，再核对 wMAPE / MASE / Brier / CRPS / 90% 覆盖率是否落在论文表 3-4/3-5/3-7/3-12 量级。
+
+---
+
+## 8. 测试覆盖（JUnit 5，`forecast` 包 40 tests 全通过）
+
+| 测试类 | 覆盖的提示词测试要求 |
+|---|---|
+| `FeatureBuilderLeakTest` | ① 防泄露 |
+| `LeadTimeDemandSimulatorTest` | ② 蒙特卡洛可复现、④ 跨月/单月分支 |
+| `TruncatedNormalSamplerTest` | ③ 截断正态（均值≈μ、min≥0、分位数） |
+| `TwoStageNumericTest` | ⑤ D_hat = p×ŷ、L ≤ ŷ ≤ U |
+| `StockThresholdServiceTest` / `ReplenishmentServiceTest` | ⑥ 新备件跳过、⑦ 服务水平映射、补货排序 |
+| `ProbabilityCalibratorTest` / `IsotonicRegressionTest` | 模块 E 校准 |
+| `XgbTrainerSmokeTest` | ⑧ 训练/保存/加载/推理冒烟 |
+| `IncrementalSnapshotTest` | 增量快照优化 |
+| `EvaluationRunner` | 模块 H 指标产出 |
+
+> 运行全部 forecast 测试（Apple Silicon 需先 `export DYLD_LIBRARY_PATH=/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH`）：
+> ```bash
+> cd backend && /Users/weiyaozhou/IdeaProjects/apache-maven-3.8.8-bin/apache-maven-3.8.8/bin/mvn test -Dtest='com.langdong.spare.forecast.**'
+> ```

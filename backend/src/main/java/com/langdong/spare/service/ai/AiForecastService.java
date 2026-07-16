@@ -56,7 +56,7 @@ public class AiForecastService {
     private SbaForecastServiceImpl sbaForecastService;
 
     @Autowired
-    private StockThresholdService stockThresholdService;
+    private OldStockThresholdService stockThresholdService;
 
     @Autowired
     private AiForecastResultMapper aiForecastResultMapper;
