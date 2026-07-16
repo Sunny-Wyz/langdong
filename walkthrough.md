@@ -1,6 +1,6 @@
 # JDK 21 虚拟线程升级 & Python 需求预测与库存仿真重构验证说明
 
-本报告汇总了 Spring Boot 后端项目升级（JDK 21 + 虚拟线程）、Python AI 微服务重构（两阶段 Hurdle-Gamma 需求预测模型与蒙特卡洛提前期库存仿真）、以及前端项目整体升级为 Vue 3 + TS + Vite + Pinia 项目骨架的全部修改、设计初衷、系统架构意义和验证结果。
+本报告汇总了 Spring Boot 后端项目升级（JDK 21 + 虚拟线程）、Python AI 微服务重构（两阶段 Hurdle-Gamma 需求预测模型与蒙特卡洛提前期库存仿真）、以及前端项目整体升级为 Vue 3 + TS + Vite + Pinia 并引入双 Token 静默刷新控制的全部修改、设计初衷、系统架构意义和验证结果。
 
 ---
 
@@ -53,7 +53,7 @@
 * **接口服务**：暴露了 `POST /api/algorithm/inventory-calc` API。
 
 ### 2. 为什么这么干（设计初衷）
-* **解决非平稳跨月提前期的求和难题**：采购提前期 $L$ 通常不刚好等于整月工作天数，且其起始点在当月是随机发生的。如果发生跨月，提前期内的需求就是首月剩余天数需求与次月起始天数需求的叠加。由于需求是间歇性的（Bernoulli-Gamma 复合分布），直接通过解析法求该复合分布的多期卷积极其困难。
+* **解决非平稳跨月提前期的求和难题**：采购提前期 $L$ 通常不刚好等于整月工作天数，且其起始点在当月是随机发生的。如果发生跨月，提前期内的需求就是首月剩余天数需求与次月起始天数需求的叠加。由于需求是间歇性的（Bernoulli-Gamma 复合分布），直接通过解析法求该复合分布的多期卷极其困难。
 * **利用计算机仿真求解经验分布**：通过蒙特卡洛法模拟 10000 次随机采购触发和需求采样，可以直接得到提前期累计需求的经验分布，绕过了复杂的解析卷积计算，能够以极高精度逼近真实的 Cycle Service Level (CSL)。
 
 ### 3. 这么干的意义/价值
@@ -79,28 +79,36 @@
 ### 3. 这么干的意义/价值
 * **显著增强系统架构的健壮性与可维护性**：消除了 JVM 崩溃的隐患，简化了部署依赖。
 * **保障极致的生产重算性能**：通过批处理，全量重算效率提升了数十倍，配合 Java 虚拟线程的高并发调度，使整个重算流程在秒级内完成。
-* **规范数据一致性**：最终计算结果通过 Java 强事务（`@Transactional`）一致性写入数据库表 `t_spare_classify` 和 `t_prediction_result` ，保障了底层数据仓储的安全与清洁。
+* **规范数据一致性**：最终计算结果通过 Java 强事务（`@Transactional`）一致性写入数据库表 `t_spare_classify` 和 `t_prediction_result`，保障了底层数据仓储的安全与清洁。
 
 ---
 
-## Part 5: 前端项目升级（Vue 3 + TS + Vite + Pinia 架构重构）
+## Part 5: 前端项目升级与双 Token 静默刷新机制
 
 ### 1. 变更内容汇总
-* **构建系统升级**：物理删除 `vue.config.js`，新建了基于 ESM 规范的 [vite.config.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/vite.config.ts)，重新配置了服务端口 3000 以及针对 Java 接口的 `/api` 代理中转规则。
-* **根目录与单页入口调整**：物理删除 `public/index.html`，于前端项目根目录下新建 [index.html](file:///Users/weiyaozhou/Documents/langdong/frontend/index.html) 并添加 `<script type="module" src="/src/main.ts"></script>` 作为 Vite 加载入口。
-* **TypeScript 配置**：新建 [tsconfig.json](file:///Users/weiyaozhou/Documents/langdong/frontend/tsconfig.json) 以规范开发期类型校验；新建了 [vite-env.d.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/vite-env.d.ts) 补充 `.vue` SFC 单文件组件在 TypeScript 环境下的模块生命机制。
-* **状态管理重构**：物理删除 `src/store/index.js`，重构为基于 Pinia 规范的 [auth.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/store/auth.ts) 集中状态模块，自动对接 `localStorage` 数据缓存持久化。
-* **路由配置升级**：物理删除 `src/router/index.js`，新建 [index.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/router/index.ts) 适配 Vue Router 4，利用 `createWebHashHistory` 与按需懒加载结构重新整合了全量组件路由，并完成了路由前置守卫中 Pinia Auth Store 的拦截判断改造。
-* **引导加载升级**：物理删除 `src/main.js`，新建 [main.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/main.ts)，使用 Vue 3 新增的 `createApp` 初始化实例，注入了 Pinia、Vue Router 4 以及 Element Plus（完全兼容原 Element UI 基础组件），并将 axios 网络请求请求器全局挂载到 `app.config.globalProperties.$http` 以平滑过渡旧有语法。
+* **构建系统升级**：物理删除 `vue.config.js`，新建了基于 ESM 规范的 [vite.config.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/vite.config.ts)，重新配置了开发服务及 `/api` 代理转发。
+* **单页入口调整**：物理删除 `public/index.html`，于前端项目根目录下新建 [index.html](file:///Users/weiyaozhou/Documents/langdong/frontend/index.html) 作为 Vite 冷启动的主入口。
+* **TS 与声明支持**：新建 [tsconfig.json](file:///Users/weiyaozhou/Documents/langdong/frontend/tsconfig.json)（开启 `"allowJs": true` 以兼容 transition 期间的 JS 文件）与 [vite-env.d.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/vite-env.d.ts) 类型声明。
+* **双 Token 状态管理**：物理删除 `src/store/index.js`，基于 Pinia **Setup Store** 语法新建了 [auth.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/store/auth.ts)：
+  - 定义 `accessToken`、`refreshToken`、`username`、`menus`、`permissions` 状态。
+  - 实现 `setTokens`、`logout` 和异步调用 `/api/v1/auth/refresh` 刷新令牌的 `refreshAccessToken()` 动作。
+* **双 Token 静默刷新网络层**：物理删除 `src/utils/request.js`，新建 TypeScript 版的 [request.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/utils/request.ts)：
+  - 自动拦截请求并注入最新的 `accessToken` 请求头。
+  - 拦截 401 并发请求。在刷新 `accessToken` 期间，通过**并发重试等待队列（retryQueue）**挂起其他并发请求。一旦新 Token 换取成功，利用新 Token 重新发送并发队列中的全部请求以实现用户无感知的网络重试；若刷新失败则清空队列强制登出。
+* **路由配置与防踢守卫**：物理删除 `src/router/index.js`，新建 [index.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/router/index.ts)：
+  - 采用 Vue Router 4 的 `createRouter` 初始化路由表。
+  - 在前置路由守卫 `beforeEach` 中，如果 Access Token 过期但 Refresh Token 仍有效，将在解析路由前**提前主动触发静默刷新动作**，实现无感会话恢复；如若彻底失效，才引导拦截跳转到 `/login`。
+* **启动引导**：物理删除 `src/main.js`，新建 [main.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/main.ts)，使用 Vue 3 渲染实例并挂载 Pinia、Vue Router 4 以及 Element Plus。
 
 ### 2. 为什么这么干（设计初衷）
-* **开发环境极速冷启动**：Webpack 启动时必须预先对所有业务代码打包，而 Vite 利用现代浏览器原生支持的 ES Modules 特性，以“按需加载（On-demand）”和“毫秒级热更新（HMR）”彻底终结了长达数分钟的启动编译等待。
-* **引入严格的类型约束**：JavaScript 因缺乏编译期静态类型检查，许多变量属性拼写错误或类型定义冲突只能在浏览器运行时抛错暴露。通过 TypeScript 强类型保障，能够在编码阶段实现全面的自动补全和零缺陷检验。
-* **状态管理扁平化与精简**：Vuex 采用复杂的 Mutations/Actions/Getter 模式，多处逻辑割裂。Pinia 原生支持组合式（Composition Store）写法，没有复杂的 Mutations，直接通过属性修改即可触发状态更新。
+* **开发环境极速冷启动**：Webpack 启动时必须预先对所有业务代码打包，而 Vite 利用现代浏览器原生支持的 ES Modules 特性，以“按需加载（On-demand）”和“极速热更新（HMR）”避免了漫长等待。
+* **引入严格的类型约束**：通过 TypeScript 强类型保障，能够在编码阶段实现全面的自动补全和零缺陷检验。
+* **安全性与用户体验（CSL）的平衡**：若只用单个短效 Access Token，用户会频繁被踢下线；若使用长效 Token，一旦泄露风险极大。通过双 Token 机制，Access Token 保持短效（如 15 分钟），Refresh Token 保持长效（如 7 天），实现安全与体验的绝佳平衡。
+* **防止并发请求导致 Token 刷新死循环**：在 Token 过期时，页面上可能有多个 AJAX 请求并发发出。如果不对请求进行挂起队列控制，每个请求都会触发一次刷新 Token 接口，不仅浪费后端资源，还会因为旧的 Refresh Token 被多次核销导致刷新逻辑报错失效。引入 `retryQueue` 并发队列锁是解决该工程问题的行业标准答案。
 
 ### 3. 这么干的意义/价值
-* **全面提升团队工程开发敏捷性**：前端工程师在对几百个 Vue 页面进行联调和维护时，Vite 的极速 HMR 和 TS 的全局代码补全重构能够减少 80% 以上的无谓等待和隐式拼写错误。
-* **精炼应用包体积**：Vite 配合 Rollup 能够执行最严苛的 Tree Shaking 摇树优化，打包体积相较于原本的 Webpack CLI 大幅精炼，明显降低了生产包的网络加载时间，提升了系统首屏渲染性能。
+* **实现极致无感知的系统可用性**：即便 Access Token 在用户操作期间过期，用户在点击菜单、提交数据时也绝不会看到错误弹窗或被突然踢出，后台自动在毫秒级内完成静默刷新与请求无缝重发，体验完全流畅。
+* **避免无谓的后端接口刷新过载**：通过 `isRefreshing` 独占锁控制，保证了高并发数据看板等页面在 Token 过期时，只会发起一次刷新接口调用，保护了后端鉴权服务器的安全。
 
 ---
 

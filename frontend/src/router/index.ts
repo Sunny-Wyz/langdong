@@ -144,11 +144,23 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  if (to.meta?.requiresAuth && !authStore.token) {
-    next('/login')
-  } else if (to.path === '/ai/job-center') {
+  if (to.meta?.requiresAuth) {
+    if (!authStore.accessToken) {
+      if (authStore.refreshToken) {
+        const success = await authStore.refreshAccessToken()
+        if (success) {
+          next()
+          return
+        }
+      }
+      next('/login')
+      return
+    }
+  }
+
+  if (to.path === '/ai/job-center') {
     const permissions = authStore.permissions || []
     const username = authStore.username || localStorage.getItem('username') || ''
     if (permissions.length > 0 && username !== 'admin' && !permissions.includes('ai:forecast:list')) {
