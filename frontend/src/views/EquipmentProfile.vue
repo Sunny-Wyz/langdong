@@ -1,16 +1,17 @@
 <template>
     <div class="page-container equipment-profile-container">
         <el-card class="box-card">
-            <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
+            <template #header>
+              <div class="phead header">
+                <span class="title-icon">⚙️</span>
                 <div class="title">设备档案管理</div>
                 <div class="head-btn-group">
                 <el-button style="float: right; margin-left: 10px;" type="primary" size="small" @click="handleAdd">
                     新增设备
                 </el-button>
-            
                 </div>
-            </div>
+              </div>
+            </template>
 
             <!-- 设备表格 -->
             <el-table v-loading="loading" :data="list" border style="width: 100%; margin-top: 15px;">
@@ -19,23 +20,23 @@
                 <el-table-column prop="model" label="规格型号" width="120" />
                 <el-table-column prop="department" label="所属产线/部门" width="150" />
                 <el-table-column prop="status" label="状态" width="100" align="center" >
-                    <template slot-scope="{row}">
+                    <template #default="{ row }">
                         <el-tag :type="row.status === '正常' ? 'success' : 'warning'">{{ row.status }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column prop="remark" label="备注" show-overflow-tooltip />
                 <el-table-column label="操作" width="280" fixed="right" align="center">
-                    <template slot-scope="{row}">
-                        <el-button type="success" size="mini" @click="handleManageSpareParts(row)">配套备件</el-button>
-                        <el-button type="primary" size="mini" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="mini" @click="handleDelete(row)">删除</el-button>
+                    <template #default="{ row }">
+                        <el-button type="success" size="small" @click="handleManageSpareParts(row)">配套备件</el-button>
+                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </el-card>
 
         <!-- 新增/编辑设备弹窗 -->
-        <el-dialog :title="dialogStatus === 'create' ? '新增设备' : '编辑设备'" :visible.sync="dialogFormVisible" width="500px">
+        <el-dialog :title="dialogStatus === 'create' ? '新增设备' : '编辑设备'" v-model="dialogFormVisible" width="500px">
             <el-form ref="dataForm" :rules="rules" :model="temp" label-position="right" label-width="110px">
                 <el-form-item label="设备编码" prop="code">
                     <el-input v-model="temp.code" placeholder="如: EQ-001" />
@@ -60,15 +61,16 @@
                     <el-input type="textarea" v-model="temp.remark" :rows="3" />
                 </el-form-item>
             </el-form>
-            <div slot="footer" class="dialog-footer">
+            <template #footer>
+              <div class="dialog-footer">
                 <el-button @click="dialogFormVisible = false">取消</el-button>
                 <el-button type="primary" @click="dialogStatus === 'create' ? createData() : updateData()">确定</el-button>
-            </div>
+              </div>
+            </template>
         </el-dialog>
 
         <!-- 配套备件管理弹窗 -->
-        <el-dialog :title="'【' + currentEq.name + '】配套备件管理'" :visible.sync="sparePartDialogVisible" width="800px">
-
+        <el-dialog :title="'【' + currentEq.name + '】配套备件管理'" v-model="sparePartDialogVisible" width="800px">
             <div style="margin-bottom: 20px; text-align: right;">
                 <el-select v-model="selectedNewSparePart" placeholder="请选择要加入配置的备件" filterable
                     style="width: 400px; margin-right: 10px;">
@@ -83,179 +85,233 @@
                 <el-table-column prop="model" label="型号" />
                 <el-table-column prop="category" label="类别" />
                 <el-table-column label="目前库存" width="100" >
-                    <template slot-scope="{row}">
+                    <template #default="{ row }">
                         {{ row.quantity }} {{ row.unit }}
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" width="100" align="center">
-                    <template slot-scope="{row}">
-                        <el-button type="danger" size="mini" @click="removeLinkedSparePart(row)">移除</el-button>
+                    <template #default="{ row }">
+                        <el-button type="danger" size="small" @click="removeLinkedSparePart(row)">移除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
-            <div slot="footer" class="dialog-footer">
+            <template #footer>
+              <div class="dialog-footer">
                 <el-button @click="sparePartDialogVisible = false">关闭</el-button>
-            </div>
+              </div>
+            </template>
         </el-dialog>
     </div>
 </template>
 
-<script>
-import request from '@/utils/request'
+<script setup lang="ts">
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import request from '../utils/request'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 
-export default {
-    name: 'EquipmentProfile',
-    data() {
-        return {
-            list: [],
-            loading: true,
-            dialogFormVisible: false,
-            dialogStatus: '',
-            temp: {
-                id: undefined,
-                code: '',
-                name: '',
-                model: '',
-                department: '',
-                status: '正常',
-                remark: ''
-            },
-            rules: {
-                code: [{ required: true, message: '设备编码必填', trigger: 'blur' }],
-                name: [{ required: true, message: '设备名称必填', trigger: 'blur' }]
-            },
+const list = ref<any[]>([])
+const loading = ref(true)
+const dialogFormVisible = ref(false)
+const dialogStatus = ref('')
+const dataForm = ref<FormInstance | null>(null)
 
-            // 备件关联
-            sparePartDialogVisible: false,
-            currentEq: {},
-            linkedSpareParts: [],
-            allSpareParts: [],
-            selectedNewSparePart: null,
-            spLoading: false
-        }
-    },
-    created() {
-        this.getList()
-        this.getAllSpareParts()
-    },
-    methods: {
-        getList() {
-            this.loading = true
-            request.get('/equipments').then(res => {
-                this.list = res.data
-                this.loading = false
-            }).catch(() => {
-                this.loading = false
-            })
-        },
-        getAllSpareParts() {
-            request.get('/spare-parts').then(res => {
-                this.allSpareParts = res.data
-            })
-        },
-        resetTemp() {
-            this.temp = {
-                id: undefined,
-                code: '',
-                name: '',
-                model: '',
-                department: '',
-                status: '正常',
-                remark: ''
-            }
-        },
-        handleAdd() {
-            this.resetTemp()
-            this.dialogStatus = 'create'
-            this.dialogFormVisible = true
-            this.$nextTick(() => {
-                this.$refs['dataForm'].clearValidate()
-            })
-        },
-        createData() {
-            this.$refs['dataForm'].validate((valid) => {
-                if (valid) {
-                    request.post('/equipments', this.temp).then(() => {
-                        this.getList()
-                        this.dialogFormVisible = false
-                        this.$message.success('创建成功')
-                    })
-                }
-            })
-        },
-        handleEdit(row) {
-            this.temp = Object.assign({}, row)
-            this.dialogStatus = 'update'
-            this.dialogFormVisible = true
-            this.$nextTick(() => {
-                this.$refs['dataForm'].clearValidate()
-            })
-        },
-        updateData() {
-            this.$refs['dataForm'].validate((valid) => {
-                if (valid) {
-                    request.put(`/equipments/${this.temp.id}`, this.temp).then(() => {
-                        this.getList()
-                        this.dialogFormVisible = false
-                        this.$message.success('更新成功')
-                    })
-                }
-            })
-        },
-        handleDelete(row) {
-            this.$confirm('确认删除该设备台账? 如果有关联的备件也将同时解除绑定', '提示', {
-                type: 'warning'
-            }).then(() => {
-                request.delete(`/equipments/${row.id}`).then(() => {
-                    this.getList()
-                    this.$message.success('删除成功')
-                })
-            }).catch(() => { })
-        },
+interface TempEq {
+    id?: number
+    code: string
+    name: string
+    model: string
+    department: string
+    status: string
+    remark: string
+}
 
-        // 关联操作逻辑
-        handleManageSpareParts(row) {
-            this.currentEq = row
-            this.selectedNewSparePart = null
-            this.sparePartDialogVisible = true
-            this.refreshLinkedSpareParts()
-        },
-        refreshLinkedSpareParts() {
-            this.spLoading = true
-            request.get(`/equipments/${this.currentEq.id}/spare-parts`).then(res => {
-                this.linkedSpareParts = res.data
-                this.spLoading = false
-            })
-        },
-        addLinkedSparePart() {
-            if (!this.selectedNewSparePart) {
-                this.$message.warning("请先从下拉框选择一个备件")
-                return
-            }
-            request.post(`/equipments/${this.currentEq.id}/spare-parts`, {
-                sparePartId: this.selectedNewSparePart
-            }).then(() => {
-                this.$message.success("关联成功")
-                this.selectedNewSparePart = null
-                this.refreshLinkedSpareParts()
-            })
-        },
-        removeLinkedSparePart(spRow) {
-            this.$confirm(`确认解除与备件 [${spRow.name}] 的关联吗？`, '移除关联', {
-                type: 'warning'
-            }).then(() => {
-                request.delete(`/equipments/${this.currentEq.id}/spare-parts/${spRow.id}`).then(() => {
-                    this.$message.success("解除关联成功")
-                    this.refreshLinkedSpareParts()
-                })
-            }).catch(() => { })
-        }
+const temp = reactive<TempEq>({
+    id: undefined,
+    code: '',
+    name: '',
+    model: '',
+    department: '',
+    status: '正常',
+    remark: ''
+})
+
+const rules = {
+    code: [{ required: true, message: '设备编码必填', trigger: 'blur' }],
+    name: [{ required: true, message: '设备名称必填', trigger: 'blur' }]
+}
+
+// 备件关联
+const sparePartDialogVisible = ref(false)
+const currentEq = ref<any>({})
+const linkedSpareParts = ref<any[]>([])
+const allSpareParts = ref<any[]>([])
+const selectedNewSparePart = ref<number | null>(null)
+const spLoading = ref(false)
+
+async function getList() {
+    loading.value = true
+    try {
+        const res = await request.get('/equipments')
+        list.value = res.data
+    } catch (e) {
+        console.error('获取设备列表失败', e)
+    } finally {
+        loading.value = false
     }
 }
+
+async function getAllSpareParts() {
+    try {
+        const res = await request.get('/spare-parts')
+        allSpareParts.value = res.data
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+function resetTemp() {
+    temp.id = undefined
+    temp.code = ''
+    temp.name = ''
+    temp.model = ''
+    temp.department = ''
+    temp.status = '正常'
+    temp.remark = ''
+}
+
+function handleAdd() {
+    resetTemp()
+    dialogStatus.value = 'create'
+    dialogFormVisible.value = true
+    nextTick(() => {
+        if (dataForm.value) dataForm.value.clearValidate()
+    })
+}
+
+function createData() {
+    if (!dataForm.value) return
+    dataForm.value.validate(async (valid) => {
+        if (valid) {
+            try {
+                await request.post('/equipments', temp)
+                getList()
+                dialogFormVisible.value = false
+                ElMessage.success('创建成功')
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    })
+}
+
+function handleEdit(row: any) {
+    temp.id = row.id
+    temp.code = row.code
+    temp.name = row.name
+    temp.model = row.model
+    temp.department = row.department
+    temp.status = row.status
+    temp.remark = row.remark
+    dialogStatus.value = 'update'
+    dialogFormVisible.value = true
+    nextTick(() => {
+        if (dataForm.value) dataForm.value.clearValidate()
+    })
+}
+
+function updateData() {
+    if (!dataForm.value) return
+    dataForm.value.validate(async (valid) => {
+        if (valid) {
+            try {
+                await request.put(`/equipments/${temp.id}`, temp)
+                getList()
+                dialogFormVisible.value = false
+                ElMessage.success('更新成功')
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    })
+}
+
+function handleDelete(row: any) {
+    ElMessageBox.confirm('确认删除该设备台账? 如果有关联 of 备件也将同时解除绑定', '提示', {
+        type: 'warning'
+    }).then(async () => {
+        try {
+            await request.delete(`/equipments/${row.id}`)
+            getList()
+            ElMessage.success('删除成功')
+        } catch (e) {
+            console.error(e)
+        }
+    }).catch(() => { })
+}
+
+function handleManageSpareParts(row: any) {
+    currentEq.value = row
+    selectedNewSparePart.value = null
+    sparePartDialogVisible.value = true
+    refreshLinkedSpareParts()
+}
+
+async function refreshLinkedSpareParts() {
+    spLoading.value = true
+    try {
+        const res = await request.get(`/equipments/${currentEq.value.id}/spare-parts`)
+        linkedSpareParts.value = res.data
+    } catch (e) {
+        console.error(e)
+    } finally {
+        spLoading.value = false
+    }
+}
+
+async function addLinkedSparePart() {
+    if (!selectedNewSparePart.value) {
+        ElMessage.warning('请先从下拉框选择一个备件')
+        return
+    }
+    try {
+        await request.post(`/equipments/${currentEq.value.id}/spare-parts`, {
+            sparePartId: selectedNewSparePart.value
+        })
+        ElMessage.success('关联成功')
+        selectedNewSparePart.value = null
+        refreshLinkedSpareParts()
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+function removeLinkedSparePart(spRow: any) {
+    ElMessageBox.confirm(`确认解除与备件 [${spRow.name}] 的关联吗？`, '移除关联', {
+        type: 'warning'
+    }).then(async () => {
+        try {
+            await request.delete(`/equipments/${currentEq.value.id}/spare-parts/${spRow.id}`)
+            ElMessage.success('解除关联成功')
+            refreshLinkedSpareParts()
+        } catch (e) {
+            console.error(e)
+        }
+    }).catch(() => { })
+}
+
+onMounted(() => {
+    getList()
+    getAllSpareParts()
+})
 </script>
 
 <style scoped>
 .equipment-profile-container {
     padding: 20px;
+}
+.title-icon {
+  margin-right: 8px;
+  font-size: 18px;
 }
 </style>

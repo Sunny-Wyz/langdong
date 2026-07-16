@@ -1,16 +1,17 @@
 <template>
     <div class="page-container supplier-container">
         <el-card>
-            <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
+            <template #header>
+              <div class="phead header">
+                <span class="title-icon">🛒</span>
                 <div class="title">供应商档案管理</div>
                 <div class="head-btn-group">
                 <el-button style="float: right;" type="primary" size="small" @click="handleAdd">新增供应商</el-button>
                 <el-button style="float: right; margin-right: 10px;" type="info" size="small"
                     @click="goToCategory">品类字典</el-button>
-            
                 </div>
-            </div>
+              </div>
+            </template>
 
             <el-table v-loading="loading" :data="list" border style="width: 100%">
                 <el-table-column prop="code" label="编号" width="100" sortable="custom" />
@@ -19,7 +20,7 @@
                 <el-table-column prop="phone" label="联系电话" width="120" />
                 <el-table-column prop="unifiedSocialCreditCode" label="统一社会信用代码" width="180" show-overflow-tooltip sortable="custom" />
                 <el-table-column label="供货品类" min-width="200" >
-                    <template slot-scope="{row}">
+                    <template #default="{ row }">
                         <el-tag v-for="cat in row.categories" :key="cat.id" size="small"
                             style="margin-right: 5px; margin-bottom: 5px;">
                             {{ cat.name }}
@@ -27,22 +28,22 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="status" label="状态" width="80" align="center" >
-                    <template slot-scope="{row}">
+                    <template #default="{ row }">
                         <el-tag :type="row.status === '正常' ? 'success' : 'danger'">{{ row.status }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" width="280" align="center">
-                    <template slot-scope="{row}">
-                        <el-button type="success" size="mini" @click="handleCategories(row)">供货品类</el-button>
-                        <el-button type="primary" size="mini" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="mini" @click="handleDelete(row)">删除</el-button>
+                    <template #default="{ row }">
+                        <el-button type="success" size="small" @click="handleCategories(row)">供货品类</el-button>
+                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </el-card>
 
         <!-- 供应商表单 -->
-        <el-dialog :title="dialogStatus === 'create' ? '新增供应商' : '编辑供应商'" :visible.sync="dialogFormVisible"
+        <el-dialog :title="dialogStatus === 'create' ? '新增供应商' : '编辑供应商'" v-model="dialogFormVisible"
             width="600px">
             <el-form ref="dataForm" :rules="rules" :model="temp" label-position="right" label-width="130px">
                 <el-row>
@@ -88,137 +89,220 @@
                     <el-input type="textarea" v-model="temp.remark" :rows="2" />
                 </el-form-item>
             </el-form>
-            <div slot="footer" class="dialog-footer">
+            <template #footer>
+              <div class="dialog-footer">
                 <el-button @click="dialogFormVisible = false">取消</el-button>
                 <el-button type="primary"
                     @click="dialogStatus === 'create' ? createData() : updateData()">确定</el-button>
-            </div>
+              </div>
+            </template>
         </el-dialog>
 
         <!-- 分配品类弹窗 -->
-        <el-dialog :title="'分配【' + currentSupplier.name + '】的供货品类'" :visible.sync="categoryDialogVisible" width="500px">
+        <el-dialog :title="'分配【' + currentSupplier.name + '】的供货品类'" v-model="categoryDialogVisible" width="500px">
             <el-select v-model="selectedCategories" multiple placeholder="请选择该供应商能提供的品类" style="width: 100%;">
                 <el-option v-for="cat in allCategories" :key="cat.id" :label="cat.name" :value="cat.id" />
             </el-select>
-            <div slot="footer" class="dialog-footer">
+            <template #footer>
+              <div class="dialog-footer">
                 <el-button @click="categoryDialogVisible = false">取消</el-button>
                 <el-button type="primary" @click="saveCategories">保存关联</el-button>
-            </div>
+              </div>
+            </template>
         </el-dialog>
     </div>
 </template>
 
-<script>
-import request from '@/utils/request'
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import request from '../utils/request'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 
-export default {
-    name: 'SupplierProfile',
-    data() {
-        return {
-            list: [],
-            loading: false,
-            dialogFormVisible: false,
-            dialogStatus: '',
-            temp: {
-                id: undefined, code: '', name: '', unifiedSocialCreditCode: '', bankAccountInfo: '',
-                contactPerson: '', phone: '', address: '', status: '正常', remark: ''
-            },
-            rules: {
-                code: [{ required: true, message: '必填', trigger: 'blur' }],
-                name: [{ required: true, message: '必填', trigger: 'blur' }]
-            },
+const router = useRouter()
 
-            categoryDialogVisible: false,
-            currentSupplier: {},
-            allCategories: [],
-            selectedCategories: []
-        }
-    },
-    created() {
-        this.getList()
-        this.getAllCategories()
-    },
-    methods: {
-        goToCategory() {
-            this.$router.push('/home/supply-categories')
-        },
-        getList() {
-            this.loading = true
-            request.get('/suppliers').then(res => {
-                this.list = res.data
-                this.loading = false
-            })
-        },
-        getAllCategories() {
-            request.get('/supply-categories').then(res => {
-                this.allCategories = res.data
-            })
-        },
-        resetTemp() {
-            this.temp = { id: undefined, code: '', name: '', unifiedSocialCreditCode: '', bankAccountInfo: '', contactPerson: '', phone: '', address: '', status: '正常', remark: '' }
-        },
-        handleAdd() {
-            this.resetTemp()
-            this.dialogStatus = 'create'
-            this.dialogFormVisible = true
-        },
-        createData() {
-            this.$refs['dataForm'].validate((valid) => {
-                if (valid) {
-                    request.post('/suppliers', this.temp).then(() => {
-                        this.getList()
-                        this.dialogFormVisible = false
-                        this.$message.success('创建成功')
-                    })
-                }
-            })
-        },
-        handleEdit(row) {
-            this.temp = Object.assign({}, row)
-            this.dialogStatus = 'update'
-            this.dialogFormVisible = true
-        },
-        updateData() {
-            this.$refs['dataForm'].validate((valid) => {
-                if (valid) {
-                    request.put(`/suppliers/${this.temp.id}`, this.temp).then(() => {
-                        this.getList()
-                        this.dialogFormVisible = false
-                        this.$message.success('更新成功')
-                    })
-                }
-            })
-        },
-        handleDelete(row) {
-            this.$confirm('确认删除?', '提示', { type: 'warning' }).then(() => {
-                request.delete(`/suppliers/${row.id}`).then(() => {
-                    this.getList()
-                    this.$message.success('删除成功')
-                })
-            }).catch(() => {
-                this.$message.info('已取消删除')
-            })
-        },
-        handleCategories(row) {
-            this.currentSupplier = row
-            request.get(`/suppliers/${row.id}/categories`).then(res => {
-                this.selectedCategories = res.data.map(c => c.id)
-                this.categoryDialogVisible = true
-            })
-        },
-        saveCategories() {
-            request.post(`/suppliers/${this.currentSupplier.id}/categories`, { categoryIds: this.selectedCategories }).then(() => {
-                this.$message.success('关联保存成功')
-                this.categoryDialogVisible = false
-                this.getList() // Refresh the table so tags appear reactively
-            })
-        }
+const list = ref<any[]>([])
+const loading = ref(false)
+const dialogFormVisible = ref(false)
+const dialogStatus = ref('')
+const dataForm = ref<FormInstance | null>(null)
+
+interface TempSup {
+    id?: number
+    code: string
+    name: string
+    unifiedSocialCreditCode: string
+    bankAccountInfo: string
+    contactPerson: string
+    phone: string
+    address: string
+    status: string
+    remark: string
+}
+
+const temp = reactive<TempSup>({
+    id: undefined,
+    code: '',
+    name: '',
+    unifiedSocialCreditCode: '',
+    bankAccountInfo: '',
+    contactPerson: '',
+    phone: '',
+    address: '',
+    status: '正常',
+    remark: ''
+})
+
+const rules = {
+    code: [{ required: true, message: '必填', trigger: 'blur' }],
+    name: [{ required: true, message: '必填', trigger: 'blur' }]
+}
+
+const categoryDialogVisible = ref(false)
+const currentSupplier = ref<any>({})
+const allCategories = ref<any[]>([])
+const selectedCategories = ref<number[]>([])
+
+function goToCategory() {
+    router.push('/home/supply-categories')
+}
+
+async function getList() {
+    loading.value = true
+    try {
+        const res = await request.get('/suppliers')
+        list.value = res.data
+    } catch (e) {
+        console.error(e)
+    } finally {
+        loading.value = false
     }
 }
+
+async function getAllCategories() {
+    try {
+        const res = await request.get('/supply-categories')
+        allCategories.value = res.data
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+function resetTemp() {
+    temp.id = undefined
+    temp.code = ''
+    temp.name = ''
+    temp.unifiedSocialCreditCode = ''
+    temp.bankAccountInfo = ''
+    temp.contactPerson = ''
+    temp.phone = ''
+    temp.address = ''
+    temp.status = '正常'
+    temp.remark = ''
+}
+
+function handleAdd() {
+    resetTemp()
+    dialogStatus.value = 'create'
+    dialogFormVisible.value = true
+}
+
+function createData() {
+    if (!dataForm.value) return
+    dataForm.value.validate(async (valid) => {
+        if (valid) {
+            try {
+                await request.post('/suppliers', temp)
+                getList()
+                dialogFormVisible.value = false
+                ElMessage.success('创建成功')
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    })
+}
+
+function handleEdit(row: any) {
+    temp.id = row.id
+    temp.code = row.code
+    temp.name = row.name
+    temp.unifiedSocialCreditCode = row.unifiedSocialCreditCode
+    temp.bankAccountInfo = row.bankAccountInfo
+    temp.contactPerson = row.contactPerson
+    temp.phone = row.phone
+    temp.address = row.address
+    temp.status = row.status
+    temp.remark = row.remark
+    dialogStatus.value = 'update'
+    dialogFormVisible.value = true
+}
+
+function updateData() {
+    if (!dataForm.value) return
+    dataForm.value.validate(async (valid) => {
+        if (valid) {
+            try {
+                await request.put(`/suppliers/${temp.id}`, temp)
+                getList()
+                dialogFormVisible.value = false
+                ElMessage.success('更新成功')
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    })
+}
+
+function handleDelete(row: any) {
+    ElMessageBox.confirm('确认删除?', '提示', { type: 'warning' }).then(async () => {
+        try {
+            await request.delete(`/suppliers/${row.id}`)
+            getList()
+            ElMessage.success('删除成功')
+        } catch (e) {
+            console.error(e)
+        }
+    }).catch(() => {
+        ElMessage.info('已取消删除')
+    })
+}
+
+async function handleCategories(row: any) {
+    currentSupplier.value = row
+    try {
+        const res = await request.get(`/suppliers/${row.id}/categories`)
+        selectedCategories.value = res.data.map((c: any) => c.id)
+        categoryDialogVisible.value = true
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+async function saveCategories() {
+    try {
+        await request.post(`/suppliers/${currentSupplier.value.id}/categories`, { categoryIds: selectedCategories.value })
+        ElMessage.success('关联保存成功')
+        categoryDialogVisible.value = false
+        getList()
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+onMounted(() => {
+    getList()
+    getAllCategories()
+})
 </script>
 
 <style scoped>
 .supplier-container {
     padding: 20px;
+}
+.title-icon {
+  margin-right: 8px;
+  font-size: 18px;
 }
 </style>

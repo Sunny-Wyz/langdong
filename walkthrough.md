@@ -70,6 +70,7 @@
 * **网络调用优化**：
   * **LeadTimeDemandSimulator.java**：移除本地循环，改为将 $p_t, \mu_t, k, L, W, \alpha$ 打包发送至 Python 的 `/api/algorithm/inventory-calc` 接口，直接获取 ROP、SS 和平均值。
   * **StockThresholdService.java**：使用**批处理重构**：将所有有效备件的历史训练特征组合为一个大矩阵，调用 `/api/algorithm/train` 进行一次性全局训练；之后将所有推理特征一次性批量发送给 `/api/algorithm/predict` 进行批量预测。之后再循环测算各备件库存并持久化。
+  * **默认端口一致化（application.yml）**：将 Java 配置文件中 AI 微服务的 `base-url` 默认端口从 `8001` 优化匹配为 `8000`（Uvicorn 启动的默认端口），防止默认配置下的连接拒绝错误。
 
 ### 2. 为什么这么干（设计初衷）
 * **消除 Native 库带来的运维和跨平台隐患**：XGBoost4J 需要依赖底层 C++ 的 OMP 和 native 动态链接库。在跨平台部署（如从 macOS aarch64 开发环境到 Linux x86_64 生产环境）或容器化部署（Docker）中，经常因为动态链接库缺失、glibc 版本不匹配或多线程段错误（Segment Fault）导致 JVM 崩溃。
@@ -99,6 +100,9 @@
   - 采用 Vue Router 4 的 `createRouter` 初始化路由表。
   - 在前置路由守卫 `beforeEach` 中，如果 Access Token 过期但 Refresh Token 仍有效，将在解析路由前**提前主动触发静默刷新动作**，实现无感会话恢复；如若彻底失效，才引导拦截跳转到 `/login`。
 * **启动引导**：物理删除 `src/main.js`，新建 [main.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/main.ts)，使用 Vue 3 渲染实例并挂载 Pinia、Vue Router 4 以及 Element Plus。
+* **业务登录与主框架视图重构**：
+  - **Login.vue**：用 Vue 3 `<script setup lang="ts">` 重构，将 Vuex 状态提交逻辑重写为对 Pinia Store 的调用，支持 Element Plus 表单校验与错误信息展示。
+  - **Home.vue**：重构了后台的主框架布局。将原 Vue 2 的 `<el-submenu>` 替换为 Element Plus 的 `<el-sub-menu>`；将混合的 `v-for` / `v-if` 解耦重构为 Vue 3 规范的 `<template v-for>` 嵌套结构；将原本的 Vuex 全局状态和菜单逻辑重定向至 Pinia 状态树。
 
 ### 2. 为什么这么干（设计初衷）
 * **开发环境极速冷启动**：Webpack 启动时必须预先对所有业务代码打包，而 Vite 利用现代浏览器原生支持的 ES Modules 特性，以“按需加载（On-demand）”和“极速热更新（HMR）”避免了漫长等待。

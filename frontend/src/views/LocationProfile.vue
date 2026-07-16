@@ -1,16 +1,17 @@
 <template>
     <div class="page-container location-profile-container">
         <el-card class="box-card">
-            <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
+            <template #header>
+              <div class="phead header">
+                <span class="title-icon">📁</span>
                 <div class="title">货位档案管理</div>
                 <div class="head-btn-group">
                 <el-button style="float: right; margin-left: 10px;" type="primary" size="small" @click="handleAdd">
                     新增货位
                 </el-button>
-            
                 </div>
-            </div>
+              </div>
+            </template>
 
             <!-- 搜索和筛选器 -->
             <div class="filter-container">
@@ -25,24 +26,24 @@
                 <el-table-column prop="code" label="货位编码" width="120" sortable="custom" />
                 <el-table-column prop="name" label="货位名称" min-width="150" />
                 <el-table-column prop="zone" label="所属专区" width="120" >
-                    <template slot-scope="{row}">
+                    <template #default="{ row }">
                         <el-tag>{{ row.zone }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column prop="capacity" label="货位容量" width="120" />
                 <el-table-column prop="remark" label="备注" show-overflow-tooltip />
                 <el-table-column label="操作" width="250" fixed="right" align="center">
-                    <template slot-scope="{row}">
-                        <el-button type="info" size="mini" @click="handleViewSpareParts(row)">查看备件</el-button>
-                        <el-button type="primary" size="mini" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="mini" @click="handleDelete(row)">删除</el-button>
+                    <template #default="{ row }">
+                        <el-button type="info" size="small" @click="handleViewSpareParts(row)">查看备件</el-button>
+                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </el-card>
 
         <!-- 新增/编辑弹窗 -->
-        <el-dialog :title="dialogStatus === 'create' ? '新增货位' : '编辑货位'" :visible.sync="dialogFormVisible" width="500px">
+        <el-dialog :title="dialogStatus === 'create' ? '新增货位' : '编辑货位'" v-model="dialogFormVisible" width="500px">
             <el-form ref="dataForm" :rules="rules" :model="temp" label-position="right" label-width="100px">
                 <el-form-item label="货位编码" prop="code">
                     <el-input v-model="temp.code" placeholder="如: A-01-01" />
@@ -62,156 +63,198 @@
                     <el-input type="textarea" v-model="temp.remark" :rows="3" />
                 </el-form-item>
             </el-form>
-            <div slot="footer" class="dialog-footer">
+            <template #footer>
+              <div class="dialog-footer">
                 <el-button @click="dialogFormVisible = false">取消</el-button>
                 <el-button type="primary" @click="dialogStatus === 'create' ? createData() : updateData()">确定</el-button>
-            </div>
+              </div>
+            </template>
         </el-dialog>
 
         <!-- 关联备件列表弹窗 -->
-        <el-dialog :title="'【' + currentLoc.name + '】下的备件列表'" :visible.sync="sparePartDialogVisible" width="800px">
+        <el-dialog :title="'【' + currentLoc.name + '】下的备件列表'" v-model="sparePartDialogVisible" width="800px">
             <el-table :data="locSpareParts" border style="width: 100%">
                 <el-table-column prop="name" label="备件名称" />
                 <el-table-column prop="model" label="型号" />
                 <el-table-column prop="category" label="类别" />
                 <el-table-column label="库存" width="100" >
-                    <template slot-scope="{row}">
+                    <template #default="{ row }">
                         {{ row.quantity }} {{ row.unit }}
                     </template>
                 </el-table-column>
             </el-table>
-            <div slot="footer" class="dialog-footer">
+            <template #footer>
+              <div class="dialog-footer">
                 <el-button @click="sparePartDialogVisible = false">关闭</el-button>
-            </div>
+              </div>
+            </template>
         </el-dialog>
     </div>
 </template>
 
-<script>
-import request from '@/utils/request'
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import request from '../utils/request'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 
-export default {
-    name: 'LocationProfile',
-    data() {
-        return {
-            list: [],
-            loading: true,
-            listQuery: {
-                zone: ''
-            },
-            dialogFormVisible: false,
-            dialogStatus: '',
-            temp: {
-                id: undefined,
-                code: '',
-                name: '',
-                zone: '',
-                capacity: '',
-                remark: ''
-            },
-            rules: {
-                code: [{ required: true, message: '货位编码必填', trigger: 'blur' }],
-                name: [{ required: true, message: '货位名称必填', trigger: 'blur' }],
-                zone: [{ required: true, message: '请选择专区', trigger: 'change' }]
-            },
-            // for spare parts dialog
-            sparePartDialogVisible: false,
-            locSpareParts: [],
-            currentLoc: {}
-        }
-    },
-    computed: {
-        filteredList() {
-            if (this.listQuery.zone) {
-                return this.list.filter(item => item.zone === this.listQuery.zone)
-            }
-            return this.list
-        }
-    },
-    created() {
-        this.getList()
-    },
-    methods: {
-        getList() {
-            this.loading = true
-            request.get('/locations').then(res => {
-                this.list = res.data
-                this.loading = false
-            }).catch(() => {
-                this.loading = false
-            })
-        },
-        resetTemp() {
-            this.temp = {
-                id: undefined,
-                code: '',
-                name: '',
-                zone: '',
-                capacity: '',
-                remark: ''
-            }
-        },
-        handleAdd() {
-            this.resetTemp()
-            this.dialogStatus = 'create'
-            this.dialogFormVisible = true
-            this.$nextTick(() => {
-                this.$refs['dataForm'].clearValidate()
-            })
-        },
-        createData() {
-            this.$refs['dataForm'].validate((valid) => {
-                if (valid) {
-                    request.post('/locations', this.temp).then(() => {
-                        this.getList()
-                        this.dialogFormVisible = false
-                        this.$message.success('创建成功')
-                    })
-                }
-            })
-        },
-        handleEdit(row) {
-            this.temp = Object.assign({}, row)
-            this.dialogStatus = 'update'
-            this.dialogFormVisible = true
-            this.$nextTick(() => {
-                this.$refs['dataForm'].clearValidate()
-            })
-        },
-        updateData() {
-            this.$refs['dataForm'].validate((valid) => {
-                if (valid) {
-                    request.put(`/locations/${this.temp.id}`, this.temp).then(() => {
-                        this.getList()
-                        this.dialogFormVisible = false
-                        this.$message.success('更新成功')
-                    })
-                }
-            })
-        },
-        handleDelete(row) {
-            this.$confirm('确认删除该货位?', '提示', {
-                type: 'warning'
-            }).then(() => {
-                request.delete(`/locations/${row.id}`).then(() => {
-                    this.getList()
-                    this.$message.success('删除成功')
-                })
-            }).catch(() => { })
-        },
-        handleViewSpareParts(row) {
-            this.currentLoc = row
-            request.get(`/locations/${row.id}/spare-parts`).then(res => {
-                this.locSpareParts = res.data
-                this.sparePartDialogVisible = true
-            })
-        }
+const list = ref<any[]>([])
+const loading = ref(true)
+const listQuery = reactive({
+    zone: ''
+})
+
+const dialogFormVisible = ref(false)
+const dialogStatus = ref('')
+const dataForm = ref<FormInstance | null>(null)
+
+interface TempLoc {
+    id?: number
+    code: string
+    name: string
+    zone: string
+    capacity: string
+    remark: string
+}
+
+const temp = reactive<TempLoc>({
+    id: undefined,
+    code: '',
+    name: '',
+    zone: '',
+    capacity: '',
+    remark: ''
+})
+
+const rules = {
+    code: [{ required: true, message: '货位编码必填', trigger: 'blur' }],
+    name: [{ required: true, message: '货位名称必填', trigger: 'blur' }],
+    zone: [{ required: true, message: '请选择专区', trigger: 'change' }]
+}
+
+const sparePartDialogVisible = ref(false)
+const locSpareParts = ref<any[]>([])
+const currentLoc = ref<any>({})
+
+const filteredList = computed(() => {
+    if (listQuery.zone) {
+        return list.value.filter(item => item.zone === listQuery.zone)
+    }
+    return list.value
+})
+
+async function getList() {
+    loading.value = true
+    try {
+        const res = await request.get('/locations')
+        list.value = res.data
+    } catch (e) {
+        console.error('获取货位失败', e)
+    } finally {
+        loading.value = false
     }
 }
+
+function resetTemp() {
+    temp.id = undefined
+    temp.code = ''
+    temp.name = ''
+    temp.zone = ''
+    temp.capacity = ''
+    temp.remark = ''
+}
+
+function handleAdd() {
+    resetTemp()
+    dialogStatus.value = 'create'
+    dialogFormVisible.value = true
+    nextTick(() => {
+        if (dataForm.value) dataForm.value.clearValidate()
+    })
+}
+
+function createData() {
+    if (!dataForm.value) return
+    dataForm.value.validate(async (valid) => {
+        if (valid) {
+            try {
+                await request.post('/locations', temp)
+                getList()
+                dialogFormVisible.value = false
+                ElMessage.success('创建成功')
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    })
+}
+
+function handleEdit(row: any) {
+    temp.id = row.id
+    temp.code = row.code
+    temp.name = row.name
+    temp.zone = row.zone
+    temp.capacity = row.capacity
+    temp.remark = row.remark
+    dialogStatus.value = 'update'
+    dialogFormVisible.value = true
+    nextTick(() => {
+        if (dataForm.value) dataForm.value.clearValidate()
+    })
+}
+
+function updateData() {
+    if (!dataForm.value) return
+    dataForm.value.validate(async (valid) => {
+        if (valid) {
+            try {
+                await request.put(`/locations/${temp.id}`, temp)
+                getList()
+                dialogFormVisible.value = false
+                ElMessage.success('更新成功')
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    })
+}
+
+function handleDelete(row: any) {
+    ElMessageBox.confirm('确认删除该货位?', '提示', {
+        type: 'warning'
+    }).then(async () => {
+        try {
+            await request.delete(`/locations/${row.id}`)
+            getList()
+            ElMessage.success('删除成功')
+        } catch (e) {
+            console.error(e)
+        }
+    }).catch(() => { })
+}
+
+async function handleViewSpareParts(row: any) {
+    currentLoc.value = row
+    try {
+        const res = await request.get(`/locations/${row.id}/spare-parts`)
+        locSpareParts.value = res.data
+        sparePartDialogVisible.value = true
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+onMounted(() => {
+    getList()
+})
 </script>
 
 <style scoped>
 .location-profile-container {
     padding: 20px;
+}
+.title-icon {
+  margin-right: 8px;
+  font-size: 18px;
 }
 </style>

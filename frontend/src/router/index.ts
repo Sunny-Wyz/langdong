@@ -65,7 +65,7 @@ const routes: Array<RouteRecordRaw> = [
     component: Home,
     meta: { requiresAuth: true },
     children: [
-      { path: '', redirect: 'spare-parts' },
+      { path: '', redirect: '/home/spare-parts' },
       { path: 'spare-parts', component: SparePartList, meta: { requiresAuth: true } },
       { path: 'location-profiles', component: LocationProfile, meta: { requiresAuth: true } },
       { path: 'equipment-profiles', component: EquipmentProfile, meta: { requiresAuth: true } },
