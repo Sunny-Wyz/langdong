@@ -19,6 +19,7 @@ from app.api.v1.maintenance import router as maintenance_router
 from app.api.v1.replenishment import router as replenishment_router
 from app.api.v1.jobs import router as jobs_router
 from app.api.v1.weekly_forecast import router as weekly_forecast_router
+from app.api.v1.algorithm import router as algorithm_router
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -89,6 +90,7 @@ app.include_router(maintenance_router)
 app.include_router(replenishment_router)
 app.include_router(jobs_router)
 app.include_router(weekly_forecast_router)
+app.include_router(algorithm_router)
 
 if __name__ == "__main__":
     import uvicorn

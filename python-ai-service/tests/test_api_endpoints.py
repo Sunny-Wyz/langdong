@@ -95,3 +95,53 @@ def test_get_job_status_success(monkeypatch) -> None:
     response = client.get("/api/v1/jobs/task-123")
     assert response.status_code == 200
     assert response.json()["status"] == "SUCCESS"
+
+
+def test_algorithm_endpoints() -> None:
+    # 构造一些模拟数据进行训练
+    X_train = [
+        [1.0, 2.0, 0.5],
+        [1.5, 2.5, 0.6],
+        [0.0, 0.0, 0.1],
+        [2.0, 3.0, 0.7],
+        [0.0, 0.0, 0.0]
+    ]
+    y_train = [10.0, 15.0, 0.0, 20.0, 0.0]
+    xyz_train = ["X", "X", "Y", "Z", "Y"]
+
+    # 1. 测试训练接口
+    train_payload = {
+        "X": X_train,
+        "y": y_train,
+        "xyz_groups": xyz_train
+    }
+    response = client.post("/api/algorithm/train", json=train_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "k_params" in data["metrics"]
+    
+    # 2. 测试预测接口
+    predict_payload = {
+        "X": [
+            [1.2, 2.2, 0.55],
+            [0.1, 0.1, 0.1]
+        ],
+        "xyz_groups": ["X", "Y"]
+    }
+    response = client.post("/api/algorithm/predict", json=predict_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "predictions" in data
+    assert len(data["predictions"]) == 2
+    
+    # 校验结果字段
+    first_pred = data["predictions"][0]
+    assert "p_t" in first_pred
+    assert "mu_t" in first_pred
+    assert "k" in first_pred
+    assert "lower_bound" in first_pred
+    assert "upper_bound" in first_pred
+    assert 0.0 <= first_pred["p_t"] <= 1.0
+    assert first_pred["mu_t"] > 0.0
+

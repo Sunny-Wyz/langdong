@@ -1,9 +1,11 @@
 """
-需求预测模型：TFT（规律需求）+ DeepAR（间歇性需求）
+需求预测模型：XGBoost 两阶段 Hurdle-Gamma 概率预测模型
 
-- 输入：NeuralForecast 格式 DataFrame（unique_id, ds, y + 协变量）
-- 输出：12 周概率预测（p10/p25/p50/p75/p90）+ 注意力权重
-- 算法选择：ADI ≤ 1.32 → TFT (Normal loss)，ADI > 1.32 → DeepAR (NegBinomial)
+- 阶段一（需求发生分类）：XGBClassifier(objective='binary:logistic') 估计月度/周度需求发生概率 p_t。
+- 阶段二（正需求量回归）：在正需求样本 (y > 0) 上使用 XGBRegressor(objective='reg:gamma') 预测正需求的条件均值 mu_t。
+- 形状参数 k 的估计：对标准化残差 r_t = y / mu_t 进行极大似然估计 (MLE)，按 XYZ 波动分组共享 k值以稳定小样本估计。
+  - Newton-Raphson 求解极大似然方程 ln(k) - psi(k) = c。
+- 兼容接口：DemandForecaster (BasePredictor) 实现 12 周自回归递归概率预测。
 """
 from __future__ import annotations
 
@@ -15,17 +17,18 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import xgboost as xgb
+import scipy.special
+import scipy.stats as stats
 
 from app.models.base import BasePredictor
 from app.models.feature_engineering import (
     add_static_features,
     add_temporal_features,
-    compute_demand_classification,
 )
 from app.models.mlflow_utils import EXPERIMENT_DEMAND, log_training_run
 
 logger = logging.getLogger(__name__)
-os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 HORIZON = 12          # 预测未来 12 周
 FREQ = "W-MON"        # 周一对齐
@@ -37,245 +40,464 @@ HIST_EXOG_COLS = [
 ]
 
 
-def _build_tft(horizon: int):
-    from neuralforecast.models import TFT
-    from neuralforecast.losses.pytorch import DistributionLoss
+def solve_gamma_k(r: np.ndarray, max_iter: int = 100, tol: float = 1e-6) -> float:
+    """
+    用 Newton-Raphson 迭代法求解极大似然方程：ln(k) - psi(k) = c
+    其中 c = ln(mean(r)) - mean(ln(r))，psi 为 digamma 函数。
+    """
+    r = np.asarray(r)
+    r = r[r > 0]
+    if len(r) < 2:
+        return 1.0
+    
+    mean_r = np.mean(r)
+    mean_ln_r = np.mean(np.log(r))
+    c = np.log(mean_r) - mean_ln_r
+    
+    if c <= 0:
+        return 1.0
 
-    return TFT(
-        h=horizon,
-        input_size=2 * horizon,
-        hidden_size=64,
-        n_head=4,
-        dropout=0.1,
-        loss=DistributionLoss(distribution="Normal", level=[10, 25, 75, 90]),
-        learning_rate=1e-3,
-        max_steps=500,
-        batch_size=32,
-        futr_exog_list=["week_of_year", "month", "quarter", "is_quarter_end", "is_year_end"],
-        hist_exog_list=HIST_EXOG_COLS,
-        scaler_type="standard",
-        enable_progress_bar=False,
-        logger=False,
-        enable_checkpointing=False,
-        accelerator="cpu",
-        devices=1,
-    )
+    # 矩估计作为初值: k_init = 1 / CV^2(r) = mean^2 / var
+    var_r = np.var(r)
+    if var_r <= 0:
+        return 1.0
+    k = (mean_r ** 2) / var_r
+
+    for _ in range(max_iter):
+        # g(k) = ln(k) - psi(k) - c
+        # g'(k) = 1/k - trigamma(k) ， 其中 trigamma 为 polygamma(1, k)
+        g = np.log(k) - scipy.special.digamma(k) - c
+        g_prime = 1.0 / k - scipy.special.polygamma(1, k)
+        
+        if g_prime == 0:
+            break
+            
+        step = g / g_prime
+        k_next = k - step
+        
+        # 保证 k_next 为正数，若越界则采取折半回退
+        if k_next <= 0:
+            k_next = k / 2.0
+            
+        if abs(k_next - k) < tol:
+            k = k_next
+            break
+        k = k_next
+        
+    return float(np.clip(k, 1e-3, 1e5))
 
 
-def _build_deepar(horizon: int):
-    from neuralforecast.models import DeepAR
-    from neuralforecast.losses.pytorch import DistributionLoss
+def compute_xyz_classification(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    按规则计算各 unique_id 的 XYZ 分类。
+    历史数据不足 3 个正样本点 -> Z类
+    CV² < 0.5 -> X类（需求稳定）
+    0.5 <= CV² < 1.0 -> Y类（需求波动）
+    CV² >= 1.0 -> Z类（需求随机）
+    """
+    if df.empty:
+        return pd.DataFrame(columns=["unique_id", "xyz_group"])
 
-    return DeepAR(
-        h=horizon,
-        input_size=2 * horizon,
-        lstm_n_layers=2,
-        lstm_hidden_size=64,
-        loss=DistributionLoss(distribution="NegativeBinomial", level=[10, 25, 75, 90]),
-        learning_rate=1e-3,
-        max_steps=300,
-        batch_size=32,
-        enable_progress_bar=False,
-        logger=False,
-        enable_checkpointing=False,
-        accelerator="cpu",
-        devices=1,
-    )
+    result = []
+    for uid, grp in df.groupby("unique_id"):
+        demand = grp["y"].values
+        nonzero = demand[demand > 0]
+        if len(nonzero) < 3:
+            xyz = "Z"
+        else:
+            mean = np.mean(nonzero)
+            var = np.var(nonzero)
+            cv2 = var / (mean * mean + 1e-8)
+            if cv2 < 0.5:
+                xyz = "X"
+            elif cv2 < 1.0:
+                xyz = "Y"
+            else:
+                xyz = "Z"
+        result.append({"unique_id": uid, "xyz_group": xyz})
+    return pd.DataFrame(result)
 
 
-class DemandForecaster(BasePredictor):
-    """TFT + DeepAR 双模型需求预测器"""
+class HurdleGammaModel:
+    """XGBoost 两阶段 Hurdle-Gamma 算法实现"""
 
-    model_name = "demand-forecaster"
-    model_version = "2.0.0"
-
-    def __init__(self, horizon: int = HORIZON):
-        self.horizon = horizon
-        self._nf_tft = None
-        self._nf_deepar = None
-        self._cls_map: pd.DataFrame | None = None
-        self._trained = False
-
-    def train(self, df: pd.DataFrame, **kwargs) -> dict[str, float]:
-        """
-        训练 TFT 和 DeepAR。
-        df 需为 NeuralForecast 格式（unique_id, ds, y 以及协变量列）。
-        """
-        from neuralforecast import NeuralForecast
-
-        df = add_temporal_features(df)
-        df = add_static_features(df)
-        df = self._ensure_hist_exog(df)
-
-        # 按算法分组
-        cls = compute_demand_classification(df)
-        self._cls_map = cls
-        tft_ids = cls[cls["algo_type"] == "TFT"]["unique_id"].tolist()
-        dar_ids = cls[cls["algo_type"] == "DeepAR"]["unique_id"].tolist()
-
-        metrics: dict[str, float] = {}
-
-        if tft_ids:
-            df_tft = df[df["unique_id"].isin(tft_ids)]
-            self._nf_tft = NeuralForecast(models=[_build_tft(self.horizon)], freq=FREQ)
-            self._nf_tft.fit(df_tft)
-            metrics["tft_parts"] = len(tft_ids)
-            logger.info("TFT 训练完成，共 %d 个备件", len(tft_ids))
-
-        if dar_ids:
-            df_dar = df[df["unique_id"].isin(dar_ids)]
-            self._nf_deepar = NeuralForecast(models=[_build_deepar(self.horizon)], freq=FREQ)
-            self._nf_deepar.fit(df_dar)
-            metrics["deepar_parts"] = len(dar_ids)
-            logger.info("DeepAR 训练完成，共 %d 个备件", len(dar_ids))
-
-        self._trained = True
-
-        log_training_run(
-            EXPERIMENT_DEMAND,
-            run_name=f"train-h{self.horizon}",
-            params={"horizon": self.horizon, "freq": FREQ},
-            metrics=metrics,
+    def __init__(self):
+        self.clf = xgb.XGBClassifier(
+            objective='binary:logistic',
+            eval_metric='logloss',
+            random_state=42
         )
-        return metrics
+        self.reg = xgb.XGBRegressor(
+            objective='reg:gamma',
+            eval_metric='mae',
+            random_state=42
+        )
+        self.k_params = {
+            'X': 1.0,
+            'Y': 1.0,
+            'Z': 1.0,
+            'global': 1.0
+        }
+        self.is_fitted = False
 
-    def predict(self, df: pd.DataFrame, **kwargs) -> list[dict[str, Any]]:
-        """
-        生成 12 周概率预测，返回结构化列表。
-        """
-        if not self._trained:
-            raise RuntimeError("模型尚未训练，请先调用 train()")
+    def train(self, X: np.ndarray, y: np.ndarray, xyz_groups: list[str] | np.ndarray) -> dict[str, Any]:
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y, dtype=float)
+        xyz_groups = np.asarray(xyz_groups)
 
-        df = add_temporal_features(df)
-        df = self._ensure_hist_exog(df)
+        if len(X) != len(y) or len(X) != len(xyz_groups):
+            raise ValueError(f"特征与目标维度不一致: X={len(X)}, y={len(y)}, xyz_groups={len(xyz_groups)}")
+
+        # 阶段一：需求发生概率二分类
+        y_clf = (y > 0).astype(int)
+        
+        # 边界情况防崩溃
+        if len(np.unique(y_clf)) < 2:
+            logger.warning("需求标签全部为0或全部大于0，分类模型退化")
+            
+        self.clf.fit(X, y_clf)
+
+        # 阶段二：正需求量回归 (仅在 y > 0 上拟合)
+        pos_mask = y > 0
+        if np.sum(pos_mask) >= 2:
+            X_pos = X[pos_mask]
+            y_pos = y[pos_mask]
+            self.reg.fit(X_pos, y_pos)
+
+            # 标准化残差 r = y / mu
+            mu_pos = self.reg.predict(X_pos)
+            mu_pos = np.clip(mu_pos, 1e-5, None)
+            r_pos = y_pos / mu_pos
+            
+            # 全局 k 估计
+            self.k_params['global'] = solve_gamma_k(r_pos)
+
+            # 按 XYZ 分组估计
+            xyz_pos = xyz_groups[pos_mask]
+            for group in ['X', 'Y', 'Z']:
+                group_mask = xyz_pos == group
+                if np.sum(group_mask) >= 2:
+                    self.k_params[group] = solve_gamma_k(r_pos[group_mask])
+                else:
+                    self.k_params[group] = self.k_params['global']
+        else:
+            logger.warning("正需求样本数量过少，无法执行回归训练，全部置为默认 k=1")
+            self.reg.fit(X, y)
+            self.k_params = {'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'global': 1.0}
+
+        self.is_fitted = True
+        return {
+            "k_params": self.k_params,
+            "samples": len(y),
+            "pos_samples": int(np.sum(pos_mask))
+        }
+
+    def predict(self, X: np.ndarray, xyz_groups: list[str] | np.ndarray) -> list[dict[str, Any]]:
+        if not self.is_fitted:
+            raise RuntimeError("模型尚未训练")
+            
+        X = np.asarray(X, dtype=float)
+        xyz_groups = np.asarray(xyz_groups)
+
+        p_t = self.clf.predict_proba(X)[:, 1]
+        mu_t = self.reg.predict(X)
+        mu_t = np.clip(mu_t, 1e-5, None)
+
         results = []
+        for i in range(len(X)):
+            grp = xyz_groups[i]
+            k_val = self.k_params.get(grp, self.k_params['global'])
+            
+            # 90% 置信区间 (scipy.stats.gamma.ppf)
+            lower_bound = float(stats.gamma.ppf(0.05, a=k_val, scale=mu_t[i] / k_val))
+            upper_bound = float(stats.gamma.ppf(0.95, a=k_val, scale=mu_t[i] / k_val))
 
-        # TFT 预测
-        if self._nf_tft is not None:
-            tft_ids = (self._cls_map[self._cls_map["algo_type"] == "TFT"]["unique_id"].tolist()
-                       if self._cls_map is not None else [])
-            df_tft = df[df["unique_id"].isin(tft_ids)] if tft_ids else pd.DataFrame()
-            if not df_tft.empty:
-                preds = self._nf_tft.predict(df_tft, futr_df=self._build_future_temporal_features(df_tft))
-                results.extend(self._format_predictions(preds, "TFT"))
-
-        # DeepAR 预测
-        if self._nf_deepar is not None:
-            dar_ids = (self._cls_map[self._cls_map["algo_type"] == "DeepAR"]["unique_id"].tolist()
-                       if self._cls_map is not None else [])
-            df_dar = df[df["unique_id"].isin(dar_ids)] if dar_ids else pd.DataFrame()
-            if not df_dar.empty:
-                preds = self._nf_deepar.predict(df_dar)
-                results.extend(self._format_predictions(preds, "DeepAR"))
-
-        return results
-
-    def _build_future_temporal_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        rows = []
-        for unique_id, grp in df.groupby("unique_id"):
-            last_ds = pd.to_datetime(grp["ds"]).max()
-            future_dates = pd.date_range(last_ds + pd.Timedelta(weeks=1), periods=self.horizon, freq=FREQ)
-            for ds in future_dates:
-                rows.append({"unique_id": unique_id, "ds": ds})
-        return add_temporal_features(pd.DataFrame(rows))
-
-    def _ensure_hist_exog(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-        for col in HIST_EXOG_COLS:
-            if col not in df.columns:
-                df[col] = 0.0
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype(float)
-        return df
-
-    def _format_predictions(
-        self, preds: pd.DataFrame, model_type: str
-    ) -> list[dict[str, Any]]:
-        """将 NeuralForecast 预测 DataFrame 转换为 API 响应格式。"""
-        output = []
-        model_col = "TFT" if model_type == "TFT" else "DeepAR"
-
-        for uid, grp in preds.groupby("unique_id"):
-            grp = grp.sort_values("ds")
-            weeks = []
-            for _, row in grp.iterrows():
-                week = {
-                    "week_start": str(row["ds"])[:10],
-                    "predict_qty": round(float(row.get(f"{model_col}-median", row.get(model_col, 0))), 2),
-                    "quantiles": {
-                        "p10": round(float(row.get(f"{model_col}-lo-90", 0)), 2),
-                        "p25": round(float(row.get(f"{model_col}-lo-75", 0)), 2),
-                        "p50": round(float(row.get(f"{model_col}-median", 0)), 2),
-                        "p75": round(float(row.get(f"{model_col}-hi-75", 0)), 2),
-                        "p90": round(float(row.get(f"{model_col}-hi-90", 0)), 2),
-                    },
-                }
-                weeks.append(week)
-
-            output.append({
-                "part_code": uid,
-                "model_type": model_type,
-                "horizon_weeks": len(weeks),
-                "forecast_weeks": weeks,
-                "model_version": self.model_version,
+            results.append({
+                "p_t": float(p_t[i]),
+                "mu_t": float(mu_t[i]),
+                "k": float(k_val),
+                "lower_bound": lower_bound,
+                "upper_bound": upper_bound
             })
-        return output
-
-    def explain(self, df: pd.DataFrame, **kwargs) -> dict[str, Any]:
-        """返回 TFT 注意力权重（可解释性）。"""
-        # NeuralForecast TFT 内置 attention — 当前返回空占位符，后续集成
-        return {"message": "TFT attention weights available after training", "model": "TFT"}
+            
+        return results
 
     def save(self, path: Path) -> None:
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
-        save_warnings = []
-        if self._nf_tft:
-            try:
-                self._nf_tft.save(str(path / "tft"), overwrite=True)
-            except Exception as exc:
-                save_warnings.append(f"TFT NeuralForecast.save failed: {exc}")
-                with open(path / "tft.pkl", "wb") as f:
-                    pickle.dump(self._nf_tft, f)
-        if self._nf_deepar:
-            try:
-                self._nf_deepar.save(str(path / "deepar"), overwrite=True)
-            except Exception as exc:
-                save_warnings.append(f"DeepAR NeuralForecast.save failed: {exc}")
-                with open(path / "deepar.pkl", "wb") as f:
-                    pickle.dump(self._nf_deepar, f)
-        with open(path / "cls_map.pkl", "wb") as f:
-            pickle.dump(self._cls_map, f)
-        if save_warnings:
-            with open(path / "save_warnings.txt", "w", encoding="utf-8") as f:
-                f.write("\n".join(save_warnings))
-            logger.warning("DemandForecaster 使用 pickle 兜底保存: %s", "; ".join(save_warnings))
-        logger.info("DemandForecaster 保存至 %s", path)
+        with open(path / "hurdle_gamma_model.pkl", "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path: Path) -> HurdleGammaModel:
+        path = Path(path)
+        with open(path / "hurdle_gamma_model.pkl", "rb") as f:
+            return pickle.load(f)
+
+
+class DemandForecaster(BasePredictor):
+    """基于 XGBoost Hurdle-Gamma 模型的周粒度需求预测器包装类"""
+
+    model_name = "demand-forecaster"
+    model_version = "2.1.0"
+
+    def __init__(self, horizon: int = HORIZON):
+        self.horizon = horizon
+        self._model = HurdleGammaModel()
+        self._trained = False
+
+    def train(self, df: pd.DataFrame, **kwargs) -> dict[str, float]:
+        if df.empty or len(df) < 5:
+            logger.warning("训练数据不足，无法训练模型")
+            return {"samples": 0.0, "pos_samples": 0.0}
+
+        df = add_temporal_features(df)
+        df = add_static_features(df)
+
+        X, y, xyz_groups, _ = self._extract_features(df, is_train=True)
+        res = self._model.train(X, y, xyz_groups)
+        self._trained = True
+
+        metrics = {
+            "samples": float(res["samples"]),
+            "pos_samples": float(res["pos_samples"]),
+            "k_global": float(res["k_params"]["global"]),
+            "k_X": float(res["k_params"]["X"]),
+            "k_Y": float(res["k_params"]["Y"]),
+            "k_Z": float(res["k_params"]["Z"]),
+        }
+
+        try:
+            log_training_run(
+                EXPERIMENT_DEMAND,
+                run_name=f"train-hurdle-gamma-weekly",
+                params={"horizon": self.horizon, "freq": FREQ},
+                metrics=metrics,
+            )
+        except Exception as e:
+            logger.warning("MLflow logging failed: %s", e)
+
+        return metrics
+
+    def predict(self, df: pd.DataFrame, **kwargs) -> list[dict[str, Any]]:
+        if not self._trained:
+            raise RuntimeError("模型尚未训练，请先调用 train()")
+
+        df_sorted = df.sort_values(by=["unique_id", "ds"]).copy()
+        
+        # 计算 XYZ 分类映射
+        xyz_df = compute_xyz_classification(df_sorted)
+        xyz_map = dict(zip(xyz_df["unique_id"], xyz_df["xyz_group"]))
+
+        results = []
+        for uid, grp in df_sorted.groupby("unique_id"):
+            grp = grp.reset_index(drop=True)
+            if grp.empty:
+                continue
+
+            last_row = grp.iloc[-1]
+            last_ds = pd.to_datetime(last_row["ds"])
+            
+            # 滑动历史需求
+            recent_demands = list(grp["y"].values[-6:])
+            if len(recent_demands) < 6:
+                recent_demands = [0.0] * (6 - len(recent_demands)) + recent_demands
+
+            recent_positives = [d for d in grp["y"].values if d > 0][-3:]
+            if len(recent_positives) < 3:
+                recent_positives = [0.0] * (3 - len(recent_positives)) + recent_positives
+
+            weeks = []
+            future_dates = pd.date_range(last_ds + pd.Timedelta(weeks=1), periods=self.horizon, freq=FREQ)
+
+            xyz_grp = xyz_map.get(uid, "Z")
+            k_val = self._model.k_params.get(xyz_grp, self._model.k_params['global'])
+
+            for step_idx, ds in enumerate(future_dates):
+                lag_1 = recent_demands[-1]
+                lag_2 = recent_demands[-2]
+                lag_3 = recent_demands[-3]
+                lag_3_mean = float(np.mean(recent_demands[-3:]))
+                lag_3_std = float(np.std(recent_demands[-3:]))
+                zero_ratio_6 = float(np.mean(np.array(recent_demands[-6:]) == 0.0))
+
+                pos_lag_1 = recent_positives[-1]
+                pos_lag_3_mean = float(np.mean([v for v in recent_positives if v > 0])) if any(v > 0 for v in recent_positives) else 0.0
+
+                weekly_requisition_apply_qty = float(last_row.get("weekly_requisition_apply_qty", 0.0))
+                weekly_install_qty = float(last_row.get("weekly_install_qty", 0.0))
+                weekly_work_order_cnt = float(last_row.get("weekly_work_order_cnt", 0.0))
+                weekly_purchase_arrival_qty = float(last_row.get("weekly_purchase_arrival_qty", 0.0))
+
+                week_of_year = int(ds.isocalendar().week)
+                month = int(ds.month)
+                quarter = int(ds.quarter)
+                is_quarter_end = 1 if ds.is_quarter_end else 0
+                is_year_end = 1 if ds.month == 12 else 0
+
+                lead_time_bucket = int(last_row.get("lead_time_bucket", 1))
+                price_bucket = int(last_row.get("price_bucket", 1))
+
+                feat_vec = np.array([[
+                    lag_1, lag_2, lag_3, lag_3_mean, lag_3_std, zero_ratio_6,
+                    pos_lag_1, pos_lag_3_mean,
+                    weekly_requisition_apply_qty, weekly_install_qty, weekly_work_order_cnt, weekly_purchase_arrival_qty,
+                    week_of_year, month, quarter, is_quarter_end, is_year_end,
+                    lead_time_bucket, price_bucket
+                ]], dtype=float)
+
+                p_t = float(self._model.clf.predict_proba(feat_vec)[0, 1])
+                mu_t = float(self._model.reg.predict(feat_vec)[0])
+                mu_t = max(mu_t, 1e-5)
+
+                pred_val = p_t * mu_t
+
+                p10 = float(stats.gamma.ppf(0.10, a=k_val, scale=mu_t/k_val))
+                p25 = float(stats.gamma.ppf(0.25, a=k_val, scale=mu_t/k_val))
+                p50 = float(stats.gamma.ppf(0.50, a=k_val, scale=mu_t/k_val))
+                p75 = float(stats.gamma.ppf(0.75, a=k_val, scale=mu_t/k_val))
+                p90 = float(stats.gamma.ppf(0.90, a=k_val, scale=mu_t/k_val))
+
+                week = {
+                    "week_start": str(ds)[:10],
+                    "predict_qty": round(pred_val, 2),
+                    "quantiles": {
+                        "p10": round(p10, 2),
+                        "p25": round(p25, 2),
+                        "p50": round(p50, 2),
+                        "p75": round(p75, 2),
+                        "p90": round(p90, 2),
+                    },
+                }
+                weeks.append(week)
+
+                # 递归更新状态
+                recent_demands.append(pred_val)
+                recent_demands.pop(0)
+                if pred_val > 0:
+                    recent_positives.append(pred_val)
+                    recent_positives.pop(0)
+
+            results.append({
+                "part_code": uid,
+                "model_type": "XGBoost-Hurdle-Gamma",
+                "horizon_weeks": len(weeks),
+                "forecast_weeks": weeks,
+                "model_version": self.model_version,
+            })
+
+        return results
+
+    def explain(self, df: pd.DataFrame, **kwargs) -> dict[str, Any]:
+        """返回 XGBoost 模型的特征重要性"""
+        if not self._trained:
+            return {"message": "Model not trained yet."}
+        
+        clf_importances = dict(zip(
+            [f"f{i}" for i in range(19)], 
+            [float(val) for val in self._model.clf.feature_importances_]
+        ))
+        reg_importances = dict(zip(
+            [f"f{i}" for i in range(19)], 
+            [float(val) for val in self._model.reg.feature_importances_]
+        ))
+        return {
+            "classifier_feature_importances": clf_importances,
+            "regressor_feature_importances": reg_importances,
+            "k_params": self._model.k_params
+        }
+
+    def save(self, path: Path) -> None:
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
+        self._model.save(path)
+        metadata = {
+            "trained": self._trained,
+            "horizon": self.horizon
+        }
+        with open(path / "forecaster_meta.pkl", "wb") as f:
+            pickle.dump(metadata, f)
 
     def load(self, path: Path) -> None:
-        from neuralforecast import NeuralForecast
-
         path = Path(path)
-        tft_path = path / "tft"
-        dar_path = path / "deepar"
-        if tft_path.exists():
-            try:
-                self._nf_tft = NeuralForecast.load(str(tft_path))
-            except Exception as exc:
-                logger.warning("TFT NeuralForecast.load 失败，尝试 pickle 兜底加载: %s", exc)
-        if self._nf_tft is None and (path / "tft.pkl").exists():
-            with open(path / "tft.pkl", "rb") as f:
-                self._nf_tft = pickle.load(f)
-        if dar_path.exists():
-            try:
-                self._nf_deepar = NeuralForecast.load(str(dar_path))
-            except Exception as exc:
-                logger.warning("DeepAR NeuralForecast.load 失败，尝试 pickle 兜底加载: %s", exc)
-        if self._nf_deepar is None and (path / "deepar.pkl").exists():
-            with open(path / "deepar.pkl", "rb") as f:
-                self._nf_deepar = pickle.load(f)
-        cls_file = path / "cls_map.pkl"
-        if cls_file.exists():
-            with open(cls_file, "rb") as f:
-                self._cls_map = pickle.load(f)
-        self._trained = True
-        logger.info("DemandForecaster 加载自 %s", path)
+        self._model = HurdleGammaModel.load(path)
+        meta_file = path / "forecaster_meta.pkl"
+        if meta_file.exists():
+            with open(meta_file, "rb") as f:
+                meta = pickle.load(f)
+                self._trained = meta.get("trained", False)
+                self.horizon = meta.get("horizon", HORIZON)
+        else:
+            self._trained = True
+
+    def _extract_features(self, df: pd.DataFrame, is_train: bool = True):
+        df = df.sort_values(by=["unique_id", "ds"]).copy()
+        
+        df["lag_1"] = df.groupby("unique_id")["y"].shift(1)
+        df["lag_2"] = df.groupby("unique_id")["y"].shift(2)
+        df["lag_3"] = df.groupby("unique_id")["y"].shift(3)
+        
+        df["lag_3_mean"] = df.groupby("unique_id")["y"].shift(1).rolling(3, min_periods=1).mean()
+        df["lag_3_std"] = df.groupby("unique_id")["y"].shift(1).rolling(3, min_periods=1).std().fillna(0.0)
+        df["zero_ratio_6"] = (df.groupby("unique_id")["y"].shift(1).rolling(6, min_periods=1).apply(lambda x: np.mean(x == 0), raw=True)).fillna(0.0)
+        
+        pos_lag_1_list = []
+        pos_lag_3_mean_list = []
+        
+        for uid, grp in df.groupby("unique_id"):
+            y_vals = grp["y"].values
+            pos_lag_1 = np.zeros(len(grp))
+            pos_lag_3_mean = np.zeros(len(grp))
+            
+            recent_pos = []
+            for idx in range(len(grp)):
+                if idx > 0:
+                    val_prev = y_vals[idx - 1]
+                    if val_prev > 0:
+                        recent_pos.insert(0, val_prev)
+                        if len(recent_pos) > 3:
+                            recent_pos.pop()
+                if recent_pos:
+                    pos_lag_1[idx] = recent_pos[0]
+                    pos_lag_3_mean[idx] = np.mean(recent_pos)
+                else:
+                    pos_lag_1[idx] = 0.0
+                    pos_lag_3_mean[idx] = 0.0
+            
+            pos_lag_1_list.extend(pos_lag_1)
+            pos_lag_3_mean_list.extend(pos_lag_3_mean)
+            
+        df["pos_lag_1"] = pos_lag_1_list
+        df["pos_lag_3_mean"] = pos_lag_3_mean_list
+        
+        for col in HIST_EXOG_COLS:
+            if col not in df.columns:
+                df[col] = 0.0
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype(float)
+            
+        if "week_of_year" not in df.columns:
+            df = add_temporal_features(df)
+            
+        if "lead_time_bucket" not in df.columns:
+            df = add_static_features(df)
+            
+        feat_cols = [
+            "lag_1", "lag_2", "lag_3", "lag_3_mean", "lag_3_std", "zero_ratio_6",
+            "pos_lag_1", "pos_lag_3_mean",
+            "weekly_requisition_apply_qty", "weekly_install_qty", "weekly_work_order_cnt", "weekly_purchase_arrival_qty",
+            "week_of_year", "month", "quarter", "is_quarter_end", "is_year_end",
+            "lead_time_bucket", "price_bucket"
+        ]
+        
+        df[feat_cols] = df[feat_cols].fillna(0.0)
+        
+        xyz_df = compute_xyz_classification(df)
+        df = df.merge(xyz_df, on="unique_id", how="left")
+        
+        if is_train:
+            df_clean = df.groupby("unique_id").apply(lambda x: x.iloc[3:]).reset_index(drop=True)
+            if df_clean.empty:
+                df_clean = df
+            return df_clean[feat_cols].values, df_clean["y"].values, df_clean["xyz_group"].values, df_clean
+        else:
+            return df[feat_cols].values, df["y"].values, df["xyz_group"].values, df
