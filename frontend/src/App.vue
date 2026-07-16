@@ -4,6 +4,6 @@
   </div>
 </template>
 
-<script>
-export default { name: 'App' }
+<script setup lang="ts">
+// 根组件：仅承载顶层路由出口
 </script>

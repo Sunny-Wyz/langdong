@@ -1,17 +1,19 @@
 <template>
   <div class="page-container ai-train-data-container">
     <el-card shadow="hover">
-      <div slot="header" class="phead header">
-        <i class="el-icon-data-analysis" />
-        <div class="title">训练数据看板</div>
-      </div>
+      <template #header>
+        <div class="phead header">
+          <i class="el-icon-data-analysis" />
+          <div class="title">训练数据看板</div>
+        </div>
+      </template>
 
       <el-form :inline="true" :model="searchForm" class="search-form" size="small">
         <el-form-item label="日期范围">
           <el-date-picker
             v-model="searchForm.dateRange"
             type="daterange"
-            value-format="yyyy-MM-dd"
+            value-format="YYYY-MM-DD"
             range-separator="至"
             start-placeholder="开始日期"
             end-placeholder="结束日期"
@@ -36,8 +38,8 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
-          <el-button icon="el-icon-refresh-left" @click="resetSearch">重置</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -51,12 +53,12 @@
         <el-table-column prop="dailyWorkOrderCnt" label="工单数" width="85" />
         <el-table-column prop="dailyPurchaseArrivalQty" label="到货量" width="85" />
         <el-table-column prop="sourceLevel" label="来源" width="95">
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-tag size="small" :type="sourceTagType(scope.row.sourceLevel)">{{ scope.row.sourceLevel }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="isImputed" label="插补" width="70">
-          <template slot-scope="scope">
+          <template #default="scope">
             <span>{{ scope.row.isImputed === 1 ? '是' : '否' }}</span>
           </template>
         </el-table-column>
@@ -78,85 +80,87 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
 import request from '@/utils/request'
 
-export default {
-  name: 'AiTrainDataDashboard',
-  data() {
-    return {
-      searchForm: {
-        dateRange: [],
-        partCode: '',
-        sourceLevel: '',
-        isImputed: null
-      },
-      tableData: [],
-      loading: false,
-      page: 1,
-      size: 20,
-      total: 0
-    }
-  },
-  created() {
-    this.fetchData()
-  },
-  methods: {
-    fetchData() {
-      this.loading = true
-      const [startDate, endDate] = this.searchForm.dateRange || []
-      request
-        .get('/ai/train-data/list', {
-          params: {
-            page: this.page,
-            size: this.size,
-            startDate,
-            endDate,
-            partCode: this.searchForm.partCode,
-            sourceLevel: this.searchForm.sourceLevel,
-            isImputed: this.searchForm.isImputed
-          }
-        })
-        .then(res => {
-          const data = res.data || {}
-          this.tableData = data.list || []
-          this.total = data.total || 0
-        })
-        .finally(() => {
-          this.loading = false
-        })
-    },
-    handleSearch() {
-      this.page = 1
-      this.fetchData()
-    },
-    resetSearch() {
-      this.searchForm = {
-        dateRange: [],
-        partCode: '',
-        sourceLevel: '',
-        isImputed: null
+const searchForm = reactive<{
+  dateRange: string[]
+  partCode: string
+  sourceLevel: string
+  isImputed: number | null
+}>({
+  dateRange: [],
+  partCode: '',
+  sourceLevel: '',
+  isImputed: null
+})
+const tableData = ref<any[]>([])
+const loading = ref(false)
+const page = ref(1)
+const size = ref(20)
+const total = ref(0)
+
+function fetchData() {
+  loading.value = true
+  const [startDate, endDate] = searchForm.dateRange || []
+  request
+    .get('/ai/train-data/list', {
+      params: {
+        page: page.value,
+        size: size.value,
+        startDate,
+        endDate,
+        partCode: searchForm.partCode,
+        sourceLevel: searchForm.sourceLevel,
+        isImputed: searchForm.isImputed
       }
-      this.page = 1
-      this.fetchData()
-    },
-    handleSizeChange(val) {
-      this.size = val
-      this.page = 1
-      this.fetchData()
-    },
-    handleCurrentChange(val) {
-      this.page = val
-      this.fetchData()
-    },
-    sourceTagType(sourceLevel) {
-      if (sourceLevel === 'TRACE') return 'success'
-      if (sourceLevel === 'REQ_OUT') return 'warning'
-      if (sourceLevel === 'TRACE_REQ') return 'primary'
-      return 'info'
-    }
-  }
+    })
+    .then(res => {
+      const data = res.data || {}
+      tableData.value = data.list || []
+      total.value = data.total || 0
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
+
+function handleSearch() {
+  page.value = 1
+  fetchData()
+}
+
+function resetSearch() {
+  searchForm.dateRange = []
+  searchForm.partCode = ''
+  searchForm.sourceLevel = ''
+  searchForm.isImputed = null
+  page.value = 1
+  fetchData()
+}
+
+function handleSizeChange(val: number) {
+  size.value = val
+  page.value = 1
+  fetchData()
+}
+
+function handleCurrentChange(val: number) {
+  page.value = val
+  fetchData()
+}
+
+function sourceTagType(sourceLevel: string) {
+  if (sourceLevel === 'TRACE') return 'success'
+  if (sourceLevel === 'REQ_OUT') return 'warning'
+  if (sourceLevel === 'TRACE_REQ') return 'primary'
+  return 'info'
+}
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>

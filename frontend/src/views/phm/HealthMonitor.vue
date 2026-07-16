@@ -51,7 +51,7 @@
     <div class="toolbar-row">
       <div class="toolbar-left">
         <span class="avg-score-label">平均健康分：</span>
-        <el-tag type="info" size="medium">{{ formatDecimal(dashboard.avgHealthScore) }} 分</el-tag>
+        <el-tag type="info" size="default">{{ formatDecimal(dashboard.avgHealthScore) }} 分</el-tag>
       </div>
       <div class="toolbar-right">
         <el-switch
@@ -63,7 +63,6 @@
         <el-button
           v-if="hasPermission('phm:health:evaluate')"
           type="primary"
-          icon="el-icon-refresh"
           :loading="triggering"
           @click="handleTriggerEvaluation"
         >
@@ -76,13 +75,15 @@
          风险设备排行榜
          ============================================================ -->
     <el-card class="ranking-card" shadow="never">
-      <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
-                <div class="title">风险设备排行榜</div>
-                <div class="head-btn-group"><span class="card-tip">（按健康评分升序，最多显示20台）</span>
-      
-                </div>
-            </div>
+      <template #header>
+        <div class="phead header">
+          <i class="el-icon-s-data" />
+          <div class="title">风险设备排行榜</div>
+          <div class="head-btn-group">
+            <span class="card-tip">（按健康评分升序，最多显示20台）</span>
+          </div>
+        </div>
+      </template>
 
       <el-table v-loading="rankingLoading" :data="rankingData" border stripe style="width:100%">
         <el-table-column type="index" label="排名" width="60" align="center" />
@@ -91,7 +92,7 @@
         <el-table-column prop="deviceModel" label="设备型号" width="120" show-overflow-tooltip />
 
         <el-table-column label="健康评分" width="100" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <span :style="{ color: getScoreColor(row.healthScore) }">
               {{ formatDecimal(row.healthScore) }}
             </span>
@@ -99,7 +100,7 @@
         </el-table-column>
 
         <el-table-column label="风险等级" width="100" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-tag :type="getRiskTagType(row.riskLevel)" size="small">
               {{ getRiskLevelText(row.riskLevel) }}
             </el-tag>
@@ -109,11 +110,11 @@
         <el-table-column prop="recordDate" label="评估日期" width="120" align="center" />
 
         <el-table-column label="操作" width="150" align="center">
-          <template slot-scope="{ row }">
-            <el-button type="text" size="small" @click="viewTrend(row.deviceId)">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="viewTrend(row.deviceId)">
               查看趋势
             </el-button>
-            <el-button type="text" size="small" @click="viewDetails(row.deviceId)">
+            <el-button type="primary" link size="small" @click="viewDetails(row.deviceId)">
               详情
             </el-button>
           </template>
@@ -125,7 +126,7 @@
          健康趋势图（对话框）
          ============================================================ -->
     <el-dialog
-      :visible.sync="trendDialogVisible"
+      v-model="trendDialogVisible"
       :title="'设备健康趋势 - ' + selectedDeviceName"
       width="900px"
       @close="closeTrendDialog"
@@ -136,14 +137,14 @@
       <div v-else-if="!echartsAvailable" class="chart-placeholder">
         <i class="el-icon-info" /> ECharts 未安装，请执行 npm install
       </div>
-      <div v-else ref="trendChart" class="trend-chart" />
+      <div v-else ref="trendChartRef" class="trend-chart" />
     </el-dialog>
 
     <!-- ============================================================
          设备详情对话框
          ============================================================ -->
     <el-dialog
-      :visible.sync="detailDialogVisible"
+      v-model="detailDialogVisible"
       :title="'设备健康详情 - ' + selectedDeviceName"
       width="600px"
     >
@@ -166,7 +167,7 @@
             </span>
           </el-descriptions-item>
           <el-descriptions-item label="风险等级">
-            <el-tag :type="getRiskTagType(deviceDetail.riskLevel)" size="medium">
+            <el-tag :type="getRiskTagType(deviceDetail.riskLevel)" size="default">
               {{ getRiskLevelText(deviceDetail.riskLevel) }}
             </el-tag>
           </el-descriptions-item>
@@ -181,397 +182,354 @@
         <!-- 雷达图：维度评分 -->
         <div v-if="echartsAvailable" style="margin-top: 20px;">
           <h4 style="margin-bottom: 10px;">维度评分雷达图</h4>
-          <div ref="radarChart" class="radar-chart" />
+          <div ref="radarChartRef" class="radar-chart" />
         </div>
       </div>
     </el-dialog>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import request from '@/utils/request'
+import { useAuthStore } from '@/store/auth'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
-export default {
-  name: 'HealthMonitor',
+const authStore = useAuthStore()
 
-  data() {
-    return {
-      // Dashboard数据
-      dashboard: {
-        totalDevices: 0,
-        riskDistribution: {},
-        avgHealthScore: 0,
-        recentAlerts: []
-      },
+const dashboard = ref<any>({
+  totalDevices: 0,
+  riskDistribution: {},
+  avgHealthScore: 0,
+  recentAlerts: []
+})
 
-      // 风险设备排行榜
-      rankingData: [],
-      rankingLoading: false,
+const rankingData = ref<any[]>([])
+const rankingLoading = ref(false)
 
-      // 操作状态
-      triggering: false,
-      autoRefresh: false,
-      refreshTimer: null,
+const triggering = ref(false)
+const autoRefresh = ref(false)
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
-      // ECharts
-      echartsAvailable: false,
-      echarts: null,
-      trendChart: null,
-      radarChart: null,
+const echartsAvailable = ref(false)
+let echartsLib: any = null
+let trendChart: any = null
+let radarChart: any = null
+const trendChartRef = ref<HTMLDivElement | null>(null)
+const radarChartRef = ref<HTMLDivElement | null>(null)
 
-      // 趋势对话框
-      trendDialogVisible: false,
-      trendData: [],
-      trendLoading: false,
-      selectedDeviceId: null,
-      selectedDeviceName: '',
+const trendDialogVisible = ref(false)
+const trendData = ref<any[]>([])
+const trendLoading = ref(false)
+const selectedDeviceId = ref<any>(null)
+const selectedDeviceName = ref('')
 
-      // 详情对话框
-      detailDialogVisible: false,
-      deviceDetail: null,
-      detailLoading: false
+const detailDialogVisible = ref(false)
+const deviceDetail = ref<any>(null)
+const detailLoading = ref(false)
+
+const permissions = computed(() => authStore.permissions || [])
+
+function hasPermission(perm: string) {
+  return permissions.value.includes(perm)
+}
+
+async function fetchDashboard() {
+  try {
+    const res = await request.get('/phm/health/dashboard')
+    if (res.data.code === 200) {
+      dashboard.value = res.data.data || {}
     }
-  },
-
-  computed: {
-    permissions() {
-      return this.$store.state.permissions || []
-    }
-  },
-
-  watch: {
-    autoRefresh(val) {
-      if (val) {
-        this.startAutoRefresh()
-      } else {
-        this.stopAutoRefresh()
-      }
-    },
-
-    detailDialogVisible(val) {
-      if (val && this.echartsAvailable && this.deviceDetail) {
-        this.$nextTick(() => {
-          this.renderRadarChart()
-        })
-      }
-    }
-  },
-
-  created() {
-    this.fetchDashboard()
-    this.fetchRanking()
-  },
-
-  mounted() {
-    this.initECharts()
-    window.addEventListener('resize', this.resizeCharts)
-  },
-
-  beforeDestroy() {
-    this.stopAutoRefresh()
-    window.removeEventListener('resize', this.resizeCharts)
-    if (this.trendChart) this.trendChart.dispose()
-    if (this.radarChart) this.radarChart.dispose()
-  },
-
-  methods: {
-    // ================================================================
-    // 权限判断
-    // ================================================================
-    hasPermission(perm) {
-      return this.permissions.includes(perm)
-    },
-
-    // ================================================================
-    // 数据加载
-    // ================================================================
-
-    /** 加载Dashboard数据 */
-    async fetchDashboard() {
-      try {
-        const res = await request.get('/phm/health/dashboard')
-        if (res.data.code === 200) {
-          this.dashboard = res.data.data || {}
-        }
-      } catch (e) {
-        this.$message.error('获取Dashboard数据失败')
-      }
-    },
-
-    /** 加载风险设备排行榜 */
-    async fetchRanking() {
-      this.rankingLoading = true
-      try {
-        const res = await request.get('/phm/health/ranking', {
-          params: { limit: 20 }
-        })
-        if (res.data.code === 200) {
-          this.rankingData = res.data.data || []
-        }
-      } catch (e) {
-        this.$message.error('获取风险设备排行榜失败')
-      } finally {
-        this.rankingLoading = false
-      }
-    },
-
-    /** 加载设备健康趋势 */
-    async fetchTrend(deviceId) {
-      this.trendLoading = true
-      try {
-        const endDate = new Date().toISOString().split('T')[0]
-        const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-
-        const res = await request.get(`/phm/health/trend/${deviceId}`, {
-          params: { startDate, endDate }
-        })
-        if (res.data.code === 200) {
-          this.trendData = res.data.data || []
-          this.$nextTick(() => {
-            this.renderTrendChart()
-          })
-        }
-      } catch (e) {
-        this.$message.error('获取健康趋势失败')
-      } finally {
-        this.trendLoading = false
-      }
-    },
-
-    /** 加载设备详情 */
-    async fetchDeviceDetail(deviceId) {
-      this.detailLoading = true
-      try {
-        const res = await request.get(`/phm/health/device/${deviceId}/latest`)
-        if (res.data.code === 200) {
-          this.deviceDetail = res.data.data
-        }
-      } catch (e) {
-        this.$message.error('获取设备详情失败')
-      } finally {
-        this.detailLoading = false
-      }
-    },
-
-    // ================================================================
-    // ECharts 初始化和渲染
-    // ================================================================
-
-    /** 动态加载 ECharts */
-    async initECharts() {
-      try {
-        const echarts = await import('echarts')
-        this.echarts = echarts
-        this.echartsAvailable = true
-      } catch (e) {
-        this.echartsAvailable = false
-      }
-    },
-
-    /** 渲染健康趋势图 */
-    renderTrendChart() {
-      if (!this.echartsAvailable || !this.$refs.trendChart) return
-
-      if (!this.trendChart) {
-        this.trendChart = this.echarts.init(this.$refs.trendChart)
-      }
-
-      const dates = this.trendData.map(item => item.recordDate)
-      const scores = this.trendData.map(item => item.healthScore)
-
-      const option = {
-        title: { text: '健康评分趋势', left: 'center' },
-        tooltip: { trigger: 'axis' },
-        grid: { top: '15%', left: '10%', right: '10%', bottom: '15%' },
-        xAxis: {
-          type: 'category',
-          data: dates,
-          name: '日期'
-        },
-        yAxis: {
-          type: 'value',
-          name: '健康评分',
-          min: 0,
-          max: 100
-        },
-        series: [{
-          type: 'line',
-          data: scores,
-          smooth: true,
-          lineStyle: { width: 3 },
-          areaStyle: { opacity: 0.3 },
-          markLine: {
-            data: [
-              { yAxis: 40, name: 'CRITICAL阈值', lineStyle: { color: '#f56c6c' } },
-              { yAxis: 60, name: 'HIGH阈值', lineStyle: { color: '#e6a23c' } },
-              { yAxis: 80, name: 'MEDIUM阈值', lineStyle: { color: '#409eff' } }
-            ]
-          }
-        }]
-      }
-
-      this.trendChart.setOption(option)
-    },
-
-    /** 渲染雷达图 */
-    renderRadarChart() {
-      if (!this.echartsAvailable || !this.$refs.radarChart || !this.deviceDetail) return
-
-      if (this.radarChart) {
-        this.radarChart.dispose()
-      }
-      this.radarChart = this.echarts.init(this.$refs.radarChart)
-
-      const option = {
-        tooltip: {},
-        radar: {
-          indicator: [
-            { name: '运行时长评分', max: 100 },
-            { name: '故障评分', max: 100 },
-            { name: '工单评分', max: 100 },
-            { name: '换件评分', max: 100 }
-          ]
-        },
-        series: [{
-          type: 'radar',
-          data: [{
-            value: [
-              this.deviceDetail.runtimeScore || 0,
-              this.deviceDetail.faultScore || 0,
-              this.deviceDetail.workorderScore || 0,
-              this.deviceDetail.replacementScore || 0
-            ],
-            name: '维度评分'
-          }],
-          areaStyle: { opacity: 0.3 }
-        }]
-      }
-
-      this.radarChart.setOption(option)
-    },
-
-    /** 窗口大小变化时重绘 */
-    resizeCharts() {
-      if (this.trendChart) this.trendChart.resize()
-      if (this.radarChart) this.radarChart.resize()
-    },
-
-    // ================================================================
-    // 交互操作
-    // ================================================================
-
-    /** 手动触发批量评估 */
-    handleTriggerEvaluation() {
-      this.$confirm(
-        '确认手动触发批量健康评估？将对所有设备进行评估',
-        '确认触发',
-        { type: 'warning' }
-      ).then(async () => {
-        this.triggering = true
-        try {
-          const res = await request.post('/phm/health/batch-evaluate')
-          if (res.data.code === 200) {
-            this.$message.success(res.data.message || '评估任务已启动')
-            setTimeout(() => {
-              this.fetchDashboard()
-              this.fetchRanking()
-            }, 2000)
-          }
-        } catch (e) {
-          this.$message.error('触发失败：' + (e.response?.data?.message || '未知错误'))
-        } finally {
-          this.triggering = false
-        }
-      }).catch(() => {})
-    },
-
-    /** 查看健康趋势 */
-    viewTrend(deviceId) {
-      const device = this.rankingData.find(d => d.deviceId === deviceId)
-      this.selectedDeviceId = deviceId
-      this.selectedDeviceName = device ? `${device.deviceCode} - ${device.deviceName}` : ''
-      this.trendDialogVisible = true
-      this.fetchTrend(deviceId)
-    },
-
-    /** 关闭趋势对话框 */
-    closeTrendDialog() {
-      if (this.trendChart) {
-        this.trendChart.dispose()
-        this.trendChart = null
-      }
-    },
-
-    /** 查看设备详情 */
-    viewDetails(deviceId) {
-      const device = this.rankingData.find(d => d.deviceId === deviceId)
-      this.selectedDeviceId = deviceId
-      this.selectedDeviceName = device ? `${device.deviceCode} - ${device.deviceName}` : ''
-      this.detailDialogVisible = true
-      this.fetchDeviceDetail(deviceId)
-    },
-
-    /** 启动自动刷新 */
-    startAutoRefresh() {
-      this.refreshTimer = setInterval(() => {
-        this.fetchDashboard()
-        this.fetchRanking()
-      }, 5 * 60 * 1000) // 5分钟刷新一次
-    },
-
-    /** 停止自动刷新 */
-    stopAutoRefresh() {
-      if (this.refreshTimer) {
-        clearInterval(this.refreshTimer)
-        this.refreshTimer = null
-      }
-    },
-
-    // ================================================================
-    // 辅助方法
-    // ================================================================
-
-    formatDecimal(val, digits = 2) {
-      return val != null ? Number(val).toFixed(digits) : '0.00'
-    },
-
-    getScoreColor(score) {
-      if (score >= 80) return '#67c23a'
-      if (score >= 60) return '#409eff'
-      if (score >= 40) return '#e6a23c'
-      return '#f56c6c'
-    },
-
-    getRiskTagType(riskLevel) {
-      const map = {
-        CRITICAL: 'danger',
-        HIGH: 'warning',
-        MEDIUM: 'info',
-        LOW: 'success'
-      }
-      return map[riskLevel] || ''
-    },
-
-    getRiskLevelText(riskLevel) {
-      const map = {
-        CRITICAL: '严重',
-        HIGH: '高风险',
-        MEDIUM: '中等',
-        LOW: '健康'
-      }
-      return map[riskLevel] || riskLevel
-    },
-
-    getImportanceLevelText(level) {
-      const map = {
-        CRITICAL: '关键设备',
-        IMPORTANT: '重要设备',
-        NORMAL: '一般设备'
-      }
-      return map[level] || level
-    }
+  } catch (e) {
+    ElMessage.error('获取Dashboard数据失败')
   }
 }
+
+async function fetchRanking() {
+  rankingLoading.value = true
+  try {
+    const res = await request.get('/phm/health/ranking', {
+      params: { limit: 20 }
+    })
+    if (res.data.code === 200) {
+      rankingData.value = res.data.data || []
+    }
+  } catch (e) {
+    ElMessage.error('获取风险设备排行榜失败')
+  } finally {
+    rankingLoading.value = false
+  }
+}
+
+async function fetchTrend(deviceId: any) {
+  trendLoading.value = true
+  try {
+    const endDate = new Date().toISOString().split('T')[0]
+    const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    const res = await request.get(`/phm/health/trend/${deviceId}`, {
+      params: { startDate, endDate }
+    })
+    if (res.data.code === 200) {
+      trendData.value = res.data.data || []
+      nextTick(() => {
+        renderTrendChart()
+      })
+    }
+  } catch (e) {
+    ElMessage.error('获取健康趋势失败')
+  } finally {
+    trendLoading.value = false
+  }
+}
+
+async function fetchDeviceDetail(deviceId: any) {
+  detailLoading.value = true
+  try {
+    const res = await request.get(`/phm/health/device/${deviceId}/latest`)
+    if (res.data.code === 200) {
+      deviceDetail.value = res.data.data
+    }
+  } catch (e) {
+    ElMessage.error('获取设备详情失败')
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+async function initECharts() {
+  try {
+    const echarts = await import('echarts')
+    echartsLib = echarts
+    echartsAvailable.value = true
+  } catch (e) {
+    echartsAvailable.value = false
+  }
+}
+
+function renderTrendChart() {
+  if (!echartsAvailable.value || !trendChartRef.value) return
+
+  if (!trendChart) {
+    trendChart = echartsLib.init(trendChartRef.value)
+  }
+
+  const dates = trendData.value.map(item => item.recordDate)
+  const scores = trendData.value.map(item => item.healthScore)
+
+  const option = {
+    title: { text: '健康评分趋势', left: 'center' },
+    tooltip: { trigger: 'axis' },
+    grid: { top: '15%', left: '10%', right: '10%', bottom: '15%' },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      name: '日期'
+    },
+    yAxis: {
+      type: 'value',
+      name: '健康评分',
+      min: 0,
+      max: 100
+    },
+    series: [{
+      type: 'line',
+      data: scores,
+      smooth: true,
+      lineStyle: { width: 3 },
+      areaStyle: { opacity: 0.3 },
+      markLine: {
+        data: [
+          { yAxis: 40, name: 'CRITICAL阈值', lineStyle: { color: '#f56c6c' } },
+          { yAxis: 60, name: 'HIGH阈值', lineStyle: { color: '#e6a23c' } },
+          { yAxis: 80, name: 'MEDIUM阈值', lineStyle: { color: '#409eff' } }
+        ]
+      }
+    }]
+  }
+
+  trendChart.setOption(option)
+}
+
+function renderRadarChart() {
+  if (!echartsAvailable.value || !radarChartRef.value || !deviceDetail.value) return
+
+  if (radarChart) {
+    radarChart.dispose()
+  }
+  radarChart = echartsLib.init(radarChartRef.value)
+
+  const option = {
+    tooltip: {},
+    radar: {
+      indicator: [
+        { name: '运行时长评分', max: 100 },
+        { name: '故障评分', max: 100 },
+        { name: '工单评分', max: 100 },
+        { name: '换件评分', max: 100 }
+      ]
+    },
+    series: [{
+      type: 'radar',
+      data: [{
+        value: [
+          deviceDetail.value.runtimeScore || 0,
+          deviceDetail.value.faultScore || 0,
+          deviceDetail.value.workorderScore || 0,
+          deviceDetail.value.replacementScore || 0
+        ],
+        name: '维度评分'
+      }],
+      areaStyle: { opacity: 0.3 }
+    }]
+  }
+
+  radarChart.setOption(option)
+}
+
+function resizeCharts() {
+  if (trendChart) trendChart.resize()
+  if (radarChart) radarChart.resize()
+}
+
+function handleTriggerEvaluation() {
+  ElMessageBox.confirm(
+    '确认手动触发批量健康评估？将对所有设备进行评估',
+    '确认触发',
+    { type: 'warning' }
+  ).then(async () => {
+    triggering.value = true
+    try {
+      const res = await request.post('/phm/health/batch-evaluate')
+      if (res.data.code === 200) {
+        ElMessage.success(res.data.message || '评估任务已启动')
+        setTimeout(() => {
+          fetchDashboard()
+          fetchRanking()
+        }, 2000)
+      }
+    } catch (e: any) {
+      ElMessage.error('触发失败：' + (e.response?.data?.message || '未知错误'))
+    } finally {
+      triggering.value = false
+    }
+  }).catch(() => {})
+}
+
+function viewTrend(deviceId: any) {
+  const device = rankingData.value.find(d => d.deviceId === deviceId)
+  selectedDeviceId.value = deviceId
+  selectedDeviceName.value = device ? `${device.deviceCode} - ${device.deviceName}` : ''
+  trendDialogVisible.value = true
+  fetchTrend(deviceId)
+}
+
+function closeTrendDialog() {
+  if (trendChart) {
+    trendChart.dispose()
+    trendChart = null
+  }
+}
+
+function viewDetails(deviceId: any) {
+  const device = rankingData.value.find(d => d.deviceId === deviceId)
+  selectedDeviceId.value = deviceId
+  selectedDeviceName.value = device ? `${device.deviceCode} - ${device.deviceName}` : ''
+  detailDialogVisible.value = true
+  fetchDeviceDetail(deviceId)
+}
+
+function startAutoRefresh() {
+  refreshTimer = setInterval(() => {
+    fetchDashboard()
+    fetchRanking()
+  }, 5 * 60 * 1000)
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+function formatDecimal(val: any, digits = 2) {
+  return val != null ? Number(val).toFixed(digits) : '0.00'
+}
+
+function getScoreColor(score: number) {
+  if (score >= 80) return '#67c23a'
+  if (score >= 60) return '#409eff'
+  if (score >= 40) return '#e6a23c'
+  return '#f56c6c'
+}
+
+function getRiskTagType(riskLevel: string) {
+  const map: Record<string, string> = {
+    CRITICAL: 'danger',
+    HIGH: 'warning',
+    MEDIUM: 'info',
+    LOW: 'success'
+  }
+  return map[riskLevel] || ''
+}
+
+function getRiskLevelText(riskLevel: string) {
+  const map: Record<string, string> = {
+    CRITICAL: '严重',
+    HIGH: '高风险',
+    MEDIUM: '中等',
+    LOW: '健康'
+  }
+  return map[riskLevel] || riskLevel
+}
+
+function getImportanceLevelText(level: string) {
+  const map: Record<string, string> = {
+    CRITICAL: '关键设备',
+    IMPORTANT: '重要设备',
+    NORMAL: '一般设备'
+  }
+  return map[level] || level
+}
+
+watch(autoRefresh, (val) => {
+  if (val) {
+    startAutoRefresh()
+  } else {
+    stopAutoRefresh()
+  }
+})
+
+watch(detailDialogVisible, (val) => {
+  if (val && echartsAvailable.value && deviceDetail.value) {
+    nextTick(() => {
+      renderRadarChart()
+    })
+  }
+})
+
+watch(deviceDetail, (val) => {
+  if (detailDialogVisible.value && echartsAvailable.value && val) {
+    nextTick(() => {
+      renderRadarChart()
+    })
+  }
+})
+
+onMounted(() => {
+  fetchDashboard()
+  fetchRanking()
+  initECharts()
+  window.addEventListener('resize', resizeCharts)
+})
+
+onBeforeUnmount(() => {
+  stopAutoRefresh()
+  window.removeEventListener('resize', resizeCharts)
+  if (trendChart) trendChart.dispose()
+  if (radarChart) radarChart.dispose()
+})
 </script>
 
 <style scoped>

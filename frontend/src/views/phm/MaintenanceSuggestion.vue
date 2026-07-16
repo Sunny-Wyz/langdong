@@ -9,7 +9,7 @@
           class="stat-card stat-pending"
           shadow="hover"
           :class="{ 'stat-active': filter.status === 'PENDING' }"
-          @click.native="filterByStatus('PENDING')"
+          @click="filterByStatus('PENDING')"
         >
           <div class="stat-content">
             <div class="stat-label">待处理</div>
@@ -23,7 +23,7 @@
           class="stat-card stat-accepted"
           shadow="hover"
           :class="{ 'stat-active': filter.status === 'ACCEPTED' }"
-          @click.native="filterByStatus('ACCEPTED')"
+          @click="filterByStatus('ACCEPTED')"
         >
           <div class="stat-content">
             <div class="stat-label">已采纳</div>
@@ -37,7 +37,7 @@
           class="stat-card stat-rejected"
           shadow="hover"
           :class="{ 'stat-active': filter.status === 'REJECTED' }"
-          @click.native="filterByStatus('REJECTED')"
+          @click="filterByStatus('REJECTED')"
         >
           <div class="stat-content">
             <div class="stat-label">已拒绝</div>
@@ -51,7 +51,7 @@
           class="stat-card stat-completed"
           shadow="hover"
           :class="{ 'stat-active': filter.status === 'COMPLETED' }"
-          @click.native="filterByStatus('COMPLETED')"
+          @click="filterByStatus('COMPLETED')"
         >
           <div class="stat-content">
             <div class="stat-label">已完成</div>
@@ -87,13 +87,15 @@
           clearable
           style="width:160px; margin-right:10px"
           @clear="fetchList"
-          @keyup.enter.native="fetchList"
+          @keyup.enter="fetchList"
         >
-          <el-button slot="append" icon="el-icon-search" @click="fetchList" />
+          <template #append>
+            <el-button @click="fetchList">搜索</el-button>
+          </template>
         </el-input>
 
         <!-- 重置按钮 -->
-        <el-button icon="el-icon-refresh-left" @click="resetFilter">重置</el-button>
+        <el-button @click="resetFilter">重置</el-button>
       </div>
 
       <div class="action-area">
@@ -108,13 +110,15 @@
          建议列表表格
          ============================================================ -->
     <el-card class="table-card" shadow="never">
-      <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
-                <div class="title">维护建议列表</div>
-                <div class="head-btn-group"><span class="table-tip">共 {{ total }} 条记录</span>
-      
-                </div>
-            </div>
+      <template #header>
+        <div class="phead header">
+          <i class="el-icon-s-data" />
+          <div class="title">维护建议列表</div>
+          <div class="head-btn-group">
+            <span class="table-tip">共 {{ total }} 条记录</span>
+          </div>
+        </div>
+      </template>
 
       <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
         <el-table-column prop="id" label="ID" width="70" align="center" />
@@ -122,7 +126,7 @@
         <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
 
         <el-table-column label="优先级" width="90" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-tag :type="getPriorityTagType(row.priorityLevel)" size="small">
               {{ getPriorityText(row.priorityLevel) }}
             </el-tag>
@@ -130,7 +134,7 @@
         </el-table-column>
 
         <el-table-column label="维护类型" width="110" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-tag :type="getTypeTagType(row.maintenanceType)" size="small" effect="plain">
               {{ getMaintenanceTypeText(row.maintenanceType) }}
             </el-tag>
@@ -138,7 +142,7 @@
         </el-table-column>
 
         <el-table-column label="健康评分" width="90" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <span :style="{ color: getScoreColor(row.healthScore) }">
               {{ formatDecimal(row.healthScore) }}
             </span>
@@ -146,7 +150,7 @@
         </el-table-column>
 
         <el-table-column label="故障概率" width="90" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             {{ formatPercent(row.failureProbability) }}
           </template>
         </el-table-column>
@@ -155,13 +159,13 @@
         <el-table-column prop="suggestedEndDate" label="建议结束日期" width="120" align="center" />
 
         <el-table-column prop="estimatedCost" label="预估成本" width="100" align="right">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             ¥ {{ formatDecimal(row.estimatedCost, 0) }}
           </template>
         </el-table-column>
 
         <el-table-column label="状态" width="90" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-tag :type="getStatusTagType(row.status)" size="small">
               {{ getStatusText(row.status) }}
             </el-tag>
@@ -169,11 +173,12 @@
         </el-table-column>
 
         <el-table-column label="操作" width="180" align="center" fixed="right">
-          <template slot-scope="{ row }">
-            <el-button type="text" size="small" @click="viewDetail(row)">详情</el-button>
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="viewDetail(row)">详情</el-button>
             <el-button
               v-if="row.status === 'PENDING' && hasPermission('phm:suggestion:approve')"
-              type="text"
+              type="primary"
+              link
               size="small"
               style="color: #67c23a"
               @click="approveSuggestion(row)"
@@ -182,7 +187,8 @@
             </el-button>
             <el-button
               v-if="row.status === 'PENDING' && hasPermission('phm:suggestion:reject')"
-              type="text"
+              type="primary"
+              link
               size="small"
               style="color: #f56c6c"
               @click="rejectSuggestion(row)"
@@ -211,12 +217,12 @@
          建议详情对话框
          ============================================================ -->
     <el-dialog
-      :visible.sync="detailDialogVisible"
+      v-model="detailDialogVisible"
       :title="'维护建议详情 - ID: ' + (selectedSuggestion?.id || '')"
       width="800px"
     >
       <div v-if="selectedSuggestion">
-        <el-descriptions :column="2" border size="medium">
+        <el-descriptions :column="2" border size="default">
           <el-descriptions-item label="设备编码">{{ selectedSuggestion.deviceCode }}</el-descriptions-item>
           <el-descriptions-item label="设备名称">{{ selectedSuggestion.deviceName }}</el-descriptions-item>
           <el-descriptions-item label="设备型号">{{ selectedSuggestion.deviceModel }}</el-descriptions-item>
@@ -254,7 +260,7 @@
           </el-descriptions-item>
 
           <el-descriptions-item label="状态" :span="2">
-            <el-tag :type="getStatusTagType(selectedSuggestion.status)" size="medium">
+            <el-tag :type="getStatusTagType(selectedSuggestion.status)" size="default">
               {{ getStatusText(selectedSuggestion.status) }}
             </el-tag>
           </el-descriptions-item>
@@ -304,16 +310,16 @@
         </div>
       </div>
 
-      <div slot="footer">
+      <template #footer>
         <el-button @click="detailDialogVisible = false">关闭</el-button>
-      </div>
+      </template>
     </el-dialog>
 
     <!-- ============================================================
          拒绝建议对话框
          ============================================================ -->
     <el-dialog
-      :visible.sync="rejectDialogVisible"
+      v-model="rejectDialogVisible"
       title="拒绝维护建议"
       width="500px"
     >
@@ -328,314 +334,269 @@
         </el-form-item>
       </el-form>
 
-      <div slot="footer">
+      <template #footer>
         <el-button @click="rejectDialogVisible = false">取消</el-button>
         <el-button type="danger" :loading="submitting" @click="confirmReject">确认拒绝</el-button>
-      </div>
+      </template>
     </el-dialog>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
 import request from '@/utils/request'
+import { useAuthStore } from '@/store/auth'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 
-export default {
-  name: 'MaintenanceSuggestion',
+const authStore = useAuthStore()
 
-  data() {
-    return {
-      // Dashboard数据
-      dashboard: {
-        statusDistribution: {},
-        acceptanceRate: 0
-      },
+const dashboard = ref<any>({
+  statusDistribution: {},
+  acceptanceRate: 0
+})
 
-      // 筛选条件
-      filter: {
-        status: '',
-        priorityLevel: '',
-        maintenanceType: '',
-        deviceCode: ''
-      },
+const filter = reactive({
+  status: '',
+  priorityLevel: '',
+  maintenanceType: '',
+  deviceCode: ''
+})
 
-      // 表格数据
-      tableData: [],
-      total: 0,
-      loading: false,
+const tableData = ref<any[]>([])
+const total = ref(0)
+const loading = ref(false)
 
-      // 分页
-      pagination: {
-        page: 1,
-        pageSize: 20
-      },
+const pagination = reactive({
+  page: 1,
+  pageSize: 20
+})
 
-      // 详情对话框
-      detailDialogVisible: false,
-      selectedSuggestion: null,
+const detailDialogVisible = ref(false)
+const selectedSuggestion = ref<any>(null)
 
-      // 拒绝对话框
-      rejectDialogVisible: false,
-      rejectReason: '',
-      rejectingSuggestion: null,
-      submitting: false
+const rejectDialogVisible = ref(false)
+const rejectReason = ref('')
+const rejectingSuggestion = ref<any>(null)
+const submitting = ref(false)
+
+const permissions = computed(() => authStore.permissions || [])
+// auth store 无 user.id 字段，保留原 Vuex 默认回退值 1
+const currentUserId = computed(() => 1)
+
+function hasPermission(perm: string) {
+  return permissions.value.includes(perm)
+}
+
+async function fetchDashboard() {
+  try {
+    const res = await request.get('/phm/suggestion/dashboard')
+    if (res.data.code === 200) {
+      dashboard.value = res.data.data || {}
     }
-  },
-
-  computed: {
-    permissions() {
-      return this.$store.state.permissions || []
-    },
-
-    // 当前用户ID（从store获取）
-    currentUserId() {
-      return this.$store.state.user?.id || 1
-    }
-  },
-
-  created() {
-    this.fetchDashboard()
-    this.fetchList()
-  },
-
-  methods: {
-    // ================================================================
-    // 权限判断
-    // ================================================================
-    hasPermission(perm) {
-      return this.permissions.includes(perm)
-    },
-
-    // ================================================================
-    // 数据加载
-    // ================================================================
-
-    /** 加载Dashboard数据 */
-    async fetchDashboard() {
-      try {
-        const res = await request.get('/phm/suggestion/dashboard')
-        if (res.data.code === 200) {
-          this.dashboard = res.data.data || {}
-        }
-      } catch (e) {
-        console.error('获取Dashboard失败', e)
-      }
-    },
-
-    /** 加载建议列表 */
-    async fetchList() {
-      this.loading = true
-      try {
-        const res = await request.get('/phm/suggestion/list', {
-          params: {
-            status: this.filter.status || undefined,
-            priorityLevel: this.filter.priorityLevel || undefined,
-            maintenanceType: this.filter.maintenanceType || undefined,
-            deviceCode: this.filter.deviceCode || undefined,
-            page: this.pagination.page,
-            pageSize: this.pagination.pageSize
-          }
-        })
-        if (res.data.code === 200) {
-          this.tableData = res.data.data || []
-          this.total = res.data.total || 0
-        }
-      } catch (e) {
-        this.$message.error('获取建议列表失败')
-      } finally {
-        this.loading = false
-      }
-    },
-
-    // ================================================================
-    // 交互操作
-    // ================================================================
-
-    /** 按状态筛选 */
-    filterByStatus(status) {
-      if (this.filter.status === status) {
-        this.filter.status = ''
-      } else {
-        this.filter.status = status
-      }
-      this.pagination.page = 1
-      this.fetchList()
-    },
-
-    /** 重置筛选 */
-    resetFilter() {
-      this.filter = {
-        status: '',
-        priorityLevel: '',
-        maintenanceType: '',
-        deviceCode: ''
-      }
-      this.pagination.page = 1
-      this.fetchList()
-    },
-
-    /** 查看详情 */
-    viewDetail(row) {
-      this.selectedSuggestion = row
-      this.detailDialogVisible = true
-    },
-
-    /** 采纳建议 */
-    approveSuggestion(row) {
-      this.$confirm(
-        `确认采纳此维护建议？将自动创建工单和领用单。`,
-        '确认采纳',
-        { type: 'warning' }
-      ).then(async () => {
-        const loading = this.$loading({ lock: true, text: '正在处理...' })
-        try {
-          const res = await request.post(`/phm/suggestion/${row.id}/approve`, null, {
-            params: { handledBy: this.currentUserId }
-          })
-          if (res.data.code === 200) {
-            this.$message.success(res.data.message || '建议已采纳')
-            this.fetchList()
-            this.fetchDashboard()
-          } else {
-            this.$message.error(res.data.message || '采纳失败')
-          }
-        } catch (e) {
-          this.$message.error('采纳失败：' + (e.response?.data?.message || '未知错误'))
-        } finally {
-          loading.close()
-        }
-      }).catch(() => {})
-    },
-
-    /** 拒绝建议 */
-    rejectSuggestion(row) {
-      this.rejectingSuggestion = row
-      this.rejectReason = ''
-      this.rejectDialogVisible = true
-    },
-
-    /** 确认拒绝 */
-    async confirmReject() {
-      if (!this.rejectReason || !this.rejectReason.trim()) {
-        this.$message.warning('请输入拒绝原因')
-        return
-      }
-
-      this.submitting = true
-      try {
-        const res = await request.post(
-          `/phm/suggestion/${this.rejectingSuggestion.id}/reject`,
-          null,
-          {
-            params: {
-              rejectReason: this.rejectReason,
-              handledBy: this.currentUserId
-            }
-          }
-        )
-        if (res.data.code === 200) {
-          this.$message.success('建议已拒绝')
-          this.rejectDialogVisible = false
-          this.fetchList()
-          this.fetchDashboard()
-        } else {
-          this.$message.error(res.data.message || '拒绝失败')
-        }
-      } catch (e) {
-        this.$message.error('拒绝失败：' + (e.response?.data?.message || '未知错误'))
-      } finally {
-        this.submitting = false
-      }
-    },
-
-    /** 分页大小变化 */
-    handleSizeChange(newSize) {
-      this.pagination.pageSize = newSize
-      this.pagination.page = 1
-      this.fetchList()
-    },
-
-    /** 页码变化 */
-    handlePageChange(newPage) {
-      this.pagination.page = newPage
-      this.fetchList()
-    },
-
-    // ================================================================
-    // 辅助方法
-    // ================================================================
-
-    formatDecimal(val, digits = 2) {
-      return val != null ? Number(val).toFixed(digits) : '0.00'
-    },
-
-    formatPercent(val) {
-      return val != null ? (Number(val) * 100).toFixed(1) + '%' : '0.0%'
-    },
-
-    getScoreColor(score) {
-      if (score >= 80) return '#67c23a'
-      if (score >= 60) return '#409eff'
-      if (score >= 40) return '#e6a23c'
-      return '#f56c6c'
-    },
-
-    getStatusTagType(status) {
-      const map = {
-        PENDING: 'warning',
-        ACCEPTED: 'success',
-        REJECTED: 'danger',
-        COMPLETED: 'info'
-      }
-      return map[status] || ''
-    },
-
-    getStatusText(status) {
-      const map = {
-        PENDING: '待处理',
-        ACCEPTED: '已采纳',
-        REJECTED: '已拒绝',
-        COMPLETED: '已完成'
-      }
-      return map[status] || status
-    },
-
-    getPriorityTagType(priority) {
-      const map = {
-        HIGH: 'danger',
-        MEDIUM: 'warning',
-        LOW: 'info'
-      }
-      return map[priority] || ''
-    },
-
-    getPriorityText(priority) {
-      const map = {
-        HIGH: '高',
-        MEDIUM: '中',
-        LOW: '低'
-      }
-      return map[priority] || priority
-    },
-
-    getTypeTagType(type) {
-      const map = {
-        EMERGENCY: 'danger',
-        PREDICTIVE: 'warning',
-        PREVENTIVE: 'primary'
-      }
-      return map[type] || ''
-    },
-
-    getMaintenanceTypeText(type) {
-      const map = {
-        EMERGENCY: '紧急维护',
-        PREDICTIVE: '预测性维护',
-        PREVENTIVE: '预防性维护'
-      }
-      return map[type] || type
-    }
+  } catch (e) {
+    // ignore dashboard error
   }
 }
+
+async function fetchList() {
+  loading.value = true
+  try {
+    const res = await request.get('/phm/suggestion/list', {
+      params: {
+        status: filter.status || undefined,
+        priorityLevel: filter.priorityLevel || undefined,
+        maintenanceType: filter.maintenanceType || undefined,
+        deviceCode: filter.deviceCode || undefined,
+        page: pagination.page,
+        pageSize: pagination.pageSize
+      }
+    })
+    if (res.data.code === 200) {
+      tableData.value = res.data.data || []
+      total.value = res.data.total || 0
+    }
+  } catch (e) {
+    ElMessage.error('获取建议列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function filterByStatus(status: string) {
+  if (filter.status === status) {
+    filter.status = ''
+  } else {
+    filter.status = status
+  }
+  pagination.page = 1
+  fetchList()
+}
+
+function resetFilter() {
+  filter.status = ''
+  filter.priorityLevel = ''
+  filter.maintenanceType = ''
+  filter.deviceCode = ''
+  pagination.page = 1
+  fetchList()
+}
+
+function viewDetail(row: any) {
+  selectedSuggestion.value = row
+  detailDialogVisible.value = true
+}
+
+function approveSuggestion(row: any) {
+  ElMessageBox.confirm(
+    `确认采纳此维护建议？将自动创建工单和领用单。`,
+    '确认采纳',
+    { type: 'warning' }
+  ).then(async () => {
+    const loadingInstance = ElLoading.service({ lock: true, text: '正在处理...' })
+    try {
+      const res = await request.post(`/phm/suggestion/${row.id}/approve`, null, {
+        params: { handledBy: currentUserId.value }
+      })
+      if (res.data.code === 200) {
+        ElMessage.success(res.data.message || '建议已采纳')
+        fetchList()
+        fetchDashboard()
+      } else {
+        ElMessage.error(res.data.message || '采纳失败')
+      }
+    } catch (e: any) {
+      ElMessage.error('采纳失败：' + (e.response?.data?.message || '未知错误'))
+    } finally {
+      loadingInstance.close()
+    }
+  }).catch(() => {})
+}
+
+function rejectSuggestion(row: any) {
+  rejectingSuggestion.value = row
+  rejectReason.value = ''
+  rejectDialogVisible.value = true
+}
+
+async function confirmReject() {
+  if (!rejectReason.value || !rejectReason.value.trim()) {
+    ElMessage.warning('请输入拒绝原因')
+    return
+  }
+
+  submitting.value = true
+  try {
+    const res = await request.post(
+      `/phm/suggestion/${rejectingSuggestion.value.id}/reject`,
+      null,
+      {
+        params: {
+          rejectReason: rejectReason.value,
+          handledBy: currentUserId.value
+        }
+      }
+    )
+    if (res.data.code === 200) {
+      ElMessage.success('建议已拒绝')
+      rejectDialogVisible.value = false
+      fetchList()
+      fetchDashboard()
+    } else {
+      ElMessage.error(res.data.message || '拒绝失败')
+    }
+  } catch (e: any) {
+    ElMessage.error('拒绝失败：' + (e.response?.data?.message || '未知错误'))
+  } finally {
+    submitting.value = false
+  }
+}
+
+function handleSizeChange(newSize: number) {
+  pagination.pageSize = newSize
+  pagination.page = 1
+  fetchList()
+}
+
+function handlePageChange(newPage: number) {
+  pagination.page = newPage
+  fetchList()
+}
+
+function formatDecimal(val: any, digits = 2) {
+  return val != null ? Number(val).toFixed(digits) : '0.00'
+}
+
+function formatPercent(val: any) {
+  return val != null ? (Number(val) * 100).toFixed(1) + '%' : '0.0%'
+}
+
+function getScoreColor(score: number) {
+  if (score >= 80) return '#67c23a'
+  if (score >= 60) return '#409eff'
+  if (score >= 40) return '#e6a23c'
+  return '#f56c6c'
+}
+
+function getStatusTagType(status: string) {
+  const map: Record<string, string> = {
+    PENDING: 'warning',
+    ACCEPTED: 'success',
+    REJECTED: 'danger',
+    COMPLETED: 'info'
+  }
+  return map[status] || ''
+}
+
+function getStatusText(status: string) {
+  const map: Record<string, string> = {
+    PENDING: '待处理',
+    ACCEPTED: '已采纳',
+    REJECTED: '已拒绝',
+    COMPLETED: '已完成'
+  }
+  return map[status] || status
+}
+
+function getPriorityTagType(priority: string) {
+  const map: Record<string, string> = {
+    HIGH: 'danger',
+    MEDIUM: 'warning',
+    LOW: 'info'
+  }
+  return map[priority] || ''
+}
+
+function getPriorityText(priority: string) {
+  const map: Record<string, string> = {
+    HIGH: '高',
+    MEDIUM: '中',
+    LOW: '低'
+  }
+  return map[priority] || priority
+}
+
+function getTypeTagType(type: string) {
+  const map: Record<string, string> = {
+    EMERGENCY: 'danger',
+    PREDICTIVE: 'warning',
+    PREVENTIVE: 'primary'
+  }
+  return map[type] || ''
+}
+
+function getMaintenanceTypeText(type: string) {
+  const map: Record<string, string> = {
+    EMERGENCY: '紧急维护',
+    PREDICTIVE: '预测性维护',
+    PREVENTIVE: '预防性维护'
+  }
+  return map[type] || type
+}
+
+onMounted(() => {
+  fetchDashboard()
+  fetchList()
+})
 </script>
 
 <style scoped>

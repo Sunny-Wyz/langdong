@@ -1,16 +1,18 @@
 <template>
   <div class="training-progress-container">
     <el-card shadow="hover" class="header-card">
-      <div slot="header" class="card-header">
-        <div>
-          <i class="el-icon-loading" />
-          <span class="title">AI训练进度</span>
+      <template #header>
+        <div class="card-header">
+          <div>
+            <i class="el-icon-loading" />
+            <span class="title">AI训练进度</span>
+          </div>
+          <div class="header-actions">
+            <el-button size="small" :loading="loading" @click="fetchStatus">刷新</el-button>
+            <el-button size="small" type="primary" link @click="router.push('/ai/weekly-forecast')">返回周粒度预测</el-button>
+          </div>
         </div>
-        <div class="header-actions">
-          <el-button size="small" icon="el-icon-refresh" :loading="loading" @click="fetchStatus">刷新</el-button>
-          <el-button size="small" type="text" @click="$router.push('/ai/weekly-forecast')">返回周粒度预测</el-button>
-        </div>
-      </div>
+      </template>
 
       <el-alert
         title="本页仅展示周粒度预测训练进度；训练状态保存在 Python 服务内存中，服务重启后不会保留历史。"
@@ -24,13 +26,13 @@
         <el-col :span="6">
           <div class="summary-card">
             <div class="summary-label">训练状态</div>
-            <el-tag :type="statusTagType(status.status)" size="medium">{{ statusText(status.status) }}</el-tag>
+            <el-tag :type="statusTagType(status.status)" size="default">{{ statusText(status.status) }}</el-tag>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="summary-card">
             <div class="summary-label">模型可用</div>
-            <el-tag :type="status.trained ? 'success' : 'info'" size="medium">{{ status.trained ? '已训练' : '未训练' }}</el-tag>
+            <el-tag :type="status.trained ? 'success' : 'info'" size="default">{{ status.trained ? '已训练' : '未训练' }}</el-tag>
           </div>
         </el-col>
         <el-col :span="6">
@@ -49,19 +51,20 @@
     </el-card>
 
     <el-card shadow="never" class="progress-card">
-      <div slot="header" class="card-header">
-        <span>当前训练任务</span>
-        <div class="header-actions">
-          <el-button
-            type="primary"
-            size="small"
-            icon="el-icon-cpu"
-            :loading="submitting"
-            :disabled="isRunning"
-            @click="startTraining"
-          >开始训练</el-button>
+      <template #header>
+        <div class="card-header">
+          <span>当前训练任务</span>
+          <div class="header-actions">
+            <el-button
+              type="primary"
+              size="small"
+              :loading="submitting"
+              :disabled="isRunning"
+              @click="startTraining"
+            >开始训练</el-button>
+          </div>
         </div>
-      </div>
+      </template>
 
       <el-empty v-if="!status.task_id && !serviceError" description="暂无训练任务" />
 
@@ -116,7 +119,7 @@
         />
 
         <div class="footer-actions">
-          <el-button type="success" icon="el-icon-s-promotion" :disabled="!status.trained || isRunning" @click="$router.push('/ai/weekly-forecast')">
+          <el-button type="success" :disabled="!status.trained || isRunning" @click="router.push('/ai/weekly-forecast')">
             去触发预测
           </el-button>
         </div>
@@ -125,144 +128,152 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'AiTrainingProgress',
-  data() {
-    return {
-      status: {},
-      loading: false,
-      submitting: false,
-      timer: null,
-      serviceError: ''
-    }
-  },
-  computed: {
-    isRunning() {
-      return this.status.status === 'RUNNING'
-    },
-    normalizedProgress() {
-      const value = Number(this.status.progress || 0)
-      if (Number.isNaN(value)) return 0
-      return Math.max(0, Math.min(100, Math.round(value)))
-    },
-    activeStep() {
-      const stage = this.status.stage
-      const stageMap = {
-        SUBMITTED: 1,
-        LOAD_MODEL: 1,
-        LOAD_DATA: 2,
-        FEATURE_ENGINEERING: 3,
-        TRAINING: 4,
-        SAVE_MODEL: 5,
-        SUCCESS: 6,
-        FAILED: 6
-      }
-      return stageMap[stage] || 0
-    },
-    progressStatus() {
-      if (this.status.status === 'SUCCESS') return 'success'
-      if (this.status.status === 'FAILED') return 'exception'
-      return undefined
-    },
-    metricsText() {
-      const metrics = this.status.metrics || {}
-      const entries = Object.keys(metrics).map(key => `${key}: ${metrics[key]}`)
-      return entries.length > 0 ? entries.join('，') : '-'
-    }
-  },
-  mounted() {
-    this.fetchStatus()
-    this.timer = setInterval(this.fetchStatus, 3000)
-  },
-  beforeDestroy() {
-    if (this.timer) clearInterval(this.timer)
-  },
-  methods: {
-    fetchStatus() {
-      this.loading = true
-      this.$http.get('/ai/weekly/train/status')
-        .then(res => {
-          this.status = res.data || {}
-          this.serviceError = ''
-        })
-        .catch(err => {
-          const message = err.response?.data?.message || 'AI服务未连接，请检查 Python 服务'
-          this.serviceError = message
-        })
-        .finally(() => {
-          this.loading = false
-        })
-    },
-    startTraining() {
-      this.$confirm('将使用合成数据训练 TFT/DeepAR 模型，是否继续？', '训练确认', {
-        type: 'info'
-      }).then(() => {
-        this.submitting = true
-        this.$http.post('/ai/weekly/train', { use_synthetic: true })
-          .then(() => {
-            this.$message.success('训练任务已提交后台')
-            this.fetchStatus()
-          })
-          .catch(err => {
-            this.$message.error(err.response?.data?.message || '训练请求失败')
-            this.fetchStatus()
-          })
-          .finally(() => {
-            this.submitting = false
-          })
-      }).catch(() => {})
-    },
-    statusText(status) {
-      const map = {
-        IDLE: '空闲',
-        RUNNING: '训练中',
-        SUCCESS: '已完成',
-        FAILED: '失败'
-      }
-      return map[status] || '未知'
-    },
-    statusTagType(status) {
-      const map = {
-        IDLE: 'info',
-        RUNNING: 'warning',
-        SUCCESS: 'success',
-        FAILED: 'danger'
-      }
-      return map[status] || 'info'
-    },
-    stageText(stage) {
-      const map = {
-        IDLE: '空闲',
-        SUBMITTED: '任务已提交',
-        LOAD_MODEL: '加载模型',
-        LOAD_DATA: '准备训练数据',
-        FEATURE_ENGINEERING: '特征处理',
-        TRAINING: '模型训练中',
-        SAVE_MODEL: '保存模型',
-        SUCCESS: '训练完成',
-        FAILED: '训练失败'
-      }
-      return map[stage] || '-'
-    },
-    formatElapsed(seconds) {
-      if (seconds === null || seconds === undefined || seconds === '') return '-'
-      const value = Number(seconds)
-      if (Number.isNaN(value)) return '-'
-      if (value < 60) return `${value.toFixed(1)} 秒`
-      const minutes = Math.floor(value / 60)
-      const rest = Math.round(value % 60)
-      return `${minutes} 分 ${rest} 秒`
-    },
-    formatTime(value) {
-      if (!value) return '-'
-      const date = new Date(value)
-      if (Number.isNaN(date.getTime())) return value
-      const pad = n => String(n).padStart(2, '0')
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-    }
+<script setup lang="ts">
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import request from '@/utils/request'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+
+const router = useRouter()
+
+const status = ref<any>({})
+const loading = ref(false)
+const submitting = ref(false)
+let timer: ReturnType<typeof setInterval> | null = null
+const serviceError = ref('')
+
+const isRunning = computed(() => status.value.status === 'RUNNING')
+
+const normalizedProgress = computed(() => {
+  const value = Number(status.value.progress || 0)
+  if (Number.isNaN(value)) return 0
+  return Math.max(0, Math.min(100, Math.round(value)))
+})
+
+const activeStep = computed(() => {
+  const stage = status.value.stage
+  const stageMap: Record<string, number> = {
+    SUBMITTED: 1,
+    LOAD_MODEL: 1,
+    LOAD_DATA: 2,
+    FEATURE_ENGINEERING: 3,
+    TRAINING: 4,
+    SAVE_MODEL: 5,
+    SUCCESS: 6,
+    FAILED: 6
   }
+  return stageMap[stage] || 0
+})
+
+const progressStatus = computed(() => {
+  if (status.value.status === 'SUCCESS') return 'success'
+  if (status.value.status === 'FAILED') return 'exception'
+  return undefined
+})
+
+const metricsText = computed(() => {
+  const metrics = status.value.metrics || {}
+  const entries = Object.keys(metrics).map(key => `${key}: ${metrics[key]}`)
+  return entries.length > 0 ? entries.join('，') : '-'
+})
+
+function fetchStatus() {
+  loading.value = true
+  request.get('/ai/weekly/train/status')
+    .then(res => {
+      status.value = res.data || {}
+      serviceError.value = ''
+    })
+    .catch((err: any) => {
+      const message = err.response?.data?.message || 'AI服务未连接，请检查 Python 服务'
+      serviceError.value = message
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
+
+function startTraining() {
+  ElMessageBox.confirm('将使用合成数据训练 TFT/DeepAR 模型，是否继续？', '训练确认', {
+    type: 'info'
+  }).then(() => {
+    submitting.value = true
+    request.post('/ai/weekly/train', { use_synthetic: true })
+      .then(() => {
+        ElMessage.success('训练任务已提交后台')
+        fetchStatus()
+      })
+      .catch((err: any) => {
+        ElMessage.error(err.response?.data?.message || '训练请求失败')
+        fetchStatus()
+      })
+      .finally(() => {
+        submitting.value = false
+      })
+  }).catch(() => {})
+}
+
+function statusText(s: string) {
+  const map: Record<string, string> = {
+    IDLE: '空闲',
+    RUNNING: '训练中',
+    SUCCESS: '已完成',
+    FAILED: '失败'
+  }
+  return map[s] || '未知'
+}
+
+function statusTagType(s: string) {
+  const map: Record<string, string> = {
+    IDLE: 'info',
+    RUNNING: 'warning',
+    SUCCESS: 'success',
+    FAILED: 'danger'
+  }
+  return map[s] || 'info'
+}
+
+function stageText(stage: string) {
+  const map: Record<string, string> = {
+    IDLE: '空闲',
+    SUBMITTED: '任务已提交',
+    LOAD_MODEL: '加载模型',
+    LOAD_DATA: '准备训练数据',
+    FEATURE_ENGINEERING: '特征处理',
+    TRAINING: '模型训练中',
+    SAVE_MODEL: '保存模型',
+    SUCCESS: '训练完成',
+    FAILED: '训练失败'
+  }
+  return map[stage] || '-'
+}
+
+function formatElapsed(seconds: any) {
+  if (seconds === null || seconds === undefined || seconds === '') return '-'
+  const value = Number(seconds)
+  if (Number.isNaN(value)) return '-'
+  if (value < 60) return `${value.toFixed(1)} 秒`
+  const minutes = Math.floor(value / 60)
+  const rest = Math.round(value % 60)
+  return `${minutes} 分 ${rest} 秒`
+}
+
+function formatTime(value: any) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+onMounted(() => {
+  fetchStatus()
+  timer = setInterval(fetchStatus, 3000)
+})
+
+onBeforeUnmount(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <style scoped>

@@ -1,13 +1,15 @@
 <template>
   <div class="page-container ai-job-center-container">
     <el-card shadow="hover">
-      <div slot="header" class="phead header">
-        <i class="el-icon-s-operation" />
-        <div class="title">AI 任务中心</div>
-        <div class="head-btn-group">
-          <el-button type="text" @click="$router.push('/ai/forecast-result')">返回预测结果</el-button>
+      <template #header>
+        <div class="phead header">
+          <i class="el-icon-s-operation" />
+          <div class="title">AI 任务中心</div>
+          <div class="head-btn-group">
+            <el-button type="primary" link @click="router.push('/ai/forecast-result')">返回预测结果</el-button>
+          </div>
         </div>
-      </div>
+      </template>
 
       <el-alert
         title="适合批量任务：提交后后台执行，可在本页持续查看状态"
@@ -61,7 +63,7 @@
         <el-table-column prop="taskId" label="任务ID" min-width="260" show-overflow-tooltip />
         <el-table-column prop="sparePartIdsText" label="提交参数" min-width="180" show-overflow-tooltip />
         <el-table-column prop="status" label="状态" width="120">
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
           </template>
         </el-table-column>
@@ -69,13 +71,14 @@
         <el-table-column prop="error" label="错误信息" min-width="180" show-overflow-tooltip />
         <el-table-column prop="updatedAt" label="更新时间" width="170" />
         <el-table-column label="操作" width="220" fixed="right">
-          <template slot-scope="scope">
-            <el-button type="text" size="small" @click="queryTask(scope.row.taskId)">刷新</el-button>
-            <el-button type="text" size="small" :disabled="!scope.row.payloadData" @click="openResultDialog(scope.row)">查看结果</el-button>
-            <el-button type="text" size="small" @click="copyTaskId(scope.row.taskId)">复制ID</el-button>
+          <template #default="scope">
+            <el-button type="primary" link size="small" @click="queryTask(scope.row.taskId)">刷新</el-button>
+            <el-button type="primary" link size="small" :disabled="!scope.row.payloadData" @click="openResultDialog(scope.row)">查看结果</el-button>
+            <el-button type="primary" link size="small" @click="copyTaskId(scope.row.taskId)">复制ID</el-button>
             <el-button
               v-if="isRunning(scope.row.status)"
-              type="text"
+              type="primary"
+              link
               size="small"
               @click="stopPolling(scope.row.taskId)"
             >暂停轮询</el-button>
@@ -83,7 +86,7 @@
         </el-table-column>
       </el-table>
 
-      <el-dialog :visible.sync="resultDialogVisible" title="任务结果详情" width="70%">
+      <el-dialog v-model="resultDialogVisible" title="任务结果详情" width="70%">
         <div v-if="selectedTask" style="margin-bottom: 12px; font-size: 13px; color: #606266;">
           <div>任务ID：{{ selectedTask.taskId }}</div>
           <div>状态：{{ selectedTask.status }}</div>
@@ -99,23 +102,23 @@
           <el-table-column prop="spare_part_id" label="备件ID" width="100" />
           <el-table-column prop="spare_part_name" label="备件名称" min-width="150" />
           <el-table-column label="未来3个月总需求" width="140">
-            <template slot-scope="scope">
+            <template #default="scope">
               {{ readThreeMonthDemand(scope.row) }}
             </template>
           </el-table-column>
           <el-table-column label="建议采购量" width="120">
-            <template slot-scope="scope">
+            <template #default="scope">
               {{ scope.row.suggestion ? scope.row.suggestion.suggested_qty : '-' }}
             </template>
           </el-table-column>
           <el-table-column label="优先级" width="100">
-            <template slot-scope="scope">
+            <template #default="scope">
               <el-tag size="small" :type="priorityTagType(scope.row.priority)">{{ scope.row.priority || '-' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="alert_message" label="提示信息" min-width="220" show-overflow-tooltip />
           <el-table-column label="错误" min-width="180" show-overflow-tooltip>
-            <template slot-scope="scope">
+            <template #default="scope">
               {{ scope.row.error || '-' }}
             </template>
           </el-table-column>
@@ -129,7 +132,7 @@
             type="textarea"
             :rows="10"
             resize="none"
-            :value="formatPayload(selectedTask.payloadData)"
+            :model-value="formatPayload(selectedTask.payloadData)"
             readonly
           />
         </div>
@@ -138,363 +141,398 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import request from '@/utils/request'
+import { useAuthStore } from '@/store/auth'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const STORAGE_KEY = 'ai_job_center_tasks_v1'
 
-export default {
-  name: 'AiJobCenter',
-  data() {
-    return {
-      submitForm: {
-        rawIds: ''
+interface JobTask {
+  taskId: string
+  sparePartIdsText?: string
+  status: string
+  resultSummary: string
+  payloadData: any
+  error: string
+  updatedAt: string
+  submitAt?: number
+}
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+const submitFormRef = ref<FormInstance>()
+const submitForm = reactive({ rawIds: '' })
+const submitRules: FormRules = {
+  rawIds: [
+    { required: true, message: '请输入至少一个备件ID', trigger: 'blur' },
+    {
+      validator: (_: any, value: string, callback: (err?: Error) => void) => {
+        validateIds(value, callback)
       },
-      submitRules: {
-        rawIds: [
-          { required: true, message: '请输入至少一个备件ID', trigger: 'blur' },
-          { validator: (_, value, callback) => this.validateIds(value, callback), trigger: 'blur' }
-        ]
-      },
-      submitting: false,
-      refreshing: false,
-      filters: {
-        taskId: '',
-        status: ''
-      },
-      tasks: [],
-      resultDialogVisible: false,
-      selectedTask: null,
-      pollers: {},
-      pollFailureCount: {},
-      pollInFlight: {}
+      trigger: 'blur'
     }
-  },
-  computed: {
-    isAdmin() {
-      return this.$store.state.username === 'admin'
-    },
-    permissions() {
-      return this.$store.state.permissions || []
-    },
-    hasListPermission() {
-      return this.isAdmin || this.permissions.includes('ai:forecast:list')
-    },
-    hasTriggerPermission() {
-      return this.isAdmin || this.permissions.includes('ai:forecast:trigger')
-    },
-    filteredTasks() {
-      return this.tasks.filter(task => {
-        const taskIdOk = !this.filters.taskId || task.taskId === this.filters.taskId
-        const statusOk = !this.filters.status || task.status === this.filters.status
-        return taskIdOk && statusOk
-      })
-    },
-    selectedResultItems() {
-      if (!this.selectedTask || !this.selectedTask.payloadData) {
-        return []
-      }
-      const result = this.selectedTask.payloadData.result
-      return Array.isArray(result) ? result : []
-    }
-  },
-  created() {
-    if (!this.hasListPermission) {
+  ]
+}
+
+const submitting = ref(false)
+const refreshing = ref(false)
+const filters = reactive({
+  taskId: '',
+  status: ''
+})
+const tasks = ref<JobTask[]>([])
+const resultDialogVisible = ref(false)
+const selectedTask = ref<JobTask | null>(null)
+const pollers = ref<Record<string, ReturnType<typeof setInterval>>>({})
+const pollFailureCount = ref<Record<string, number>>({})
+const pollInFlight = ref<Record<string, boolean>>({})
+
+const isAdmin = computed(() => authStore.username === 'admin')
+const permissions = computed(() => authStore.permissions || [])
+const hasListPermission = computed(() => isAdmin.value || permissions.value.includes('ai:forecast:list'))
+const hasTriggerPermission = computed(() => isAdmin.value || permissions.value.includes('ai:forecast:trigger'))
+
+const filteredTasks = computed(() => {
+  return tasks.value.filter(task => {
+    const taskIdOk = !filters.taskId || task.taskId === filters.taskId
+    const statusOk = !filters.status || task.status === filters.status
+    return taskIdOk && statusOk
+  })
+})
+
+const selectedResultItems = computed(() => {
+  if (!selectedTask.value || !selectedTask.value.payloadData) {
+    return []
+  }
+  const result = selectedTask.value.payloadData.result
+  return Array.isArray(result) ? result : []
+})
+
+function validateIds(value: string, callback: (err?: Error) => void) {
+  const tokens = parseTokens(value)
+  if (tokens.length === 0) {
+    callback(new Error('请输入备件ID或编码，多个用英文逗号分隔'))
+    return
+  }
+  callback()
+}
+
+function parseTokens(raw: string) {
+  if (!raw) {
+    return []
+  }
+  const tokenSet = new Set(
+    raw
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0)
+  )
+  return Array.from(tokenSet)
+}
+
+async function submitJob() {
+  if (!hasTriggerPermission.value) {
+    ElMessage.warning('当前账号缺少任务提交权限（ai:forecast:trigger）')
+    return
+  }
+  if (submitting.value) {
+    return
+  }
+  const valid = await new Promise<boolean>(resolve => {
+    if (!submitFormRef.value) {
+      resolve(false)
       return
     }
-    this.restoreTasks()
-    this.tasks
-      .filter(task => this.isRunning(task.status))
-      .forEach(task => this.startPolling(task.taskId))
-  },
-  beforeDestroy() {
-    Object.keys(this.pollers).forEach(taskId => this.stopPolling(taskId))
-  },
-  methods: {
-    validateIds(value, callback) {
-      const tokens = this.parseTokens(value)
-      if (tokens.length === 0) {
-        callback(new Error('请输入备件ID或编码，多个用英文逗号分隔'))
-        return
-      }
-      callback()
-    },
-    parseTokens(raw) {
-      if (!raw) {
-        return []
-      }
-      const tokenSet = new Set(
-        raw
-          .split(',')
-          .map(item => item.trim())
-          .filter(item => item.length > 0)
-      )
-      return Array.from(tokenSet)
-    },
-    async submitJob() {
-      if (!this.hasTriggerPermission) {
-        this.$message.warning('当前账号缺少任务提交权限（ai:forecast:trigger）')
-        return
-      }
-      if (this.submitting) {
-        return
-      }
-      const valid = await new Promise(resolve => {
-        this.$refs.submitFormRef.validate(ok => resolve(ok))
-      })
-      if (!valid) {
-        return
-      }
+    submitFormRef.value.validate(ok => resolve(!!ok))
+  })
+  if (!valid) {
+    return
+  }
 
-      this.submitting = true
-      const sparePartTokens = this.parseTokens(this.submitForm.rawIds)
+  submitting.value = true
+  const sparePartTokens = parseTokens(submitForm.rawIds)
 
-      try {
-        const res = await request.post('/ai/forecast/jobs/replenishment', {
-          spare_part_ids: sparePartTokens
-        })
-        const payload = res.data || {}
-        const taskId = payload.task_id || payload.taskId
-        if (!taskId) {
-          throw new Error('任务提交成功但未返回 task_id')
-        }
-
-        const nextTask = {
-          taskId,
-          sparePartIdsText: sparePartTokens.join(','),
-          status: (payload.status || 'PENDING').toUpperCase(),
-          resultSummary: '-',
-          payloadData: null,
-          error: '-',
-          updatedAt: this.formatNow(),
-          submitAt: Date.now()
-        }
-        this.tasks = [nextTask, ...this.tasks.filter(task => task.taskId !== taskId)]
-        this.persistTasks()
-        this.startPolling(taskId)
-        this.$message.success('任务已提交，已开始自动轮询')
-      } catch (error) {
-        this.$message.error(this.extractError(error, '任务提交失败'))
-      } finally {
-        this.submitting = false
-      }
-    },
-    async queryTask(taskId) {
-      if (this.pollInFlight[taskId]) {
-        return
-      }
-      if (!this.hasListPermission) {
-        this.stopPolling(taskId)
-        return
-      }
-      this.pollInFlight = {
-        ...this.pollInFlight,
-        [taskId]: true
-      }
-      try {
-        const res = await request.get(`/ai/forecast/jobs/${taskId}`)
-        const payload = res.data || {}
-        const status = (payload.status || 'UNKNOWN').toUpperCase()
-        const resultSummary = this.buildResultSummary(payload.payload)
-        const nextTask = {
-          taskId,
-          status,
-          resultSummary,
-          payloadData: payload.payload || null,
-          error: payload.error || '-',
-          updatedAt: this.formatNow()
-        }
-        this.mergeTask(nextTask)
-        this.pollFailureCount = {
-          ...this.pollFailureCount,
-          [taskId]: 0
-        }
-        if (!this.isRunning(status)) {
-          this.stopPolling(taskId)
-        }
-      } catch (error) {
-        const statusCode = error?.response?.status
-        if (statusCode === 404) {
-          this.mergeTask({
-            taskId,
-            status: 'NOT_FOUND',
-            error: '任务不存在或已过期',
-            resultSummary: '-',
-            payloadData: null,
-            updatedAt: this.formatNow()
-          })
-          this.stopPolling(taskId)
-          return
-        }
-        const nextFailCount = (this.pollFailureCount[taskId] || 0) + 1
-        this.pollFailureCount = {
-          ...this.pollFailureCount,
-          [taskId]: nextFailCount
-        }
-        if (statusCode === 401 || statusCode === 403 || nextFailCount >= 3) {
-          this.stopPolling(taskId)
-          this.mergeTask({
-            taskId,
-            status: 'FAILURE',
-            error: statusCode === 403 ? '权限不足，已停止自动轮询' : '连续失败，已停止自动轮询',
-            payloadData: null,
-            updatedAt: this.formatNow()
-          })
-        }
-        this.$message.error(this.extractError(error, `任务 ${taskId} 状态刷新失败`))
-      } finally {
-        const nextInFlight = { ...this.pollInFlight }
-        delete nextInFlight[taskId]
-        this.pollInFlight = nextInFlight
-      }
-    },
-    async refreshAllRunning() {
-      const runningTasks = this.tasks.filter(task => this.isRunning(task.status))
-      if (runningTasks.length === 0) {
-        this.$message.info('当前没有进行中的任务')
-        return
-      }
-      this.refreshing = true
-      try {
-        await Promise.all(runningTasks.map(task => this.queryTask(task.taskId)))
-      } finally {
-        this.refreshing = false
-      }
-    },
-    startPolling(taskId) {
-      if (this.pollers[taskId]) {
-        return
-      }
-      this.pollers = {
-        ...this.pollers,
-        [taskId]: setInterval(() => {
-          this.queryTask(taskId)
-        }, 3000)
-      }
-    },
-    stopPolling(taskId) {
-      const timer = this.pollers[taskId]
-      if (timer) {
-        clearInterval(timer)
-        const nextPollers = { ...this.pollers }
-        delete nextPollers[taskId]
-        this.pollers = nextPollers
-      }
-      if (this.pollFailureCount[taskId] !== undefined) {
-        const nextFailCount = { ...this.pollFailureCount }
-        delete nextFailCount[taskId]
-        this.pollFailureCount = nextFailCount
-      }
-      if (this.pollInFlight[taskId] !== undefined) {
-        const nextInFlight = { ...this.pollInFlight }
-        delete nextInFlight[taskId]
-        this.pollInFlight = nextInFlight
-      }
-    },
-    isRunning(status) {
-      return status === 'PENDING' || status === 'STARTED' || status === 'RETRY'
-    },
-    statusTagType(status) {
-      if (status === 'SUCCESS') return 'success'
-      if (status === 'FAILURE' || status === 'NOT_FOUND') return 'danger'
-      if (this.isRunning(status)) return 'warning'
-      return 'info'
-    },
-    mergeTask(nextTask) {
-      this.tasks = this.tasks.map(task => {
-        if (task.taskId !== nextTask.taskId) {
-          return task
-        }
-        return {
-          ...task,
-          ...nextTask
-        }
-      })
-      this.persistTasks()
-    },
-    buildResultSummary(payload) {
-      if (!payload) {
-        return '-'
-      }
-      const items = payload.result
-      if (Array.isArray(items)) {
-        return `共 ${items.length} 条建议`
-      }
-      return '任务完成'
-    },
-    clearFinished() {
-      const running = this.tasks.filter(task => this.isRunning(task.status))
-      this.tasks
-        .filter(task => !this.isRunning(task.status))
-        .forEach(task => this.stopPolling(task.taskId))
-      this.tasks = running
-      if (this.selectedTask && !running.find(task => task.taskId === this.selectedTask.taskId)) {
-        this.resultDialogVisible = false
-        this.selectedTask = null
-      }
-      this.persistTasks()
-    },
-    openResultDialog(task) {
-      this.selectedTask = task
-      this.resultDialogVisible = true
-    },
-    priorityTagType(priority) {
-      if (priority === 'HIGH') return 'danger'
-      if (priority === 'MEDIUM') return 'warning'
-      if (priority === 'LOW') return 'success'
-      return 'info'
-    },
-    formatPayload(payload) {
-      try {
-        return JSON.stringify(payload, null, 2)
-      } catch (e) {
-        return String(payload)
-      }
-    },
-    readThreeMonthDemand(row) {
-      const demand = row && row.predicted_demand ? row.predicted_demand.total : null
-      return demand === null || demand === undefined ? '-' : demand
-    },
-    copyTaskId(taskId) {
-      const el = document.createElement('textarea')
-      el.value = taskId
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-      this.$message.success('任务ID已复制')
-    },
-    persistTasks() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.tasks.slice(0, 100)))
-    },
-    restoreTasks() {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) {
-        return
-      }
-      try {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) {
-          this.tasks = parsed
-        }
-      } catch (e) {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    },
-    extractError(error, fallback) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.detail ||
-        error?.message
-      return message || fallback
-    },
-    formatNow() {
-      const now = new Date()
-      const pad = n => (n < 10 ? `0${n}` : `${n}`)
-      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  try {
+    const res = await request.post('/ai/forecast/jobs/replenishment', {
+      spare_part_ids: sparePartTokens
+    })
+    const payload = res.data || {}
+    const taskId = payload.task_id || payload.taskId
+    if (!taskId) {
+      throw new Error('任务提交成功但未返回 task_id')
     }
+
+    const nextTask: JobTask = {
+      taskId,
+      sparePartIdsText: sparePartTokens.join(','),
+      status: (payload.status || 'PENDING').toUpperCase(),
+      resultSummary: '-',
+      payloadData: null,
+      error: '-',
+      updatedAt: formatNow(),
+      submitAt: Date.now()
+    }
+    tasks.value = [nextTask, ...tasks.value.filter(task => task.taskId !== taskId)]
+    persistTasks()
+    startPolling(taskId)
+    ElMessage.success('任务已提交，已开始自动轮询')
+  } catch (error: any) {
+    ElMessage.error(extractError(error, '任务提交失败'))
+  } finally {
+    submitting.value = false
   }
 }
+
+async function queryTask(taskId: string) {
+  if (pollInFlight.value[taskId]) {
+    return
+  }
+  if (!hasListPermission.value) {
+    stopPolling(taskId)
+    return
+  }
+  pollInFlight.value = {
+    ...pollInFlight.value,
+    [taskId]: true
+  }
+  try {
+    const res = await request.get(`/ai/forecast/jobs/${taskId}`)
+    const payload = res.data || {}
+    const status = (payload.status || 'UNKNOWN').toUpperCase()
+    const resultSummary = buildResultSummary(payload.payload)
+    const nextTask = {
+      taskId,
+      status,
+      resultSummary,
+      payloadData: payload.payload || null,
+      error: payload.error || '-',
+      updatedAt: formatNow()
+    }
+    mergeTask(nextTask)
+    pollFailureCount.value = {
+      ...pollFailureCount.value,
+      [taskId]: 0
+    }
+    if (!isRunning(status)) {
+      stopPolling(taskId)
+    }
+  } catch (error: any) {
+    const statusCode = error?.response?.status
+    if (statusCode === 404) {
+      mergeTask({
+        taskId,
+        status: 'NOT_FOUND',
+        error: '任务不存在或已过期',
+        resultSummary: '-',
+        payloadData: null,
+        updatedAt: formatNow()
+      })
+      stopPolling(taskId)
+      return
+    }
+    const nextFailCount = (pollFailureCount.value[taskId] || 0) + 1
+    pollFailureCount.value = {
+      ...pollFailureCount.value,
+      [taskId]: nextFailCount
+    }
+    if (statusCode === 401 || statusCode === 403 || nextFailCount >= 3) {
+      stopPolling(taskId)
+      mergeTask({
+        taskId,
+        status: 'FAILURE',
+        error: statusCode === 403 ? '权限不足，已停止自动轮询' : '连续失败，已停止自动轮询',
+        payloadData: null,
+        updatedAt: formatNow()
+      })
+    }
+    ElMessage.error(extractError(error, `任务 ${taskId} 状态刷新失败`))
+  } finally {
+    const nextInFlight = { ...pollInFlight.value }
+    delete nextInFlight[taskId]
+    pollInFlight.value = nextInFlight
+  }
+}
+
+async function refreshAllRunning() {
+  const runningTasks = tasks.value.filter(task => isRunning(task.status))
+  if (runningTasks.length === 0) {
+    ElMessage.info('当前没有进行中的任务')
+    return
+  }
+  refreshing.value = true
+  try {
+    await Promise.all(runningTasks.map(task => queryTask(task.taskId)))
+  } finally {
+    refreshing.value = false
+  }
+}
+
+function startPolling(taskId: string) {
+  if (pollers.value[taskId]) {
+    return
+  }
+  pollers.value = {
+    ...pollers.value,
+    [taskId]: setInterval(() => {
+      queryTask(taskId)
+    }, 3000)
+  }
+}
+
+function stopPolling(taskId: string) {
+  const timer = pollers.value[taskId]
+  if (timer) {
+    clearInterval(timer)
+    const nextPollers = { ...pollers.value }
+    delete nextPollers[taskId]
+    pollers.value = nextPollers
+  }
+  if (pollFailureCount.value[taskId] !== undefined) {
+    const nextFailCount = { ...pollFailureCount.value }
+    delete nextFailCount[taskId]
+    pollFailureCount.value = nextFailCount
+  }
+  if (pollInFlight.value[taskId] !== undefined) {
+    const nextInFlight = { ...pollInFlight.value }
+    delete nextInFlight[taskId]
+    pollInFlight.value = nextInFlight
+  }
+}
+
+function isRunning(status: string) {
+  return status === 'PENDING' || status === 'STARTED' || status === 'RETRY'
+}
+
+function statusTagType(status: string) {
+  if (status === 'SUCCESS') return 'success'
+  if (status === 'FAILURE' || status === 'NOT_FOUND') return 'danger'
+  if (isRunning(status)) return 'warning'
+  return 'info'
+}
+
+function mergeTask(nextTask: Partial<JobTask> & { taskId: string }) {
+  tasks.value = tasks.value.map(task => {
+    if (task.taskId !== nextTask.taskId) {
+      return task
+    }
+    return {
+      ...task,
+      ...nextTask
+    }
+  })
+  persistTasks()
+}
+
+function buildResultSummary(payload: any) {
+  if (!payload) {
+    return '-'
+  }
+  const items = payload.result
+  if (Array.isArray(items)) {
+    return `共 ${items.length} 条建议`
+  }
+  return '任务完成'
+}
+
+function clearFinished() {
+  const running = tasks.value.filter(task => isRunning(task.status))
+  tasks.value
+    .filter(task => !isRunning(task.status))
+    .forEach(task => stopPolling(task.taskId))
+  tasks.value = running
+  if (selectedTask.value && !running.find(task => task.taskId === selectedTask.value!.taskId)) {
+    resultDialogVisible.value = false
+    selectedTask.value = null
+  }
+  persistTasks()
+}
+
+function openResultDialog(task: JobTask) {
+  selectedTask.value = task
+  resultDialogVisible.value = true
+}
+
+function priorityTagType(priority: string) {
+  if (priority === 'HIGH') return 'danger'
+  if (priority === 'MEDIUM') return 'warning'
+  if (priority === 'LOW') return 'success'
+  return 'info'
+}
+
+function formatPayload(payload: any) {
+  try {
+    return JSON.stringify(payload, null, 2)
+  } catch (e) {
+    return String(payload)
+  }
+}
+
+function readThreeMonthDemand(row: any) {
+  const demand = row && row.predicted_demand ? row.predicted_demand.total : null
+  return demand === null || demand === undefined ? '-' : demand
+}
+
+function copyTaskId(taskId: string) {
+  const el = document.createElement('textarea')
+  el.value = taskId
+  document.body.appendChild(el)
+  el.select()
+  document.execCommand('copy')
+  document.body.removeChild(el)
+  ElMessage.success('任务ID已复制')
+}
+
+function persistTasks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks.value.slice(0, 100)))
+}
+
+function restoreTasks() {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  if (!raw) {
+    return
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      tasks.value = parsed
+    }
+  } catch (e) {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
+function extractError(error: any, fallback: string) {
+  const message =
+    error?.response?.data?.message ||
+    error?.response?.data?.detail ||
+    error?.message
+  return message || fallback
+}
+
+function formatNow() {
+  const now = new Date()
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`)
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+}
+
+onMounted(() => {
+  if (!hasListPermission.value) {
+    return
+  }
+  restoreTasks()
+  tasks.value
+    .filter(task => isRunning(task.status))
+    .forEach(task => startPolling(task.taskId))
+})
+
+onBeforeUnmount(() => {
+  Object.keys(pollers.value).forEach(taskId => stopPolling(taskId))
+})
 </script>
 
 <style scoped>

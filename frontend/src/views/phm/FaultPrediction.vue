@@ -69,8 +69,8 @@
           <el-option label="中风险 (50-70%)" :value="0.5" />
           <el-option label="低风险 (<50%)" :value="0" />
         </el-select>
-        <el-button type="primary" icon="el-icon-search" @click="handleQuery">查询</el-button>
-        <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleQuery">查询</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </div>
       <div class="toolbar-right">
         <el-switch
@@ -86,13 +86,15 @@
          预测结果列表
          ============================================================ -->
     <el-card class="table-card" shadow="never">
-      <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
-                <div class="title">故障预测结果</div>
-                <div class="head-btn-group"><span class="card-tip">（显示最新预测记录）</span>
-      
-                </div>
-            </div>
+      <template #header>
+        <div class="phead header">
+          <i class="el-icon-s-data" />
+          <div class="title">故障预测结果</div>
+          <div class="head-btn-group">
+            <span class="card-tip">（显示最新预测记录）</span>
+          </div>
+        </div>
+      </template>
 
       <el-table v-loading="tableLoading" :data="predictionList" border stripe style="width:100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
@@ -100,7 +102,7 @@
         <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
 
         <el-table-column label="故障概率" width="110" align="center" sort-by="failureProbability">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-tag :type="getProbabilityTagType(row.failureProbability)" size="small">
               {{ formatPercent(row.failureProbability) }}
             </el-tag>
@@ -108,13 +110,13 @@
         </el-table-column>
 
         <el-table-column label="预测故障数" width="110" align="center" sort-by="predictedFaultCount">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <span style="font-weight: bold; color: #E6A23C">{{ row.predictedFaultCount || 0 }}</span>
           </template>
         </el-table-column>
 
         <el-table-column label="置信区间" width="120" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <span style="color: #909399; font-size: 12px">
               [{{ row.faultCountLower }}-{{ row.faultCountUpper }}]
             </span>
@@ -126,20 +128,20 @@
         <el-table-column prop="modelType" label="模型类型" width="150" show-overflow-tooltip />
 
         <el-table-column label="操作" width="180" align="center" fixed="right">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-button
               v-if="hasPermission('phm:prediction:predict')"
-              type="text"
+              type="primary"
+              link
               size="small"
-              icon="el-icon-refresh-right"
               @click="handleRePredict(row)"
             >
               重新预测
             </el-button>
             <el-button
-              type="text"
+              type="primary"
+              link
               size="small"
-              icon="el-icon-view"
               @click="handleViewHistory(row)"
             >
               历史记录
@@ -165,20 +167,22 @@
          高风险设备提示卡片
          ============================================================ -->
     <el-card v-if="highRiskDevices.length > 0" class="high-risk-card" shadow="never">
-      <div slot="header" class="phead header">
-        <i class="el-icon-s-data" />
-        <div class="title">高风险设备警告</div>
-        <div class="head-btn-group">
-          <span class="card-tip">（故障概率 > 70%）</span>
+      <template #header>
+        <div class="phead header">
+          <i class="el-icon-s-data" />
+          <div class="title">高风险设备警告</div>
+          <div class="head-btn-group">
+            <span class="card-tip">（故障概率 > 70%）</span>
+          </div>
         </div>
-      </div>
+      </template>
 
       <el-table :data="highRiskDevices" border size="small" style="width:100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="deviceCode" label="设备编码" width="120" sortable="custom" />
         <el-table-column prop="deviceName" label="设备名称" min-width="150" show-overflow-tooltip />
         <el-table-column label="故障概率" width="110" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             <el-tag type="danger" size="small">{{ formatPercent(row.failureProbability) }}</el-tag>
           </template>
         </el-table-column>
@@ -191,7 +195,7 @@
          预测历史对话框
          ============================================================ -->
     <el-dialog
-      :visible.sync="historyDialogVisible"
+      v-model="historyDialogVisible"
       :title="'预测历史 - ' + selectedDevice.deviceCode"
       width="900px"
       @close="handleHistoryDialogClose"
@@ -200,327 +204,252 @@
         <el-table-column prop="predictionDate" label="预测日期" width="110" align="center" />
         <el-table-column prop="targetMonth" label="目标月份" width="100" align="center" />
         <el-table-column label="故障概率" width="110" align="center">
-          <template slot-scope="{ row }">
-            <el-tag :type="getProbabilityTagType(row.failureProbability)" size="mini">
+          <template #default="{ row }">
+            <el-tag :type="getProbabilityTagType(row.failureProbability)" size="small">
               {{ formatPercent(row.failureProbability) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="predictedFaultCount" label="预测故障数" width="110" align="center" />
         <el-table-column label="置信区间" width="120" align="center">
-          <template slot-scope="{ row }">
+          <template #default="{ row }">
             [{{ row.faultCountLower }}-{{ row.faultCountUpper }}]
           </template>
         </el-table-column>
         <el-table-column prop="modelType" label="模型类型" min-width="150" show-overflow-tooltip />
       </el-table>
 
-      <div slot="footer">
+      <template #footer>
         <el-button @click="historyDialogVisible = false">关闭</el-button>
-      </div>
+      </template>
     </el-dialog>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'FaultPrediction',
-  data() {
-    return {
-      // Dashboard 数据
-      dashboard: {
-        totalDevices: 0,
-        highRiskCount: 0,
-        avgProbability: 0,
-        totalPredictedFaults: 0
-      },
+<script setup lang="ts">
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import request from '@/utils/request'
+import { useAuthStore } from '@/store/auth'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 
-      // 查询参数
-      queryParams: {
-        deviceCode: '',
-        minProbability: null,
-        page: 1,
-        pageSize: 20
-      },
+const authStore = useAuthStore()
 
-      // 表格数据
-      predictionList: [],
-      total: 0,
-      tableLoading: false,
+const dashboard = ref({
+  totalDevices: 0,
+  highRiskCount: 0,
+  avgProbability: 0,
+  totalPredictedFaults: 0
+})
 
-      // 高风险设备
-      highRiskDevices: [],
+const queryParams = reactive<{
+  deviceCode: string
+  minProbability: number | null
+  page: number
+  pageSize: number
+}>({
+  deviceCode: '',
+  minProbability: null,
+  page: 1,
+  pageSize: 20
+})
 
-      // 预测历史
-      historyDialogVisible: false,
-      historyLoading: false,
-      historyList: [],
-      selectedDevice: {},
+const predictionList = ref<any[]>([])
+const total = ref(0)
+const tableLoading = ref(false)
 
-      // 自动刷新
-      autoRefresh: false,
-      refreshTimer: null
+const highRiskDevices = ref<any[]>([])
+
+const historyDialogVisible = ref(false)
+const historyLoading = ref(false)
+const historyList = ref<any[]>([])
+const selectedDevice = ref<any>({})
+
+const autoRefresh = ref(false)
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
+const permissions = computed(() => authStore.permissions || [])
+
+async function loadDashboard() {
+  try {
+    // TODO: 调用 Dashboard API
+    // 临时使用模拟数据
+    dashboard.value = {
+      totalDevices: 10,
+      highRiskCount: 3,
+      avgProbability: 0.65,
+      totalPredictedFaults: 85
     }
-  },
-
-  computed: {
-    permissions() {
-      return this.$store.state.permissions || []
-    }
-  },
-
-  mounted() {
-    this.loadDashboard()
-    this.loadPredictionList()
-    this.loadHighRiskDevices()
-  },
-
-  beforeDestroy() {
-    this.stopAutoRefresh()
-  },
-
-  watch: {
-    autoRefresh(val) {
-      if (val) {
-        this.startAutoRefresh()
-      } else {
-        this.stopAutoRefresh()
-      }
-    }
-  },
-
-  methods: {
-    // ============================================================
-    // 数据加载
-    // ============================================================
-
-    /**
-     * 加载 Dashboard 统计数据
-     */
-    async loadDashboard() {
-      try {
-        // TODO: 调用 Dashboard API
-        // const res = await this.$http.get('/api/phm/prediction/dashboard')
-        // this.dashboard = res.data
-
-        // 临时使用模拟数据
-        this.dashboard = {
-          totalDevices: 10,
-          highRiskCount: 3,
-          avgProbability: 0.65,
-          totalPredictedFaults: 85
-        }
-      } catch (error) {
-        console.error('加载Dashboard失败:', error)
-      }
-    },
-
-    /**
-     * 加载预测结果列表（分页）
-     */
-    async loadPredictionList() {
-      this.tableLoading = true
-      try {
-        const res = await this.$http.get('/phm/prediction/latest', {
-          params: {
-            deviceCode: this.queryParams.deviceCode || null,
-            minProbability: this.queryParams.minProbability,
-            page: this.queryParams.page,
-            pageSize: this.queryParams.pageSize
-          }
-        })
-
-        if (res.data.code === 200) {
-          this.predictionList = res.data.data || []
-          this.total = res.data.total || 0
-        } else {
-          this.$message.error(res.data.message || '加载预测列表失败')
-        }
-      } catch (error) {
-        console.error('加载预测列表失败:', error)
-        this.$message.error('加载预测列表失败：' + error.message)
-      } finally {
-        this.tableLoading = false
-      }
-    },
-
-    /**
-     * 加载高风险设备列表
-     */
-    async loadHighRiskDevices() {
-      try {
-        const res = await this.$http.get('/phm/prediction/high-risk', {
-          params: { threshold: 0.7, limit: 10 }
-        })
-
-        if (res.data.code === 200) {
-          this.highRiskDevices = res.data.data || []
-        }
-      } catch (error) {
-        console.error('加载高风险设备失败:', error)
-      }
-    },
-
-    /**
-     * 查询设备预测历史
-     */
-    async loadPredictionHistory(deviceId, months = 12) {
-      this.historyLoading = true
-      try {
-        const res = await this.$http.get(`/phm/prediction/history/${deviceId}`, {
-          params: { months }
-        })
-
-        if (res.data.code === 200) {
-          this.historyList = res.data.data || []
-        } else {
-          this.$message.error(res.data.message || '加载预测历史失败')
-        }
-      } catch (error) {
-        console.error('加载预测历史失败:', error)
-        this.$message.error('加载预测历史失败：' + error.message)
-      } finally {
-        this.historyLoading = false
-      }
-    },
-
-    // ============================================================
-    // 事件处理
-    // ============================================================
-
-    /**
-     * 重新预测
-     */
-    async handleRePredict(row) {
-      this.$confirm(`确定要重新预测设备 ${row.deviceCode} 的故障情况吗？`, '确认', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(async () => {
-        const loading = this.$loading({ text: '正在预测...' })
-        try {
-          const res = await this.$http.post(`/phm/prediction/predict/${row.deviceId}`, null, {
-            params: { predictionDays: 90 }
-          })
-
-          if (res.data.code === 200) {
-            this.$message.success('预测成功')
-            this.loadPredictionList()
-            this.loadHighRiskDevices()
-          } else {
-            this.$message.error(res.data.message || '预测失败')
-          }
-        } catch (error) {
-          console.error('预测失败:', error)
-          this.$message.error('预测失败：' + error.message)
-        } finally {
-          loading.close()
-        }
-      })
-    },
-
-    /**
-     * 查看预测历史
-     */
-    handleViewHistory(row) {
-      this.selectedDevice = row
-      this.historyDialogVisible = true
-      this.loadPredictionHistory(row.deviceId)
-    },
-
-    /**
-     * 关闭历史对话框
-     */
-    handleHistoryDialogClose() {
-      this.historyList = []
-      this.selectedDevice = {}
-    },
-
-    /**
-     * 查询
-     */
-    handleQuery() {
-      this.queryParams.page = 1
-      this.loadPredictionList()
-    },
-
-    /**
-     * 重置
-     */
-    handleReset() {
-      this.queryParams = {
-        deviceCode: '',
-        minProbability: null,
-        page: 1,
-        pageSize: 20
-      }
-      this.loadPredictionList()
-    },
-
-    /**
-     * 分页 - 改变每页大小
-     */
-    handleSizeChange(val) {
-      this.queryParams.pageSize = val
-      this.queryParams.page = 1
-      this.loadPredictionList()
-    },
-
-    /**
-     * 分页 - 改变当前页
-     */
-    handlePageChange(val) {
-      this.queryParams.page = val
-      this.loadPredictionList()
-    },
-
-    // ============================================================
-    // 自动刷新
-    // ============================================================
-
-    startAutoRefresh() {
-      this.refreshTimer = setInterval(() => {
-        this.loadPredictionList()
-        this.loadHighRiskDevices()
-      }, 30000) // 每30秒刷新
-    },
-
-    stopAutoRefresh() {
-      if (this.refreshTimer) {
-        clearInterval(this.refreshTimer)
-        this.refreshTimer = null
-      }
-    },
-
-    // ============================================================
-    // 工具方法
-    // ============================================================
-
-    /**
-     * 格式化百分比
-     */
-    formatPercent(value) {
-      if (value == null || isNaN(value)) return '0%'
-      return (value * 100).toFixed(1) + '%'
-    },
-
-    /**
-     * 获取故障概率标签类型
-     */
-    getProbabilityTagType(probability) {
-      if (probability >= 0.7) return 'danger'
-      if (probability >= 0.5) return 'warning'
-      return 'success'
-    },
-
-    /**
-     * 权限检查
-     */
-    hasPermission(permission) {
-      return this.permissions.includes(permission)
-    }
+  } catch (error) {
+    // keep mock dashboard on failure
   }
 }
+
+async function loadPredictionList() {
+  tableLoading.value = true
+  try {
+    const res = await request.get('/phm/prediction/latest', {
+      params: {
+        deviceCode: queryParams.deviceCode || null,
+        minProbability: queryParams.minProbability,
+        page: queryParams.page,
+        pageSize: queryParams.pageSize
+      }
+    })
+
+    if (res.data.code === 200) {
+      predictionList.value = res.data.data || []
+      total.value = res.data.total || 0
+    } else {
+      ElMessage.error(res.data.message || '加载预测列表失败')
+    }
+  } catch (error: any) {
+    ElMessage.error('加载预测列表失败：' + error.message)
+  } finally {
+    tableLoading.value = false
+  }
+}
+
+async function loadHighRiskDevices() {
+  try {
+    const res = await request.get('/phm/prediction/high-risk', {
+      params: { threshold: 0.7, limit: 10 }
+    })
+
+    if (res.data.code === 200) {
+      highRiskDevices.value = res.data.data || []
+    }
+  } catch (error) {
+    // ignore high-risk load errors
+  }
+}
+
+async function loadPredictionHistory(deviceId: any, months = 12) {
+  historyLoading.value = true
+  try {
+    const res = await request.get(`/phm/prediction/history/${deviceId}`, {
+      params: { months }
+    })
+
+    if (res.data.code === 200) {
+      historyList.value = res.data.data || []
+    } else {
+      ElMessage.error(res.data.message || '加载预测历史失败')
+    }
+  } catch (error: any) {
+    ElMessage.error('加载预测历史失败：' + error.message)
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+async function handleRePredict(row: any) {
+  ElMessageBox.confirm(`确定要重新预测设备 ${row.deviceCode} 的故障情况吗？`, '确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    const loading = ElLoading.service({ text: '正在预测...' })
+    try {
+      const res = await request.post(`/phm/prediction/predict/${row.deviceId}`, null, {
+        params: { predictionDays: 90 }
+      })
+
+      if (res.data.code === 200) {
+        ElMessage.success('预测成功')
+        loadPredictionList()
+        loadHighRiskDevices()
+      } else {
+        ElMessage.error(res.data.message || '预测失败')
+      }
+    } catch (error: any) {
+      ElMessage.error('预测失败：' + error.message)
+    } finally {
+      loading.close()
+    }
+  }).catch(() => {})
+}
+
+function handleViewHistory(row: any) {
+  selectedDevice.value = row
+  historyDialogVisible.value = true
+  loadPredictionHistory(row.deviceId)
+}
+
+function handleHistoryDialogClose() {
+  historyList.value = []
+  selectedDevice.value = {}
+}
+
+function handleQuery() {
+  queryParams.page = 1
+  loadPredictionList()
+}
+
+function handleReset() {
+  queryParams.deviceCode = ''
+  queryParams.minProbability = null
+  queryParams.page = 1
+  queryParams.pageSize = 20
+  loadPredictionList()
+}
+
+function handleSizeChange(val: number) {
+  queryParams.pageSize = val
+  queryParams.page = 1
+  loadPredictionList()
+}
+
+function handlePageChange(val: number) {
+  queryParams.page = val
+  loadPredictionList()
+}
+
+function startAutoRefresh() {
+  refreshTimer = setInterval(() => {
+    loadPredictionList()
+    loadHighRiskDevices()
+  }, 30000)
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+function formatPercent(value: any) {
+  if (value == null || isNaN(value)) return '0%'
+  return (value * 100).toFixed(1) + '%'
+}
+
+function getProbabilityTagType(probability: number) {
+  if (probability >= 0.7) return 'danger'
+  if (probability >= 0.5) return 'warning'
+  return 'success'
+}
+
+function hasPermission(permission: string) {
+  return permissions.value.includes(permission)
+}
+
+watch(autoRefresh, (val) => {
+  if (val) {
+    startAutoRefresh()
+  } else {
+    stopAutoRefresh()
+  }
+})
+
+onMounted(() => {
+  loadDashboard()
+  loadPredictionList()
+  loadHighRiskDevices()
+})
+
+onBeforeUnmount(() => {
+  stopAutoRefresh()
+})
 </script>
 
 <style scoped>
@@ -637,7 +566,7 @@ export default {
   border: 2px solid #F56C6C;
 }
 
-.high-risk-card >>> .el-card__header {
+.high-risk-card :deep(.el-card__header) {
   background-color: #FEF0F0;
   border-bottom: 1px solid #F56C6C;
 }

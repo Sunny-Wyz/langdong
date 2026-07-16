@@ -3,48 +3,63 @@
     <!-- 侧边栏 -->
     <el-aside width="210px" class="home-aside">
       <div class="logo">备件管理系统</div>
-      <el-menu :default-active="route.path" router background-color="#0f3086" text-color="rgba(255,255,255,0.7)"
-        active-text-color="#ffffff">
-        <template v-for="menu in menus">
-
-          <!-- 有子菜单的呈现为 el-sub-menu -->
-          <el-sub-menu v-if="menu.children && menu.children.some((c: any) => c.type === 2)" :index="menu.id.toString()"
-            :key="'sub-' + menu.id">
+      <el-menu
+        :default-active="activeMenu"
+        router
+        background-color="#0f3086"
+        text-color="rgba(255,255,255,0.7)"
+        active-text-color="#ffffff"
+      >
+        <template v-for="menu in menus" :key="'menu-' + menu.id">
+          <!-- 有可导航子菜单：渲染为 el-sub-menu -->
+          <el-sub-menu
+            v-if="hasNavChildren(menu)"
+            :index="String(menu.id)"
+          >
             <template #title>
               <span class="menu-icon">{{ getMenuIconEmoji(menu.icon) }}</span>
               <span>{{ displayMenuName(menu) }}</span>
             </template>
-            <!-- 第二级 -->
-            <template v-slot:default>
-              <template v-for="child in menu.children">
-                <!-- 如果子项还有可导航的三级菜单，渲染为二级submenu -->
-                <el-sub-menu v-if="child.type === 2 && child.children && child.children.some((c: any) => c.type === 2)"
-                  :index="child.id.toString()" :key="'child-sub-' + child.id">
-                  <template #title>
-                    <span class="menu-icon">{{ getMenuIconEmoji(child.icon) }}</span>
-                    <span>{{ child.name }}</span>
-                  </template>
-                    <template v-for="grandchild in child.children" :key="'gc-' + grandchild.id">
-                      <el-menu-item v-if="grandchild.type === 2" :index="grandchild.path">
-                        <span>{{ grandchild.name }}</span>
-                      </el-menu-item>
-                    </template>
-                </el-sub-menu>
-                <!-- 否则直接渲染为菜单项 -->
-                <el-menu-item v-else-if="child.type === 2" :index="child.path" :key="'child-' + child.id">
+
+            <template v-for="child in menu.children" :key="'child-' + child.id">
+              <!-- 三级：子项自身还有可导航子菜单 -->
+              <el-sub-menu
+                v-if="child.type === 2 && hasNavChildren(child)"
+                :index="String(child.id)"
+              >
+                <template #title>
                   <span class="menu-icon">{{ getMenuIconEmoji(child.icon) }}</span>
                   <span>{{ child.name }}</span>
-                </el-menu-item>
-              </template>
+                </template>
+                <template v-for="grandchild in child.children" :key="'gc-' + grandchild.id">
+                  <el-menu-item
+                    v-if="grandchild.type === 2 && grandchild.path"
+                    :index="normalizeMenuPath(grandchild.path)"
+                  >
+                    <span>{{ grandchild.name }}</span>
+                  </el-menu-item>
+                </template>
+              </el-sub-menu>
+
+              <!-- 二级：直接可导航菜单项 -->
+              <el-menu-item
+                v-else-if="child.type === 2 && child.path"
+                :index="normalizeMenuPath(child.path)"
+              >
+                <span class="menu-icon">{{ getMenuIconEmoji(child.icon) }}</span>
+                <span>{{ child.name }}</span>
+              </el-menu-item>
             </template>
           </el-sub-menu>
 
-          <!-- 没子菜单的是直接的 el-menu-item 根节点 -->
-          <el-menu-item v-else-if="menu.type === 2" :index="menu.path" :key="'menu-' + menu.id">
+          <!-- 无子菜单的根级可导航项 -->
+          <el-menu-item
+            v-else-if="menu.type === 2 && menu.path"
+            :index="normalizeMenuPath(menu.path)"
+          >
             <span class="menu-icon">{{ getMenuIconEmoji(menu.icon) }}</span>
-            <template #title>{{ menu.name }}</template>
+            <span>{{ menu.name }}</span>
           </el-menu-item>
-
         </template>
       </el-menu>
     </el-aside>
@@ -70,48 +85,73 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import request from '../utils/request'
 
+interface MenuNode {
+  id: number | string
+  name?: string
+  path?: string | null
+  icon?: string | null
+  type?: number
+  children?: MenuNode[]
+}
+
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
 const username = computed(() => authStore.username)
-const menus = computed(() => authStore.menus)
+const menus = computed<MenuNode[]>(() => authStore.menus || [])
 
-function displayMenuName(menu: any) {
-  if (menu && menu.path === '/ai') {
-    return '需求预测与辅助决策模块'
-  }
-  return menu && menu.name ? menu.name : ''
+/** hash 路由下 el-menu 的 active 索引使用完整 path */
+const activeMenu = computed(() => route.path)
+
+function hasNavChildren(menu: MenuNode | null | undefined): boolean {
+  return Boolean(menu?.children?.some((c) => c.type === 2 && (c.path || hasNavChildren(c))))
 }
 
-// 辅助方法，将 Element UI icon 类名映射为美观的 emoji 图标，保证 Vue 3 下一致渲染
-function getMenuIconEmoji(iconClass: string | null) {
+/** 统一菜单 path：去掉 hash 前缀、补全前导斜杠 */
+function normalizeMenuPath(path: string | null | undefined): string {
+  if (!path) return ''
+  let p = String(path).trim()
+  if (p.startsWith('#')) p = p.slice(1)
+  if (!p.startsWith('/')) p = `/${p}`
+  return p
+}
+
+function displayMenuName(menu: MenuNode): string {
+  if (menu?.path === '/ai') return '需求预测与辅助决策模块'
+  return menu?.name || ''
+}
+
+/** 将 Element UI icon 类名映射为 emoji，保证 Vue 3 下一致渲染 */
+function getMenuIconEmoji(iconClass: string | null | undefined): string {
   if (!iconClass) return '📄'
   if (iconClass.includes('setting')) return '⚙️'
   if (iconClass.includes('box')) return '📦'
   if (iconClass.includes('goods') || iconClass.includes('shopping')) return '🛒'
-  if (iconClass.includes('data') || iconClass.includes('chart')) return '📊'
-  if (iconClass.includes('folder')) return '📁'
+  if (iconClass.includes('data') || iconClass.includes('chart') || iconClass.includes('board')) return '📊'
+  if (iconClass.includes('folder') || iconClass.includes('collection')) return '📁'
   if (iconClass.includes('user')) return '👤'
-  if (iconClass.includes('lock')) return '🔒'
+  if (iconClass.includes('lock') || iconClass.includes('key')) return '🔒'
+  if (iconClass.includes('cpu')) return '🤖'
+  if (iconClass.includes('tools') || iconClass.includes('odometer')) return '🔧'
+  if (iconClass.includes('sell') || iconClass.includes('sold')) return '📤'
+  if (iconClass.includes('truck')) return '🚚'
   return '📄'
 }
 
 async function fetchMenus() {
   try {
     const res = await request.get('/menus/my')
-    const fetchedMenus = res.data || []
+    const fetchedMenus: MenuNode[] = res.data || []
 
-    // 解析所有的按钮级别权限 (type === 3) 提取 permission 字符串并写入 Pinia Store
+    // 解析按钮级权限 (type === 3)
     const permissions: string[] = []
-    const extractPerms = (nodes: any[]) => {
-      nodes.forEach(n => {
-        if (n.type === 3 && n.permission) {
-          permissions.push(n.permission)
+    const extractPerms = (nodes: MenuNode[]) => {
+      nodes.forEach((n) => {
+        if (n.type === 3 && (n as any).permission) {
+          permissions.push((n as any).permission)
         }
-        if (n.children && n.children.length > 0) {
-          extractPerms(n.children)
-        }
+        if (n.children?.length) extractPerms(n.children)
       })
     }
     extractPerms(fetchedMenus)
@@ -119,7 +159,7 @@ async function fetchMenus() {
     authStore.setMenusAndPermissions(fetchedMenus, permissions)
   } catch (e: any) {
     console.error('动态拉取菜单失败', e)
-    if (e.response && e.response.status === 401) {
+    if (e?.response?.status === 401) {
       logout()
     }
   }
@@ -142,6 +182,7 @@ onMounted(() => {
 
 .home-aside {
   background-color: #0f3086;
+  overflow-y: auto;
 }
 
 .logo {

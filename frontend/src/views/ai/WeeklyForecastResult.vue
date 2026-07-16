@@ -8,7 +8,7 @@
             v-model="searchForm.partCode"
             placeholder="请输入备件编码"
             clearable
-            @keyup.enter.native="handleSearch"
+            @keyup.enter="handleSearch"
           ></el-input>
         </el-form-item>
         <el-form-item label="起始周">
@@ -16,7 +16,7 @@
             v-model="searchForm.weekStart"
             type="week"
             placeholder="选择周"
-            value-format="yyyy-MM-dd"
+            value-format="YYYY-MM-DD"
             clearable
           ></el-date-picker>
         </el-form-item>
@@ -27,39 +27,38 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
-          <el-button icon="el-icon-refresh" @click="resetSearch">重置</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 数据表格 -->
     <el-card class="table-card" shadow="never">
-      <div slot="header" class="card-header">
-        <span>周粒度深度学习预测</span>
-        <div class="header-actions">
-          <el-button
-            type="success"
-            size="small"
-            icon="el-icon-cpu"
-            :loading="trainLoading"
-            @click="triggerTrain"
-          >训练模型</el-button>
-          <el-button
-            type="primary"
-            size="small"
-            icon="el-icon-loading"
-            @click="$router.push('/ai/training-progress')"
-          >训练进度</el-button>
-          <el-button
-            type="warning"
-            size="small"
-            icon="el-icon-s-promotion"
-            :loading="predictLoading"
-            @click="triggerPredict"
-          >触发预测</el-button>
+      <template #header>
+        <div class="card-header">
+          <span>周粒度深度学习预测</span>
+          <div class="header-actions">
+            <el-button
+              type="success"
+              size="small"
+              :loading="trainLoading"
+              @click="triggerTrain"
+            >训练模型</el-button>
+            <el-button
+              type="primary"
+              size="small"
+              @click="router.push('/ai/training-progress')"
+            >训练进度</el-button>
+            <el-button
+              type="warning"
+              size="small"
+              :loading="predictLoading"
+              @click="triggerPredict"
+            >触发预测</el-button>
+          </div>
         </div>
-      </div>
+      </template>
       <el-table
         :data="tableData"
         v-loading="loading"
@@ -70,19 +69,19 @@
         highlight-current-row
       >
         <el-table-column prop="partCode" label="备件编码" width="130" fixed>
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-tag size="small" type="info">{{ scope.row.partCode }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="partName" label="备件名称" width="180"></el-table-column>
         <el-table-column prop="weekStart" label="预测周" width="120" align="center"></el-table-column>
         <el-table-column prop="predictQty" label="预测量(p50)" width="120" align="right">
-          <template slot-scope="scope">
+          <template #default="scope">
             <span class="predict-value">{{ scope.row.predictQty }}</span>
           </template>
         </el-table-column>
         <el-table-column label="分位数区间" width="200" align="center">
-          <template slot-scope="scope">
+          <template #default="scope">
             <span class="quantile-range">
               [{{ scope.row.p10 || '-' }}, {{ scope.row.p25 || '-' }}]
               <b>{{ scope.row.predictQty }}</b>
@@ -91,25 +90,25 @@
           </template>
         </el-table-column>
         <el-table-column prop="algoType" label="算法" width="100" align="center">
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-tag
               :type="scope.row.algoType === 'TFT' ? 'success' : 'warning'"
-              size="mini"
+              size="small"
             >{{ scope.row.algoType }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="modelVersion" label="版本" width="90" align="center">
-          <template slot-scope="scope">
-            <el-tag size="mini" type="info">{{ scope.row.modelVersion }}</el-tag>
+          <template #default="scope">
+            <el-tag size="small" type="info">{{ scope.row.modelVersion }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="预测时间" width="170"></el-table-column>
         <el-table-column label="操作" width="100" fixed="right">
-          <template slot-scope="scope">
+          <template #default="scope">
             <el-button
-              type="text"
+              type="primary"
+              link
               size="small"
-              icon="el-icon-data-analysis"
               @click.stop="showDetail(scope.row)"
             >趋势</el-button>
           </template>
@@ -129,7 +128,7 @@
     </el-card>
 
     <!-- 趋势图弹窗 -->
-    <el-dialog :title="detailTitle" :visible.sync="detailVisible" width="75%">
+    <el-dialog :title="detailTitle" v-model="detailVisible" width="75%">
       <div v-if="detailData.length > 0">
         <div ref="chartContainer" style="width:100%;height:400px;"></div>
         <el-table :data="detailData" stripe border size="small" style="margin-top: 16px;">
@@ -149,186 +148,198 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import request from '@/utils/request'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
-export default {
-  name: 'WeeklyForecastResult',
-  data() {
-    return {
-      searchForm: {
-        partCode: '',
-        weekStart: '',
-        algoType: ''
-      },
-      tableData: [],
-      loading: false,
-      trainLoading: false,
-      predictLoading: false,
-      pagination: {
-        page: 1,
-        pageSize: 20,
-        total: 0
-      },
-      detailVisible: false,
-      detailTitle: '',
-      detailData: [],
-      chartInstance: null
-    }
-  },
-  mounted() {
-    this.fetchList()
-  },
-  beforeDestroy() {
-    if (this.chartInstance) {
-      this.chartInstance.dispose()
-    }
-  },
-  methods: {
-    fetchList() {
-      this.loading = true
-      const params = {
-        page: this.pagination.page,
-        pageSize: this.pagination.pageSize,
-        ...this.searchForm
-      }
-      this.$http.get('/ai/weekly/list', { params })
-        .then(res => {
-          if (res.data.code === 200) {
-            this.tableData = res.data.data || []
-            this.pagination.total = res.data.total || 0
-          }
-        })
-        .finally(() => {
-          this.loading = false
-        })
-    },
-    handleSearch() {
-      this.pagination.page = 1
-      this.fetchList()
-    },
-    resetSearch() {
-      this.searchForm = { partCode: '', weekStart: '', algoType: '' }
-      this.handleSearch()
-    },
-    handleSizeChange(size) {
-      this.pagination.pageSize = size
-      this.fetchList()
-    },
-    handlePageChange(page) {
-      this.pagination.page = page
-      this.fetchList()
-    },
-    triggerTrain() {
-      this.$confirm('将使用合成数据训练 TFT/DeepAR 模型，是否继续？', '训练确认', {
-        type: 'info'
-      }).then(() => {
-        this.trainLoading = true
-        this.$http.post('/ai/weekly/train', { use_synthetic: true })
-          .then(res => {
-            this.$message.success('训练任务已提交后台，请等待完成后触发预测')
-            this.$router.push('/ai/training-progress')
-          })
-          .catch(err => {
-            this.$message.error(err.response?.data?.message || '训练请求失败或已有训练正在进行')
-          })
-          .finally(() => {
-            this.trainLoading = false
-          })
-      }).catch(() => {})
-    },
-    triggerPredict() {
-      this.predictLoading = true
-      this.$http.post('/ai/weekly/predict', {})
-        .then(res => {
-          this.$message.success('预测完成，正在刷新数据')
-          setTimeout(() => this.fetchList(), 2000)
-        })
-        .catch(err => {
-          this.$message.error(err.response?.data?.message || '预测失败，请确认模型已训练')
-        })
-        .finally(() => {
-          this.predictLoading = false
-        })
-    },
-    showDetail(row) {
-      this.detailTitle = `${row.partCode} - ${row.partName || ''} 12周预测趋势`
-      this.$http.get(`/ai/weekly/${row.partCode}`, { params: { weeks: 12 } })
-        .then(res => {
-          if (res.data.code === 200) {
-            this.detailData = res.data.data || []
-            this.detailVisible = true
-            this.$nextTick(() => this.renderChart())
-          }
-        })
-    },
-    renderChart() {
-      if (!this.$refs.chartContainer) return
-      if (this.chartInstance) this.chartInstance.dispose()
-      this.chartInstance = echarts.init(this.$refs.chartContainer)
+const router = useRouter()
 
-      const weeks = this.detailData.map(d => d.weekStart)
-      const p50 = this.detailData.map(d => d.predictQty)
-      const p10 = this.detailData.map(d => d.p10)
-      const p90 = this.detailData.map(d => d.p90)
-      const p25 = this.detailData.map(d => d.p25)
-      const p75 = this.detailData.map(d => d.p75)
+const searchForm = reactive({
+  partCode: '',
+  weekStart: '',
+  algoType: ''
+})
+const tableData = ref<any[]>([])
+const loading = ref(false)
+const trainLoading = ref(false)
+const predictLoading = ref(false)
+const pagination = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0
+})
+const detailVisible = ref(false)
+const detailTitle = ref('')
+const detailData = ref<any[]>([])
+const chartContainer = ref<HTMLDivElement | null>(null)
+let chartInstance: echarts.ECharts | null = null
 
-      this.chartInstance.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['p50 (预测量)', 'p10-p90 区间', 'p25-p75 区间'] },
-        xAxis: { type: 'category', data: weeks, name: '周' },
-        yAxis: { type: 'value', name: '件数' },
-        series: [
-          {
-            name: 'p10-p90 区间',
-            type: 'line',
-            data: p90,
-            lineStyle: { opacity: 0 },
-            areaStyle: { color: 'rgba(64,158,255,0.15)' },
-            stack: 'confidence-outer',
-            symbol: 'none'
-          },
-          {
-            name: 'p10-p90 下界',
-            type: 'line',
-            data: p10,
-            lineStyle: { opacity: 0 },
-            areaStyle: { color: 'rgba(64,158,255,0.15)' },
-            stack: 'confidence-outer',
-            symbol: 'none'
-          },
-          {
-            name: 'p25-p75 区间',
-            type: 'line',
-            data: p75,
-            lineStyle: { opacity: 0 },
-            areaStyle: { color: 'rgba(64,158,255,0.3)' },
-            stack: 'confidence-inner',
-            symbol: 'none'
-          },
-          {
-            name: 'p25-p75 下界',
-            type: 'line',
-            data: p25,
-            lineStyle: { opacity: 0 },
-            areaStyle: { color: 'rgba(64,158,255,0.3)' },
-            stack: 'confidence-inner',
-            symbol: 'none'
-          },
-          {
-            name: 'p50 (预测量)',
-            type: 'line',
-            data: p50,
-            smooth: true,
-            lineStyle: { width: 3, color: '#409EFF' },
-            itemStyle: { color: '#409EFF' }
-          }
-        ]
-      })
-    }
+function fetchList() {
+  loading.value = true
+  const params = {
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    ...searchForm
   }
+  request.get('/ai/weekly/list', { params })
+    .then(res => {
+      if (res.data.code === 200) {
+        tableData.value = res.data.data || []
+        pagination.total = res.data.total || 0
+      }
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
+
+function handleSearch() {
+  pagination.page = 1
+  fetchList()
+}
+
+function resetSearch() {
+  searchForm.partCode = ''
+  searchForm.weekStart = ''
+  searchForm.algoType = ''
+  handleSearch()
+}
+
+function handleSizeChange(size: number) {
+  pagination.pageSize = size
+  fetchList()
+}
+
+function handlePageChange(page: number) {
+  pagination.page = page
+  fetchList()
+}
+
+function triggerTrain() {
+  ElMessageBox.confirm('将使用合成数据训练 TFT/DeepAR 模型，是否继续？', '训练确认', {
+    type: 'info'
+  }).then(() => {
+    trainLoading.value = true
+    request.post('/ai/weekly/train', { use_synthetic: true })
+      .then(() => {
+        ElMessage.success('训练任务已提交后台，请等待完成后触发预测')
+        router.push('/ai/training-progress')
+      })
+      .catch((err: any) => {
+        ElMessage.error(err.response?.data?.message || '训练请求失败或已有训练正在进行')
+      })
+      .finally(() => {
+        trainLoading.value = false
+      })
+  }).catch(() => {})
+}
+
+function triggerPredict() {
+  predictLoading.value = true
+  request.post('/ai/weekly/predict', {})
+    .then(() => {
+      ElMessage.success('预测完成，正在刷新数据')
+      setTimeout(() => fetchList(), 2000)
+    })
+    .catch((err: any) => {
+      ElMessage.error(err.response?.data?.message || '预测失败，请确认模型已训练')
+    })
+    .finally(() => {
+      predictLoading.value = false
+    })
+}
+
+function showDetail(row: any) {
+  detailTitle.value = `${row.partCode} - ${row.partName || ''} 12周预测趋势`
+  request.get(`/ai/weekly/${row.partCode}`, { params: { weeks: 12 } })
+    .then(res => {
+      if (res.data.code === 200) {
+        detailData.value = res.data.data || []
+        detailVisible.value = true
+        nextTick(() => renderChart())
+      }
+    })
+}
+
+function renderChart() {
+  if (!chartContainer.value) return
+  if (chartInstance) chartInstance.dispose()
+  chartInstance = echarts.init(chartContainer.value)
+
+  const weeks = detailData.value.map(d => d.weekStart)
+  const p50 = detailData.value.map(d => d.predictQty)
+  const p10 = detailData.value.map(d => d.p10)
+  const p90 = detailData.value.map(d => d.p90)
+  const p25 = detailData.value.map(d => d.p25)
+  const p75 = detailData.value.map(d => d.p75)
+
+  chartInstance.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['p50 (预测量)', 'p10-p90 区间', 'p25-p75 区间'] },
+    xAxis: { type: 'category', data: weeks, name: '周' },
+    yAxis: { type: 'value', name: '件数' },
+    series: [
+      {
+        name: 'p10-p90 区间',
+        type: 'line',
+        data: p90,
+        lineStyle: { opacity: 0 },
+        areaStyle: { color: 'rgba(64,158,255,0.15)' },
+        stack: 'confidence-outer',
+        symbol: 'none'
+      },
+      {
+        name: 'p10-p90 下界',
+        type: 'line',
+        data: p10,
+        lineStyle: { opacity: 0 },
+        areaStyle: { color: 'rgba(64,158,255,0.15)' },
+        stack: 'confidence-outer',
+        symbol: 'none'
+      },
+      {
+        name: 'p25-p75 区间',
+        type: 'line',
+        data: p75,
+        lineStyle: { opacity: 0 },
+        areaStyle: { color: 'rgba(64,158,255,0.3)' },
+        stack: 'confidence-inner',
+        symbol: 'none'
+      },
+      {
+        name: 'p25-p75 下界',
+        type: 'line',
+        data: p25,
+        lineStyle: { opacity: 0 },
+        areaStyle: { color: 'rgba(64,158,255,0.3)' },
+        stack: 'confidence-inner',
+        symbol: 'none'
+      },
+      {
+        name: 'p50 (预测量)',
+        type: 'line',
+        data: p50,
+        smooth: true,
+        lineStyle: { width: 3, color: '#409EFF' },
+        itemStyle: { color: '#409EFF' }
+      }
+    ]
+  })
+}
+
+onMounted(() => {
+  fetchList()
+})
+
+onBeforeUnmount(() => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+})
 </script>
 
 <style scoped>
