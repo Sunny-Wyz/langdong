@@ -3,7 +3,7 @@ package com.langdong.spare.forecast.model;
 import lombok.Data;
 
 /**
- * 两阶段概率预测的算法输出（内存 DTO，落库时映射为 {@code AiForecastResult} 实体）。
+ * 两阶段 Hurdle-Gamma 概率预测的算法输出（内存 DTO，落库时映射为 {@code AiForecastResult} 实体）。
  *
  * <p>包含论文算法 3-1 的六个标准字段，以及后续由蒙特卡洛（算法 3-2）填充的 ROP/SS/服务水平。</p>
  */
@@ -14,7 +14,7 @@ public class ForecastResult {
     /** 预测目标月份（yyyy-MM）。 */
     private String targetMonth;
 
-    // ---- 两阶段模型六标准字段 ----
+    // ---- 两阶段 Hurdle-Gamma 六标准字段 ----
     /** 需求发生概率 p_t（经概率校准后，∈[0,1]）。 */
     private double occurrenceProb;
     /** 正需求量点估计 ŷ（阶段二点回归器输出）。 */
@@ -35,7 +35,7 @@ public class ForecastResult {
     private Double serviceLevel;
 
     // ---- 元信息 ----
-    /** 算法类型，统一为 TWO_STAGE。 */
+    /** 算法类型，统一为 TWO_STAGE（前端展示为「两阶段 Hurdle-Gamma」）。 */
     private String algoType = "TWO_STAGE";
     /** 模型版本号。 */
     private String modelVersion;

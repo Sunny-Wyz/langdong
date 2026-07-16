@@ -4,13 +4,13 @@ import com.langdong.spare.forecast.config.ForecastThreadPoolConfig;
 import com.langdong.spare.forecast.model.ForecastResult;
 import com.langdong.spare.forecast.service.ReplenishmentService;
 import com.langdong.spare.forecast.service.StockThresholdService;
+import com.langdong.spare.forecast.util.ForecastTargetMonths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 月度智能预测与补货建议触发调度器（模块 G & 前后端进度适配）。
  *
- * <p>提供定时和手动重算两阶段 XGBoost 模型的调度，并通过线程安全的最新状态机
+ * <p>提供定时和手动重算两阶段 Hurdle-Gamma 模型的调度，并通过线程安全的最新状态机
  * 暴露任务实时进度百分比及处理阶段，供前端进行轮询渲染。</p>
  */
 @Component
@@ -44,9 +44,10 @@ public class MonthlyForecastScheduler {
      */
     @Scheduled(cron = "${forecast.scheduler.cron:0 0 1 1 * ?}")
     public void scheduleMonthlyForecast() {
-        String currentMonth = YearMonth.now().toString();
-        log.info("[定时任务] 月初调度重算任务启动，触发属期: {}", currentMonth);
-        triggerForecastPipeline(currentMonth);
+        // 与手动重算/任务中心统一：预测下个月
+        String targetMonth = ForecastTargetMonths.defaultTargetMonth();
+        log.info("[定时任务] 月初调度两阶段 Hurdle-Gamma 重算启动，目标属期(下月): {}", targetMonth);
+        triggerForecastPipeline(targetMonth);
     }
 
     /**
@@ -62,7 +63,7 @@ public class MonthlyForecastScheduler {
             return;
         }
 
-        String runId = "xgb-forecast-" + System.currentTimeMillis();
+        String runId = "hurdle-gamma-forecast-" + System.currentTimeMillis();
         long start = System.currentTimeMillis();
         latestRunStatus = ForecastRunStatus.running(runId, targetMonth, "FEATURE_BUILD", 0, 0, 0,
                 "正在加载特征工程并构建预测上下文");
@@ -70,14 +71,14 @@ public class MonthlyForecastScheduler {
         try {
             log.info("[重算任务] [异步流水线] 开始计算: 月份={}, 线程={}", targetMonth, Thread.currentThread().getName());
 
-            // 1. 跑 ABC×XYZ 分类 -> 两阶段 XGBoost 训练 -> 蒙特卡洛安全库存计算（传递进度监听器）
+            // 1. 跑 ABC×XYZ 分类 -> 两阶段 Hurdle-Gamma 训练 -> 蒙特卡洛安全库存计算（传递进度监听器）
             List<ForecastResult> forecasts = stockThresholdService.executeForecastAndStockThreshold(
                     targetMonth,
                     update -> {
                         String currentStage = update.processed > (update.total / 2) ? "SIMULATING" : "TRAINING";
                         String currentMessage = "SIMULATING".equals(currentStage)
                                 ? "正在通过蒙特卡洛仿真计算提前期安全库存水位: " + update.processed + "/" + update.total
-                                : "正在执行分类与XGBoost两阶段模型拟合: " + update.processed + "/" + update.total;
+                                : "正在执行分类与两阶段 Hurdle-Gamma 模型拟合: " + update.processed + "/" + update.total;
 
                         latestRunStatus = ForecastRunStatus.running(
                                 runId, targetMonth, currentStage, update.total, update.processed, update.failed, currentMessage
@@ -92,7 +93,7 @@ public class MonthlyForecastScheduler {
 
             // 3. 标识成功
             latestRunStatus = ForecastRunStatus.success(runId, targetMonth, forecasts.size(), forecasts.size(), 0,
-                    "两阶段AI预测重算与安全库存分析任务已完成！");
+                    "两阶段 Hurdle-Gamma 预测重算与安全库存分析任务已完成！");
 
             log.info("[重算任务] [异步流水线] 运行成功！目标月份: {}, 总耗时: {} ms",
                     targetMonth, (System.currentTimeMillis() - start));

@@ -24,7 +24,7 @@
             <template v-for="child in menu.children" :key="'child-' + child.id">
               <!-- 三级：子项自身还有可导航子菜单 -->
               <el-sub-menu
-                v-if="child.type === 2 && hasNavChildren(child)"
+                v-if="!isHiddenMenu(child) && child.type === 2 && hasNavChildren(child)"
                 :index="String(child.id)"
               >
                 <template #title>
@@ -33,7 +33,7 @@
                 </template>
                 <template v-for="grandchild in child.children" :key="'gc-' + grandchild.id">
                   <el-menu-item
-                    v-if="grandchild.type === 2 && grandchild.path"
+                    v-if="!isHiddenMenu(grandchild) && grandchild.type === 2 && grandchild.path"
                     :index="normalizeMenuPath(grandchild.path)"
                   >
                     <span>{{ grandchild.name }}</span>
@@ -43,7 +43,7 @@
 
               <!-- 二级：直接可导航菜单项 -->
               <el-menu-item
-                v-else-if="child.type === 2 && child.path"
+                v-else-if="!isHiddenMenu(child) && child.type === 2 && child.path"
                 :index="normalizeMenuPath(child.path)"
               >
                 <span class="menu-icon">{{ getMenuIconEmoji(child.icon) }}</span>
@@ -104,8 +104,35 @@ const menus = computed<MenuNode[]>(() => authStore.menus || [])
 /** hash 路由下 el-menu 的 active 索引使用完整 path */
 const activeMenu = computed(() => route.path)
 
+function isHiddenMenu(menu: MenuNode | null | undefined): boolean {
+  if (!menu) return true
+  const name = String(menu.name || '')
+  const path = String(menu.path || '').replace(/^#/, '')
+  if (name.startsWith('[隐藏]')) return true
+  // 名称关键词：历史库中可能仍挂着周粒度/训练看板
+  if (name.includes('周粒度') || name.includes('训练数据看板') || name.includes('训练进度')) {
+    return true
+  }
+  // 已下线的 AI 扩展入口，即使接口仍返回也不展示
+  if (
+    path === '/ai/weekly-forecast' ||
+    path === '/ai/training-progress' ||
+    path === '/ai/train-data-dashboard' ||
+    path.endsWith('/weekly-forecast') ||
+    path.endsWith('/training-progress') ||
+    path.endsWith('/train-data-dashboard')
+  ) {
+    return true
+  }
+  return false
+}
+
 function hasNavChildren(menu: MenuNode | null | undefined): boolean {
-  return Boolean(menu?.children?.some((c) => c.type === 2 && (c.path || hasNavChildren(c))))
+  return Boolean(
+    menu?.children?.some(
+      (c) => !isHiddenMenu(c) && c.type === 2 && (c.path || hasNavChildren(c))
+    )
+  )
 }
 
 /** 统一菜单 path：去掉 hash 前缀、补全前导斜杠 */

@@ -95,6 +95,11 @@
     <!-- 查询所有备件近12个月的月度消耗汇总
          数据来源：领用出库记录（req_status = OUTBOUND 或 INSTALLED 表示已实际出库）
          注意：out_qty 为 NULL 或 0 的明细不计入 -->
+    <!--
+      月度两阶段 Hurdle-Gamma / 旧 RF·SBA 共用消耗口径：
+      领用单已出库/已安装明细，按 approve_time 归属月份汇总 out_qty。
+      （与训练数据看板日粒度 TRACE/多源口径不同，看板另表维护）
+    -->
     <select id="findAllMonthlyConsumption" resultType="com.langdong.spare.dto.MonthlyConsumptionVO">
         SELECT
             sp.code                                     AS partCode,

@@ -28,15 +28,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 两阶段智能预测与库存阈值重算业务服务（模块 G）。
+ * 两阶段 Hurdle-Gamma 智能预测与库存阈值重算业务服务（模块 G）。
  *
- * <p>已重构：使用外部 Python 算法微服务进行 XGBoost 两阶段回归预测与蒙特卡洛安全库存计算。</p>
+ * <p>已重构：使用外部 Python 算法微服务进行 Hurdle-Gamma 两阶段预测与蒙特卡洛安全库存计算。</p>
  */
 @Service
 public class StockThresholdService {
@@ -102,18 +103,36 @@ public class StockThresholdService {
      */
     @Transactional
     public List<ForecastResult> executeForecastAndStockThreshold(String targetMonth) {
-        return executeForecastAndStockThreshold(targetMonth, null);
+        return executeForecastAndStockThreshold(targetMonth, null, null);
     }
 
     /**
      * 全量执行需求预测与库存阈值计算，并调用外部 Python 微服务进行预测仿真。
      */
     @Transactional
-    public List<ForecastResult> executeForecastAndStockThreshold(String targetMonth, java.util.function.Consumer<ProgressUpdate> progressConsumer) {
-        log.info("[重算任务] 开始调用 Python 算法微服务执行智能预测与安全库存计算，目标月份: {}", targetMonth);
+    public List<ForecastResult> executeForecastAndStockThreshold(String targetMonth,
+                                                                 java.util.function.Consumer<ProgressUpdate> progressConsumer) {
+        return executeForecastAndStockThreshold(targetMonth, progressConsumer, null);
+    }
+
+    /**
+     * 执行两阶段 Hurdle-Gamma 预测与库存阈值计算。
+     *
+     * @param onlyPartCodes 非空时仅对指定备件编码做推理/落库（训练仍用全量样本以保证模型质量）
+     */
+    @Transactional
+    public List<ForecastResult> executeForecastAndStockThreshold(String targetMonth,
+                                                                 java.util.function.Consumer<ProgressUpdate> progressConsumer,
+                                                                 Collection<String> onlyPartCodes) {
+        log.info("[重算任务] 开始调用 Python 算法微服务执行智能预测与安全库存计算，目标月份: {}, 过滤备件数: {}",
+                targetMonth, onlyPartCodes == null ? "ALL" : onlyPartCodes.size());
 
         YearMonth target = YearMonth.parse(targetMonth);
+        // 版本号需落在 ai_forecast_result.model_version（varchar(64)）内；
+        // 形如 two-stage-python-2026-08（24 字符），旧库 varchar(20) 会触发 #22001
         String modelVersion = "two-stage-python-" + targetMonth;
+        Set<String> filterCodes = normalizePartCodeFilter(onlyPartCodes);
+        boolean partialJob = !filterCodes.isEmpty();
 
         // 1. ABC×XYZ 批量分类（截止到上月）
         Map<String, AbcXyzCalculator.Classification> classifications = abcXyzClassifier.classifyAsOf(targetMonth);
@@ -122,9 +141,16 @@ public class StockThresholdService {
         int historyMonths = forecastProperties.getHistoryMonths();
         Map<String, PartFeatureContext> contexts = featureLoader.loadAllContexts(targetMonth, historyMonths);
 
-        // 获取所有备件档案
-        List<SparePart> parts = sparePartMapper.findAllForClassify();
-        if (parts == null || parts.isEmpty()) {
+        // 获取所有备件档案（训练用全量；推理可按编码过滤）
+        List<SparePart> allParts = sparePartMapper.findAllForClassify();
+        if (allParts == null || allParts.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<SparePart> parts = partialJob
+                ? allParts.stream().filter(p -> p != null && p.getCode() != null && filterCodes.contains(p.getCode().trim())).toList()
+                : allParts;
+        if (parts.isEmpty()) {
+            log.warn("[重算任务] 过滤后无可预测备件，targetMonth={}, filter={}", targetMonth, filterCodes);
             return Collections.emptyList();
         }
 
@@ -153,7 +179,7 @@ public class StockThresholdService {
         List<Double> allTrainY = new ArrayList<>();
         List<String> allTrainGroups = new ArrayList<>();
 
-        for (SparePart part : parts) {
+        for (SparePart part : allParts) {
             String partCode = part.getCode();
             PartFeatureContext context = contexts.get(partCode);
             AbcXyzCalculator.Classification classification = classifications.get(partCode);
@@ -289,16 +315,16 @@ public class StockThresholdService {
 
             results.add(fr);
 
-            // 组装 DB 实体
+            // 组装 DB 实体（按列精度 setScale，避免 DOUBLE→DECIMAL 长尾导致截断）
             AiForecastResult fEntity = new AiForecastResult();
             fEntity.setPartCode(partCode);
             fEntity.setForecastMonth(targetMonth);
-            fEntity.setPredictQty(BigDecimal.valueOf(fr.getDemandHat()));
-            fEntity.setLowerBound(BigDecimal.valueOf(fr.getLowerBound()));
-            fEntity.setUpperBound(BigDecimal.valueOf(fr.getUpperBound()));
-            fEntity.setOccurrenceProb(BigDecimal.valueOf(fr.getOccurrenceProb()));
-            fEntity.setPositiveQty(BigDecimal.valueOf(fr.getPositiveQty()));
-            fEntity.setLeadTimeQuantile(BigDecimal.valueOf(ltQuantile));
+            fEntity.setPredictQty(toDecimal(fr.getDemandHat(), 8, 2));
+            fEntity.setLowerBound(toDecimal(fr.getLowerBound(), 8, 2));
+            fEntity.setUpperBound(toDecimal(fr.getUpperBound(), 8, 2));
+            fEntity.setOccurrenceProb(toDecimal(clamp(fr.getOccurrenceProb(), 0.0, 1.0), 5, 4));
+            fEntity.setPositiveQty(toDecimal(fr.getPositiveQty(), 8, 2));
+            fEntity.setLeadTimeQuantile(toDecimal(ltQuantile, 8, 2));
             fEntity.setAlgoType("TWO_STAGE");
             fEntity.setModelVersion(modelVersion);
             fEntity.setCreateTime(LocalDateTime.now());
@@ -335,27 +361,66 @@ public class StockThresholdService {
             partClassifyMapper.insertBatch(classifiesToInsert);
         }
 
-        // 5. 模型版本注册记录
-        AiModelRegistry registry = new AiModelRegistry();
-        registry.setModelName("demand-forecaster-two-stage");
-        registry.setModelVersion(modelVersion);
-        registry.setAlgoType("TWO_STAGE");
-        registry.setArtifactPath("python-microservice");
-        registry.setTrainParts(validParts.size());
-        registry.setTrainWeeks(36 * 4);
-        registry.setStatus("PRODUCTION");
-        registry.setDeployTime(LocalDateTime.now());
-        registry.setCreateTime(LocalDateTime.now());
+        // 5. 模型版本注册：仅全量任务切换 PRODUCTION，避免任务中心单备件任务刷爆注册表
+        if (!partialJob) {
+            AiModelRegistry registry = new AiModelRegistry();
+            registry.setModelName("demand-forecaster-two-stage");
+            registry.setModelVersion(modelVersion);
+            registry.setAlgoType("TWO_STAGE");
+            registry.setArtifactPath("python-microservice");
+            registry.setTrainParts(validParts.size());
+            registry.setTrainWeeks(36 * 4);
+            registry.setStatus("PRODUCTION");
+            registry.setDeployTime(LocalDateTime.now());
+            registry.setCreateTime(LocalDateTime.now());
 
-        // 将之前生产的模型状态置为 ARCHIVED 归档
-        if (prevRegistry != null) {
-            aiModelRegistryMapper.updateStatus(prevRegistry.getId(), "ARCHIVED");
+            if (prevRegistry != null) {
+                aiModelRegistryMapper.updateStatus(prevRegistry.getId(), "ARCHIVED");
+            }
+            aiModelRegistryMapper.insert(registry);
         }
-        aiModelRegistryMapper.insert(registry);
 
-        log.info("[重算任务] 调用 Python 接口重算落库成功！有效备件数={}, 跳过数={}, 已注册生产版本: {}",
-                validParts.size(), skipCount, modelVersion);
+        log.info("[重算任务] 调用 Python 接口重算落库成功！有效备件数={}, 跳过数={}, partial={}, modelVersion={}",
+                validParts.size(), skipCount, partialJob, modelVersion);
 
         return results;
+    }
+
+    private static Set<String> normalizePartCodeFilter(Collection<String> onlyPartCodes) {
+        if (onlyPartCodes == null || onlyPartCodes.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> codes = new LinkedHashSet<>();
+        for (String code : onlyPartCodes) {
+            if (code == null) {
+                continue;
+            }
+            String trimmed = code.trim();
+            if (!trimmed.isEmpty()) {
+                codes.add(trimmed);
+            }
+        }
+        return codes;
+    }
+
+    /**
+     * 将 double 转为指定 DECIMAL(precision, scale) 可落库的 BigDecimal，并做范围钳制。
+     * precision 指总位数（含小数位），例如 DECIMAL(8,2) 的整数部分最多 6 位。
+     */
+    static BigDecimal toDecimal(double value, int precision, int scale) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return BigDecimal.ZERO.setScale(scale, RoundingMode.HALF_UP);
+        }
+        int intDigits = Math.max(1, precision - scale);
+        double maxAbs = Math.pow(10, intDigits) - Math.pow(10, -scale);
+        double clamped = Math.max(-maxAbs, Math.min(maxAbs, value));
+        return BigDecimal.valueOf(clamped).setScale(scale, RoundingMode.HALF_UP);
+    }
+
+    static double clamp(double value, double min, double max) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return min;
+        }
+        return Math.max(min, Math.min(max, value));
     }
 }

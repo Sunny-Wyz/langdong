@@ -27,3 +27,8 @@ ai:
   python:
     base-url: ${AI_PYTHON_BASE_URL:http://localhost:8000}
     callback-token: ${PYTHON_CALLBACK_TOKEN:langdong-local-dev-20260330}
+
+forecast:
+  # 月初两阶段 Hurdle-Gamma 重算：预测下个月（唯一月度调度入口）
+  scheduler:
+    cron: ${FORECAST_SCHEDULER_CRON:0 0 1 1 * ?}

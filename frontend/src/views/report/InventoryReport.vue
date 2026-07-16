@@ -63,41 +63,54 @@ const loading = ref(false)
 const abcChart = ref<HTMLElement | null>(null)
 const turnoverChart = ref<HTMLElement | null>(null)
 
+function unwrapList(payload: any): any[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.list)) return payload.list
+  if (Array.isArray(payload?.data)) return payload.data
+  return []
+}
+
 async function loadCharts() {
   try {
     const [abcRes, tvRes] = await Promise.all([
       request.get('/report/inventory/abc'),
       request.get('/report/inventory/turnover')
     ])
-    const abcData = abcRes.data || []
-    const tvData = tvRes.data || []
+    const abcData = unwrapList(abcRes.data)
+    const tvData = unwrapList(tvRes.data)
     await nextTick()
     if (abcChart.value) {
-      echarts.init(abcChart.value).setOption({
+      const chart = echarts.getInstanceByDom(abcChart.value) || echarts.init(abcChart.value)
+      const pieData = abcData.map((r: any) => ({
+        name: r.classLevel || r.abcClass || r.name || '未分类',
+        value: Number(r.partCount ?? r.count ?? r.amount ?? r.value ?? 0)
+      })).filter((d: any) => d.value > 0)
+      chart.setOption({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0 },
         series: [{
           type: 'pie',
           radius: ['40%', '65%'],
-          data: abcData.map((r: any) => ({ name: r.abcClass || r.name, value: r.count || r.amount || r.value }))
+          data: pieData.length ? pieData : [{ name: '暂无分类数据', value: 1, itemStyle: { color: '#dcdfe6' } }]
         }]
-      })
+      }, true)
     }
     if (turnoverChart.value) {
-      echarts.init(turnoverChart.value).setOption({
+      const chart = echarts.getInstanceByDom(turnoverChart.value) || echarts.init(turnoverChart.value)
+      chart.setOption({
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: tvData.map((r: any) => r.categoryName || r.name || '未分类'), axisLabel: { rotate: 15 } },
         yAxis: { type: 'value', name: '金额(元)' },
         series: [{
           name: '库存金额',
           type: 'bar',
-          data: tvData.map((r: any) => r.totalAmount),
+          data: tvData.map((r: any) => Number(r.totalAmount ?? 0)),
           itemStyle: { color: '#409EFF' }
         }]
-      })
+      }, true)
     }
-  } catch (e) {
-    /* ignore chart load errors */
+  } catch (e: any) {
+    console.error('库存分析图表加载失败', e)
   }
 }
 
@@ -105,7 +118,10 @@ async function loadStagnant() {
   loading.value = true
   try {
     const res = await request.get(`/report/inventory/stagnant?thresholdDays=${thresholdDays.value}`)
-    stagnantList.value = res.data || []
+    stagnantList.value = unwrapList(res.data)
+  } catch (e: any) {
+    console.error('滞库清单加载失败', e)
+    stagnantList.value = []
   } finally {
     loading.value = false
   }

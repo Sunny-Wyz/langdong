@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `ai_forecast_result` (
     `upper_bound`   decimal(8,2)   NOT NULL DEFAULT 0.00 COMMENT '90%%置信区间上界',
     `algo_type`     varchar(20)    NOT NULL DEFAULT 'RF' COMMENT '预测算法: RF/SBA/FALLBACK',
     `mase`          decimal(6,4)   DEFAULT NULL COMMENT 'MASE评估指标',
-    `model_version` varchar(20)    NOT NULL DEFAULT 'v1.0' COMMENT '模型版本号',
+    `model_version` varchar(64)    NOT NULL DEFAULT 'v1.0' COMMENT '模型版本号',
     `create_time`   datetime       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '预测计算时间',
     PRIMARY KEY (`id`),
     KEY `idx_part_code`      (`part_code`),

@@ -26,7 +26,10 @@ __pycache__/
 # Local env
 .env.local
 
-# Logs
+# Logs & MLflow & Cache
 python-ai-service/logs/
+python-ai-service/mlruns/
+python-ai-service/lightning_logs/
+python-ai-service/.pytest_cache/
 *.log
 supervisord.pid

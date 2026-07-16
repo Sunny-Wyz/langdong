@@ -15,7 +15,7 @@
       </template>
 
       <el-alert
-        title="本页仅展示周粒度预测训练进度；训练状态保存在 Python 服务内存中，服务重启后不会保留历史。"
+        title="本页仅展示「周粒度」预测训练进度（与月度两阶段 Hurdle-Gamma / 训练数据看板无关）。状态在 Python 服务内存中，重启后不保留。"
         type="info"
         :closable="false"
         show-icon

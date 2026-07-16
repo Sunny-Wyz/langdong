@@ -45,12 +45,9 @@ const WarningCenter = () => import('../views/report/WarningCenter.vue')
 // 备件智能分类模块
 const ClassifyResult = () => import('../views/classify/ClassifyResult.vue')
 
-// AI 智能分析模块
+// AI 智能分析模块（仅保留月度 Hurdle-Gamma 主链路）
 const AiForecastResult = () => import('../views/ai/AiForecastResult.vue')
 const AiJobCenter = () => import('../views/ai/AiJobCenter.vue')
-const AiTrainDataDashboard = () => import('../views/ai/AiTrainDataDashboard.vue')
-const WeeklyForecastResult = () => import('../views/ai/WeeklyForecastResult.vue')
-const AiTrainingProgress = () => import('../views/ai/AiTrainingProgress.vue')
 
 // PHM 预测性维护模块
 const HealthMonitor = () => import('../views/phm/HealthMonitor.vue')
@@ -122,10 +119,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true },
     children: [
       { path: 'forecast-result', component: AiForecastResult, meta: { requiresAuth: true } },
-      { path: 'weekly-forecast', component: WeeklyForecastResult, meta: { requiresAuth: true } },
-      { path: 'training-progress', component: AiTrainingProgress, meta: { requiresAuth: true } },
-      { path: 'job-center', component: AiJobCenter, meta: { requiresAuth: true } },
-      { path: 'train-data-dashboard', component: AiTrainDataDashboard, meta: { requiresAuth: true } }
+      { path: 'job-center', component: AiJobCenter, meta: { requiresAuth: true } }
     ]
   },
   {

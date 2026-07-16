@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS `ai_weekly_forecast` (
 -- ================================================================
 CREATE TABLE IF NOT EXISTS `ai_model_registry` (
     `id`            bigint(19)     NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `model_name`    varchar(50)    NOT NULL COMMENT '模型名称（demand-forecaster / rul-predictor）',
-    `model_version` varchar(20)    NOT NULL COMMENT '版本号',
+    `model_name`    varchar(64)    NOT NULL COMMENT '模型名称（demand-forecaster / demand-forecaster-two-stage）',
+    `model_version` varchar(64)    NOT NULL COMMENT '版本号（如 two-stage-python-yyyy-MM）',
     `algo_type`     varchar(20)    NOT NULL COMMENT '算法类型（TFT / DeepAR / InceptionTime）',
     `mlflow_run_id` varchar(64)    DEFAULT NULL COMMENT 'MLflow Run ID',
     `artifact_path` varchar(255)   DEFAULT NULL COMMENT '模型文件存储路径',

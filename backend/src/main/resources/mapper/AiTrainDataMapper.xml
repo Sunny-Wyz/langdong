@@ -52,7 +52,15 @@
             source_level, is_imputed, created_at, updated_at
         FROM ai_part_daily_train_data
         <include refid="WhereCondition"/>
-        ORDER BY biz_date DESC, part_code ASC
+        <choose>
+            <when test="orderBy == 'biz_date_desc'">
+                ORDER BY biz_date DESC, part_code ASC
+            </when>
+            <otherwise>
+                <!-- 默认：有量优先，避免首页全是 0 -->
+                ORDER BY daily_outbound_qty DESC, biz_date DESC, part_code ASC
+            </otherwise>
+        </choose>
         LIMIT #{size} OFFSET #{offset}
     </select>
 
@@ -61,5 +69,25 @@
         FROM ai_part_daily_train_data
         <include refid="WhereCondition"/>
     </select>
+
+    <select id="selectMeta" resultType="java.util.HashMap">
+        SELECT
+            COUNT(*) AS totalRows,
+            COUNT(DISTINCT part_code) AS distinctParts,
+            MIN(biz_date) AS minBizDate,
+            MAX(biz_date) AS maxBizDate,
+            MAX(updated_at) AS lastUpdatedAt,
+            SUM(CASE WHEN daily_outbound_qty &gt; 0 THEN 1 ELSE 0 END) AS nonzeroOutboundRows,
+            SUM(CASE WHEN is_imputed = 1 THEN 1 ELSE 0 END) AS imputedRows,
+            SUM(CASE WHEN source_level = 'NONE' THEN 1 ELSE 0 END) AS noneSourceRows,
+            MAX(CASE WHEN daily_outbound_qty &gt; 0 THEN biz_date ELSE NULL END) AS lastDemandDate
+        FROM ai_part_daily_train_data
+    </select>
+
+    <delete id="deleteOutsideWindow">
+        DELETE FROM ai_part_daily_train_data
+        WHERE biz_date &lt; #{startDate}
+           OR biz_date &gt; #{endDate}
+    </delete>
 
 </mapper>

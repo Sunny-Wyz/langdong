@@ -3,7 +3,8 @@ import router from '../router'
 import { useAuthStore } from '../store/auth'
 
 // 创建一个带有统一基础配置的 Axios 实例
-const request = axios.create({ baseURL: '/api', timeout: 5000 })
+// 报表/AI 等接口偶发超过 5s，适当放宽避免误报失败
+const request = axios.create({ baseURL: '/api', timeout: 30000 })
 
 // 标记是否正在执行 Token 刷新，防止多次重复刷新请求
 let isRefreshing = false

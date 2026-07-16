@@ -1,29 +1,33 @@
 package com.langdong.spare.controller;
 
 import com.langdong.spare.entity.SparePart;
+import com.langdong.spare.forecast.service.HurdleGammaJobService;
 import com.langdong.spare.mapper.SparePartMapper;
-import com.langdong.spare.service.ai.PythonModelClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpStatusCodeException;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * AI 任务中心接口：补货任务走两阶段 Hurdle-Gamma（Java 异步 + Python 算法微服务）。
+ */
 @RestController
 @RequestMapping("/api/ai/forecast/jobs")
 public class AiForecastJobController {
 
-    private static final java.util.regex.Pattern TASK_ID_PATTERN = java.util.regex.Pattern.compile("^[A-Za-z0-9_-]{8,128}$");
+    private static final java.util.regex.Pattern TASK_ID_PATTERN =
+            java.util.regex.Pattern.compile("^[A-Za-z0-9_-]{8,128}$");
 
-    private final PythonModelClient pythonModelClient;
+    private final HurdleGammaJobService hurdleGammaJobService;
     private final SparePartMapper sparePartMapper;
 
-    public AiForecastJobController(PythonModelClient pythonModelClient, SparePartMapper sparePartMapper) {
-        this.pythonModelClient = pythonModelClient;
+    public AiForecastJobController(HurdleGammaJobService hurdleGammaJobService,
+                                   SparePartMapper sparePartMapper) {
+        this.hurdleGammaJobService = hurdleGammaJobService;
         this.sparePartMapper = sparePartMapper;
     }
 
@@ -34,19 +38,20 @@ public class AiForecastJobController {
     ) {
         List<Integer> sparePartIds = extractSparePartIds(body);
         if (sparePartIds == null) {
-            return ResponseEntity.badRequest().body(error(400, "spare_part_ids must be positive integers"));
+            return ResponseEntity.badRequest().body(error(400, "spare_part_ids must be valid IDs or part codes"));
         }
         if (sparePartIds.isEmpty()) {
             return ResponseEntity.badRequest().body(error(400, "spare_part_ids is required"));
         }
 
         try {
-            Map<String, Object> response = pythonModelClient.submitReplenishmentJob(sparePartIds);
+            Map<String, Object> response = hurdleGammaJobService.submit(sparePartIds);
             return ResponseEntity.ok(response);
-        } catch (HttpStatusCodeException ex) {
-            return ResponseEntity.status(ex.getStatusCode()).body(error(ex.getStatusCode().value(), upstreamMessage(ex)));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(error(400, ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error(502, "Python job submit failed"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(error(500, "两阶段 Hurdle-Gamma 任务提交失败: " + safeMsg(ex)));
         }
     }
 
@@ -61,14 +66,12 @@ public class AiForecastJobController {
             return ResponseEntity.badRequest().body(error(400, "taskId format is invalid"));
         }
 
-        try {
-            Map<String, Object> response = pythonModelClient.queryJobStatus(normalizedTaskId);
-            return ResponseEntity.ok(response);
-        } catch (HttpStatusCodeException ex) {
-            return ResponseEntity.status(ex.getStatusCode()).body(error(ex.getStatusCode().value(), upstreamMessage(ex)));
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error(502, "Python job status query failed"));
+        Map<String, Object> response = hurdleGammaJobService.getStatus(normalizedTaskId);
+        if (response == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(error(404, "任务不存在或服务已重启导致内存任务丢失"));
         }
+        return ResponseEntity.ok(response);
     }
 
     private List<Integer> extractSparePartIds(Map<String, Object> body) {
@@ -118,6 +121,10 @@ public class AiForecastJobController {
 
             SparePart sparePart = sparePartMapper.findByCode(token);
             if (sparePart == null || sparePart.getId() == null) {
+                // 兼容大小写
+                sparePart = sparePartMapper.findByCode(token.toUpperCase(java.util.Locale.ROOT));
+            }
+            if (sparePart == null || sparePart.getId() == null) {
                 return null;
             }
             ids.add(sparePart.getId().intValue());
@@ -133,13 +140,11 @@ public class AiForecastJobController {
         return resp;
     }
 
-    private String upstreamMessage(HttpStatusCodeException ex) {
-        if (ex.getStatusCode().is4xxClientError()) {
-            return "Python service request rejected";
+    private String safeMsg(Exception ex) {
+        String msg = ex.getMessage();
+        if (msg == null || msg.isBlank()) {
+            return ex.getClass().getSimpleName();
         }
-        if (ex.getStatusCode().is5xxServerError()) {
-            return "Python service temporarily unavailable";
-        }
-        return "Python service request failed";
+        return msg.length() > 200 ? msg.substring(0, 200) : msg;
     }
 }

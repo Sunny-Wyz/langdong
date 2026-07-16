@@ -26,7 +26,25 @@ CREATE TABLE IF NOT EXISTS ai_part_daily_train_data (
     KEY idx_part_code_date (part_code, biz_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI daily training dataset for spare parts';
 
-SET @end_date := DATE_SUB(CURDATE(), INTERVAL 1 DAY);
+-- 窗口末日：不超过「昨天」，且尽量贴齐真实出库业务最大日，避免无业务尾巴整片为 0
+SET @yesterday := DATE_SUB(CURDATE(), INTERVAL 1 DAY);
+SET @biz_max_req := (
+    SELECT MAX(DATE(COALESCE(r.approve_time, r.apply_time)))
+    FROM biz_requisition r
+    JOIN biz_requisition_item ri ON ri.req_id = r.id
+    WHERE r.req_status IN ('OUTBOUND', 'INSTALLED')
+      AND ri.out_qty IS NOT NULL AND ri.out_qty > 0
+);
+SET @biz_max_trace := (
+    SELECT MAX(DATE(outbound_time))
+    FROM biz_outbound_batch_trace
+    WHERE deduct_qty IS NOT NULL AND deduct_qty > 0
+);
+SET @biz_max := GREATEST(
+    COALESCE(@biz_max_req, @yesterday),
+    COALESCE(@biz_max_trace, @yesterday)
+);
+SET @end_date := LEAST(@yesterday, @biz_max);
 SET @start_date := DATE_SUB(@end_date, INTERVAL 729 DAY);
 
 START TRANSACTION;
@@ -189,13 +207,19 @@ SET @rows_inserted := ROW_COUNT();
 
 COMMIT;
 
+-- 清理窗口外陈旧行（含无业务尾巴）
+DELETE FROM ai_part_daily_train_data
+WHERE biz_date < @start_date OR biz_date > @end_date;
+
 SELECT
     @start_date AS start_date,
     @end_date AS end_date,
+    @yesterday AS calendar_yesterday,
+    @biz_max AS business_max_outbound_date,
     @rows_inserted AS rows_inserted,
     COUNT(*) AS rows_loaded,
     COUNT(DISTINCT spare_part_id) AS distinct_parts,
     MIN(biz_date) AS min_date,
-    MAX(biz_date) AS max_date
-FROM ai_part_daily_train_data
-WHERE biz_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 730 DAY) AND DATE_SUB(CURDATE(), INTERVAL 1 DAY);
+    MAX(biz_date) AS max_date,
+    SUM(CASE WHEN daily_outbound_qty > 0 THEN 1 ELSE 0 END) AS nonzero_outbound_rows
+FROM ai_part_daily_train_data;

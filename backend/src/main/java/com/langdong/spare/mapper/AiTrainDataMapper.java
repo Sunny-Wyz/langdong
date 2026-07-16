@@ -15,6 +15,7 @@ public interface AiTrainDataMapper {
             @Param("partCode") String partCode,
             @Param("sourceLevel") String sourceLevel,
             @Param("isImputed") Integer isImputed,
+            @Param("orderBy") String orderBy,
             @Param("offset") int offset,
             @Param("size") int size
     );
@@ -26,4 +27,9 @@ public interface AiTrainDataMapper {
             @Param("sourceLevel") String sourceLevel,
             @Param("isImputed") Integer isImputed
     );
+
+    /** 看板元信息：行数、日期范围、最近更新时间 */
+    java.util.Map<String, Object> selectMeta();
+
+    int deleteOutsideWindow(@Param("startDate") String startDate, @Param("endDate") String endDate);
 }

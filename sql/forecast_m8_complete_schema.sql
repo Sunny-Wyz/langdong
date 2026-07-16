@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `ai_forecast_result` (
     `lead_time_quantile` decimal(8,2)   DEFAULT NULL COMMENT '采购提前期分位数（安全水位上限，未向上取整前）',
     `algo_type`          varchar(20)    NOT NULL DEFAULT 'RF' COMMENT '预测算法类型: RF/SBA/FALLBACK/TWO_STAGE',
     `mase`               decimal(6,4)   DEFAULT NULL COMMENT 'MASE评估指标',
-    `model_version`      varchar(20)    NOT NULL DEFAULT 'v1.0' COMMENT '模型版本号',
+    `model_version`      varchar(64)    NOT NULL DEFAULT 'v1.0' COMMENT '模型版本号（如 two-stage-python-yyyy-MM）',
     `create_time`        datetime       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '预测计算时间',
     PRIMARY KEY (`id`),
     KEY `idx_part_code`      (`part_code`),
@@ -130,8 +130,8 @@ CREATE TABLE IF NOT EXISTS `biz_reorder_suggest` (
 -- --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `ai_model_registry` (
     `id`            bigint(19)     NOT NULL AUTO_INCREMENT COMMENT '主键，自增',
-    `model_name`    varchar(50)    NOT NULL COMMENT '模型名称 (例如 demand-forecaster)',
-    `model_version` varchar(30)    NOT NULL COMMENT '模型版本号 (例如 two-stage-2026-07)',
+    `model_name`    varchar(64)    NOT NULL COMMENT '模型名称 (例如 demand-forecaster-two-stage)',
+    `model_version` varchar(64)    NOT NULL COMMENT '模型版本号 (例如 two-stage-python-yyyy-MM)',
     `algo_type`     varchar(20)    NOT NULL DEFAULT 'TWO_STAGE' COMMENT '算法类型',
     `mlflow_run_id` varchar(50)    DEFAULT NULL COMMENT '机器学习运行实验ID，关联用',
     `artifact_path` varchar(255)   NOT NULL COMMENT '模型训练快照存放路径',

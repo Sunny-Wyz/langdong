@@ -134,9 +134,10 @@ Default credentials: `admin` / `123456`
 | `PythonCallbackStoreService` | Stores async Python predictions |
 
 **Algorithm types** (stored in `algo_type` column):
+- `TWO_STAGE` — 两阶段 Hurdle-Gamma（Python XGBoost 分类 + `reg:gamma` 回归，前端展示「两阶段 Hurdle-Gamma」）
 - `RF` — Random Forest (data-rich parts)
 - `SBA` — Syntetos-Boylan Approximation (intermittent demand)
-- `FALLBACK` — 两阶段概率预测模型 (data-insufficient fallback, displays as "两阶段概率预测模型" in frontend)
+- `FALLBACK` — 数据不足回退（前端展示「两阶段概率预测模型」）
 
 ### Key Config (`application.yml`)
 

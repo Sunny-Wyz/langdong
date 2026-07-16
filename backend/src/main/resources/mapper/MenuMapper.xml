@@ -56,7 +56,16 @@
     <select id="findMenusByUserId" resultMap="MenuResultMap">
         SELECT DISTINCT m2.id, m2.parent_id, m2.name, m2.path, m2.component, m2.permission, m2.type, m2.icon, m2.sort, m2.created_at, m2.updated_at
         FROM menu m2
-        WHERE m2.id IN (
+        WHERE m2.name NOT LIKE '[隐藏]%'
+          AND m2.name NOT LIKE '%周粒度%'
+          AND m2.name NOT LIKE '%训练数据看板%'
+          AND m2.name NOT LIKE '%训练进度%'
+          AND (m2.path IS NULL OR m2.path NOT IN (
+              '/ai/weekly-forecast',
+              '/ai/training-progress',
+              '/ai/train-data-dashboard'
+          ))
+          AND m2.id IN (
             SELECT m.id
             FROM menu m
             INNER JOIN role_menu rm ON m.id = rm.menu_id

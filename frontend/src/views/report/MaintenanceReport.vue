@@ -69,15 +69,24 @@ async function load() {
   loading.value = true
   try {
     const [mRes, dRes] = await Promise.all([
-      request.get(`/report/maintenance/cost?months=${months.value}`),
-      request.get('/report/maintenance/device-top10')
+      request.get('/report/maintenance/cost-by-month', { params: { months: months.value } }),
+      request.get('/report/maintenance/cost-by-device')
     ])
-    monthData.value = mRes.data || []
-    deviceList.value = dRes.data || []
+    // 兼容直接数组 / { data: [] } 包装
+    const monthPayload = mRes.data
+    const devicePayload = dRes.data
+    monthData.value = Array.isArray(monthPayload)
+      ? monthPayload
+      : (monthPayload?.list || monthPayload?.data || [])
+    deviceList.value = Array.isArray(devicePayload)
+      ? devicePayload
+      : (devicePayload?.list || devicePayload?.data || [])
     await nextTick()
     renderCharts()
-  } catch (e) {
-    ElMessage.error('加载维修费用数据失败')
+  } catch (e: any) {
+    console.error('维修费用加载失败', e)
+    const msg = e?.response?.data?.message || e?.message || '加载维修费用数据失败'
+    ElMessage.error(msg)
   } finally {
     loading.value = false
   }
@@ -85,33 +94,35 @@ async function load() {
 
 function renderCharts() {
   if (costChart.value) {
-    echarts.init(costChart.value).setOption({
+    const chart = echarts.getInstanceByDom(costChart.value) || echarts.init(costChart.value)
+    chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { bottom: 0 },
       xAxis: { type: 'category', data: monthData.value.map((r: any) => r.month) },
       yAxis: { type: 'value' },
       series: [
-        { name: '备件费', type: 'bar', stack: 'cost', data: monthData.value.map((r: any) => r.partCost) },
-        { name: '人工费', type: 'bar', stack: 'cost', data: monthData.value.map((r: any) => r.laborCost) },
-        { name: '外协费', type: 'bar', stack: 'cost', data: monthData.value.map((r: any) => r.outsourceCost) }
+        { name: '备件费', type: 'bar', stack: 'cost', data: monthData.value.map((r: any) => Number(r.partCost ?? 0)) },
+        { name: '人工费', type: 'bar', stack: 'cost', data: monthData.value.map((r: any) => Number(r.laborCost ?? 0)) },
+        { name: '外协费', type: 'bar', stack: 'cost', data: monthData.value.map((r: any) => Number(r.outsourceCost ?? 0)) }
       ]
-    })
+    }, true)
   }
   if (pieChart.value) {
     const latest = monthData.value[monthData.value.length - 1] || {}
-    echarts.init(pieChart.value).setOption({
+    const chart = echarts.getInstanceByDom(pieChart.value) || echarts.init(pieChart.value)
+    chart.setOption({
       tooltip: { trigger: 'item' },
       legend: { bottom: 0 },
       series: [{
         type: 'pie',
         radius: ['40%', '65%'],
         data: [
-          { value: latest.partCost || 0, name: '备件费' },
-          { value: latest.laborCost || 0, name: '人工费' },
-          { value: latest.outsourceCost || 0, name: '外协费' }
+          { value: Number(latest.partCost ?? 0), name: '备件费' },
+          { value: Number(latest.laborCost ?? 0), name: '人工费' },
+          { value: Number(latest.outsourceCost ?? 0), name: '外协费' }
         ]
       }]
-    })
+    }, true)
   }
 }
 

@@ -12,7 +12,7 @@
       </template>
 
       <el-alert
-        title="适合批量任务：提交后后台执行，可在本页持续查看状态"
+        title="补货任务 = 两阶段 Hurdle-Gamma（预测下个月）+ 安全库存 + 补货建议；状态会落库，服务重启后仍可按任务ID查询"
         type="info"
         :closable="false"
         show-icon
@@ -99,25 +99,37 @@
           border
           style="width: 100%; margin-bottom: 12px"
         >
-          <el-table-column prop="spare_part_id" label="备件ID" width="100" />
-          <el-table-column prop="spare_part_name" label="备件名称" min-width="150" />
-          <el-table-column label="未来3个月总需求" width="140">
+          <el-table-column prop="spare_part_id" label="备件ID" width="90" />
+          <el-table-column prop="spare_part_code" label="备件编码" width="110" />
+          <el-table-column prop="spare_part_name" label="备件名称" min-width="130" />
+          <el-table-column prop="algo_name" label="算法" width="150" show-overflow-tooltip />
+          <el-table-column label="预测需求" width="100">
             <template #default="scope">
               {{ readThreeMonthDemand(scope.row) }}
             </template>
           </el-table-column>
-          <el-table-column label="建议采购量" width="120">
+          <el-table-column label="ROP" width="80">
+            <template #default="scope">
+              {{ scope.row.reorder_point ?? '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="SS" width="70">
+            <template #default="scope">
+              {{ scope.row.safety_stock ?? '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="建议采购量" width="110">
             <template #default="scope">
               {{ scope.row.suggestion ? scope.row.suggestion.suggested_qty : '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="优先级" width="100">
+          <el-table-column label="优先级" width="90">
             <template #default="scope">
               <el-tag size="small" :type="priorityTagType(scope.row.priority)">{{ scope.row.priority || '-' }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="alert_message" label="提示信息" min-width="220" show-overflow-tooltip />
-          <el-table-column label="错误" min-width="180" show-overflow-tooltip>
+          <el-table-column prop="alert_message" label="提示信息" min-width="200" show-overflow-tooltip />
+          <el-table-column label="错误" min-width="160" show-overflow-tooltip>
             <template #default="scope">
               {{ scope.row.error || '-' }}
             </template>
@@ -405,7 +417,7 @@ function stopPolling(taskId: string) {
 }
 
 function isRunning(status: string) {
-  return status === 'PENDING' || status === 'STARTED' || status === 'RETRY'
+  return status === 'PENDING' || status === 'STARTED' || status === 'RETRY' || status === 'RUNNING'
 }
 
 function statusTagType(status: string) {
@@ -432,11 +444,13 @@ function buildResultSummary(payload: any) {
   if (!payload) {
     return '-'
   }
+  const algo = payload.algo_name || payload.algo || '两阶段 Hurdle-Gamma'
   const items = payload.result
   if (Array.isArray(items)) {
-    return `共 ${items.length} 条建议`
+    const needBuy = items.filter((item: any) => item?.suggestion?.suggested_qty > 0).length
+    return `${algo}：${items.length} 条结果，其中 ${needBuy} 条需补货`
   }
-  return '任务完成'
+  return `${algo} 任务完成`
 }
 
 function clearFinished() {

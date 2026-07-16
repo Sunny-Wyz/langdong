@@ -5,9 +5,12 @@
         <div class="phead header">
           <span class="header-icon">📊</span>
           <div class="title">需求预测结果</div>
+          <span style="margin-left: 12px; font-size: 12px; color: #909399; font-weight: normal;">
+            月特征来自领用月汇总现算（两阶段 Hurdle-Gamma），非「训练数据看板」日表
+          </span>
           <div class="head-btn-group">
             <el-button type="primary" link @click="goJobCenter" v-if="hasJobCenterPermission">任务中心</el-button>
-            <el-button type="primary" link :loading="triggeringForecast" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算</el-button>
+            <el-button type="primary" link :loading="triggeringForecast" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算（下月·Hurdle-Gamma）</el-button>
           </div>
         </div>
       </template>
@@ -51,7 +54,7 @@
         <el-table-column prop="partCode" label="备件编码" width="120" sortable="custom"></el-table-column>
         <el-table-column prop="partName" label="备件名称" min-width="150" show-overflow-tooltip></el-table-column>
         <el-table-column prop="forecastMonth" label="预测月份" width="100"></el-table-column>
-        <el-table-column prop="algoType" label="算法" width="160">
+        <el-table-column prop="algoType" label="算法" width="180">
           <template #default="scope">
             <el-tag :type="getAlgoTagType(scope.row.algoType)" size="small">
               {{ getAlgoDisplayName(scope.row.algoType) }}
@@ -358,22 +361,45 @@ function getAlgoTagType(algo: string): TagType {
 }
 
 function getAlgoDisplayName(algo: string) {
-  if (algo === 'TWO_STAGE') return '两阶段 XGBoost 预测'
+  if (algo === 'TWO_STAGE') return '两阶段 Hurdle-Gamma'
   if (algo === 'RF') return '随机森林 (RF)'
   if (algo === 'SBA') return 'SBA 算法'
-  if (algo === 'FALLBACK') return '两阶段概率预测模型'
+  if (algo === 'FALLBACK') return '数据不足回退'
   return algo || '未知算法'
 }
 
+function normalizeHistoryPayload(payload: any): ForecastItem[] {
+  if (Array.isArray(payload)) {
+    return payload
+  }
+  if (payload && Array.isArray(payload.list)) {
+    return payload.list
+  }
+  if (payload && Array.isArray(payload.data)) {
+    return payload.data
+  }
+  return []
+}
+
+function toNum(value: any): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
 function showTrend(row: ForecastItem) {
-  chartTitle.value = `[${row.partCode}] ${row.partName} - 预测趋势分析`
+  chartTitle.value = `[${row.partCode}] ${row.partName || row.partCode} - 预测趋势（含 90% 上下界）`
   chartVisible.value = true
   chartLoading.value = true
 
   request.get(`/ai/forecast/result/${row.partCode}`).then(res => {
-    currentChartData.value = res.data || []
+    const list = normalizeHistoryPayload(res.data)
+    // 兼容字段缺失：至少保证当前行可画
+    currentChartData.value = list.length > 0 ? list : [row]
   }).catch(() => {
-    console.warn('Endpoint misconfiguration for history, using self-mock data.')
+    console.warn('历史趋势接口失败，回退为当前行')
     currentChartData.value = [row]
   }).finally(() => {
     chartLoading.value = false
@@ -394,19 +420,56 @@ function renderChart() {
   }
   chartInstance = echarts.init(dom)
 
-  const data = currentChartData.value
-  const xData = data.map(item => item.forecastMonth)
-  const predictData = data.map(item => item.predictQty)
-  const lowerData = data.map(item => item.lowerBound)
-  const upperData = data.map(item => item.upperBound)
+  // 按月份升序，避免乱序折线
+  const data = [...currentChartData.value].sort((a, b) =>
+    String(a.forecastMonth || '').localeCompare(String(b.forecastMonth || ''))
+  )
 
-  const option = {
+  const xData = data.map(item => item.forecastMonth)
+  const predictData = data.map(item => toNum(item.predictQty))
+  const lowerData = data.map(item => toNum(item.lowerBound))
+  const upperData = data.map(item => toNum(item.upperBound))
+
+  // ECharts 置信带标准画法：先画下界（透明），再画 (上界-下界) 并 stack，形成上下界之间的色带
+  const bandBase = lowerData.map(v => (v == null ? null : v))
+  const bandHeight = data.map((_, i) => {
+    const lo = lowerData[i]
+    const hi = upperData[i]
+    if (lo == null || hi == null) {
+      return null
+    }
+    return Math.max(0, hi - lo)
+  })
+
+  const hasBand = bandHeight.some(v => v != null && v > 0)
+
+  const option: echarts.EChartsOption = {
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'cross' }
+      axisPointer: { type: 'cross' },
+      formatter(params: any) {
+        if (!Array.isArray(params) || params.length === 0) {
+          return ''
+        }
+        const idx = params[0].dataIndex
+        const month = xData[idx]
+        const pred = predictData[idx]
+        const lo = lowerData[idx]
+        const hi = upperData[idx]
+        const lines = [`<div style="font-weight:600;margin-bottom:4px">${month}</div>`]
+        if (pred != null) lines.push(`预测量：<b>${pred}</b>`)
+        if (lo != null) lines.push(`下界 (90%)：<b>${lo}</b>`)
+        if (hi != null) lines.push(`上界 (90%)：<b>${hi}</b>`)
+        if (lo != null && hi != null) {
+          lines.push(`区间宽度：${Math.round((hi - lo) * 100) / 100}`)
+        }
+        return lines.join('<br/>')
+      }
     },
     legend: {
-      data: ['预测量', '下界', '上界']
+      data: hasBand
+        ? ['预测量', '下界', '上界', '90% 置信区间']
+        : ['预测量', '下界', '上界']
     },
     grid: {
       left: '3%', right: '4%', bottom: '3%', containLabel: true
@@ -414,30 +477,61 @@ function renderChart() {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: xData
+      data: xData,
+      name: '预测月份'
     },
     yAxis: {
       type: 'value',
-      name: '需求量 (件)'
+      name: '需求量 (件)',
+      min: (value: { min: number }) => Math.max(0, Math.floor(value.min * 0.9))
     },
     series: [
+      // 置信带底座（不可见）
       {
-        name: '上界',
+        name: '_band_base',
         type: 'line',
-        data: upperData,
+        data: bandBase,
+        stack: 'confidence',
+        symbol: 'none',
         lineStyle: { opacity: 0 },
-        symbol: 'none'
+        areaStyle: { opacity: 0 },
+        tooltip: { show: false },
+        silent: true,
+        z: 1
+      },
+      // 置信带高度 = upper - lower
+      {
+        name: '90% 置信区间',
+        type: 'line',
+        data: bandHeight,
+        stack: 'confidence',
+        symbol: 'none',
+        lineStyle: { opacity: 0 },
+        areaStyle: {
+          color: 'rgba(64, 158, 255, 0.18)'
+        },
+        tooltip: { show: false },
+        z: 1
       },
       {
         name: '下界',
         type: 'line',
         data: lowerData,
-        lineStyle: { opacity: 0 },
-        symbol: 'none',
-        areaStyle: {
-          color: '#d9ecff',
-          origin: 'start'
-        }
+        symbol: 'circle',
+        symbolSize: 5,
+        itemStyle: { color: '#67C23A' },
+        lineStyle: { width: 1.5, type: 'dashed', color: '#67C23A' },
+        z: 3
+      },
+      {
+        name: '上界',
+        type: 'line',
+        data: upperData,
+        symbol: 'circle',
+        symbolSize: 5,
+        itemStyle: { color: '#E6A23C' },
+        lineStyle: { width: 1.5, type: 'dashed', color: '#E6A23C' },
+        z: 3
       },
       {
         name: '预测量',
@@ -446,11 +540,16 @@ function renderChart() {
         symbol: 'circle',
         symbolSize: 8,
         itemStyle: { color: '#409EFF' },
-        lineStyle: { width: 3, color: '#409EFF' }
+        lineStyle: { width: 3, color: '#409EFF' },
+        z: 4
       }
     ]
   }
   chartInstance.setOption(option)
+  // 弹窗打开后 DOM 尺寸稳定后再自适应
+  setTimeout(() => {
+    chartInstance?.resize()
+  }, 50)
 }
 
 onMounted(() => {
