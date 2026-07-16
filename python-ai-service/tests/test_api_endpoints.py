@@ -145,3 +145,29 @@ def test_algorithm_endpoints() -> None:
     assert 0.0 <= first_pred["p_t"] <= 1.0
     assert first_pred["mu_t"] > 0.0
 
+
+def test_inventory_calc_endpoint() -> None:
+    payload = {
+        "p_t": 0.8,
+        "mu_t": 15.0,
+        "k": 2.5,
+        "L": 10.0,
+        "W": 22,
+        "M": 5000,
+        "alpha": 0.95
+    }
+    response = client.post("/api/algorithm/inventory-calc", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "rop" in data
+    assert "ss" in data
+    assert "mean_demand" in data
+    assert isinstance(data["rop"], int)
+    assert isinstance(data["ss"], int)
+    assert isinstance(data["mean_demand"], float)
+    assert data["rop"] >= 0
+    import math
+    expected_ss = data["rop"] - int(math.ceil(data["mean_demand"]))
+    assert data["ss"] == expected_ss
+
+

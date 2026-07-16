@@ -136,3 +136,46 @@ def predict_algorithm(req: PredictRequest) -> PredictResponse:
     except Exception as exc:
         logger.exception("预测执行失败")
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(exc)}")
+
+
+class InventoryCalcRequest(BaseModel):
+    p_t: float = Field(..., description="需求发生概率")
+    mu_t: float = Field(..., description="正需求预测均值")
+    k: float = Field(..., description="形状参数 k")
+    L: float = Field(..., description="采购提前期 (工作天数)")
+    W: int = Field(22, description="月工作天数, 默认 22")
+    M: int = Field(10000, description="模拟次数, 默认 10000")
+    alpha: float = Field(..., description="目标服务水平 (如 0.95)")
+
+
+class InventoryCalcResponse(BaseModel):
+    rop: int = Field(..., description="补货点 ROP")
+    ss: int = Field(..., description="安全库存 SS")
+    mean_demand: float = Field(..., description="提前期平均需求量")
+
+
+@router.post("/inventory-calc", response_model=InventoryCalcResponse)
+def inventory_calc(req: InventoryCalcRequest) -> InventoryCalcResponse:
+    """
+    基于服务水平约束 (CSL) 的“工作日比例分配”蒙特卡洛提前期需求模拟计算，返回 ROP 和 SS。
+    """
+    try:
+        from app.services.inventory_calc import simulate_lead_time_demand
+        res = simulate_lead_time_demand(
+            p_t=req.p_t,
+            mu_t=req.mu_t,
+            k=req.k,
+            L=req.L,
+            W=req.W,
+            M=req.M,
+            alpha=req.alpha
+        )
+        return InventoryCalcResponse(
+            rop=res["rop"],
+            ss=res["ss"],
+            mean_demand=res["mean_demand"]
+        )
+    except Exception as exc:
+        logger.exception("安全库存蒙特卡洛计算失败")
+        raise HTTPException(status_code=500, detail=f"Inventory simulation failed: {str(exc)}")
+
