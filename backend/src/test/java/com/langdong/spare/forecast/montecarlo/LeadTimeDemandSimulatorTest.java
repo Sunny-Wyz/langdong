@@ -4,11 +4,16 @@ import com.langdong.spare.forecast.config.ForecastProperties;
 import com.langdong.spare.forecast.model.SafetyStockResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * LeadTimeDemandSimulator 提前期需求蒙特卡洛模拟器单元测试。
+ * LeadTimeDemandSimulator 提前期需求模拟器单元测试。
  */
 public class LeadTimeDemandSimulatorTest {
 
@@ -22,41 +27,46 @@ public class LeadTimeDemandSimulatorTest {
     }
 
     @Test
-    @DisplayName("蒙特卡洛可复现单测：固定种子 20260518 跑两次，输出完全一致")
-    void testReproducibility() {
+    @DisplayName("Python 接口调用模拟测试：调用 ROP/SS 计算并验证字段提取")
+    void testCalculateSafetyStock() {
         ForecastProperties properties = createProperties();
-        LeadTimeDemandSimulator simulator = new LeadTimeDemandSimulator(properties);
+        RestTemplate restTemplate = Mockito.mock(RestTemplate.class);
+
+        Map<String, Object> fakeResponse = new HashMap<>();
+        fakeResponse.put("rop", 12);
+        fakeResponse.put("ss", 5);
+        fakeResponse.put("mean_demand", 6.8);
+
+        Mockito.when(restTemplate.postForObject(
+                Mockito.anyString(),
+                Mockito.anyMap(),
+                Mockito.eq(Map.class)
+        )).thenReturn(fakeResponse);
+
+        LeadTimeDemandSimulator simulator = new LeadTimeDemandSimulator(properties, restTemplate);
 
         double occurrenceProb = 0.4;
         double positiveQty = 12.5;
         double lowerBound = 6.0;
         double upperBound = 19.0;
         int leadTime = 14;
-        double serviceLevel = 0.95; // B类备件
+        double serviceLevel = 0.95;
 
-        SafetyStockResult res1 = simulator.calculateSafetyStock(
+        SafetyStockResult res = simulator.calculateSafetyStock(
                 occurrenceProb, positiveQty, lowerBound, upperBound, leadTime, serviceLevel);
 
-        SafetyStockResult res2 = simulator.calculateSafetyStock(
-                occurrenceProb, positiveQty, lowerBound, upperBound, leadTime, serviceLevel);
-
-        // 验证两次计算结果的每一个字段完全相等
-        assertEquals(res1.getReorderPoint(), res2.getReorderPoint(), "补货点 ROP 必须完全一致");
-        assertEquals(res1.getSafetyStock(), res2.getSafetyStock(), "安全库存 SS 必须完全一致");
-        assertEquals(res1.getSampleMean(), res2.getSampleMean(), 1e-9, "样本均值必须完全一致");
-        assertEquals(res1.getLeadTimeDemandQuantile(), res2.getLeadTimeDemandQuantile(), 1e-9, "分位数必须完全一致");
-        assertEquals(res1.getServiceLevel(), res2.getServiceLevel(), 1e-9, "服务水平必须完全一致");
-
-        // 输出具体数值，供记录查验
-        System.out.println("可复现测试结果: ROP=" + res1.getReorderPoint() + ", SS=" + res1.getSafetyStock()
-                + ", Mean=" + res1.getSampleMean() + ", Quantile=" + res1.getLeadTimeDemandQuantile());
+        assertEquals(12, res.getReorderPoint(), "补货点 ROP 必须为 12");
+        assertEquals(5, res.getSafetyStock(), "安全库存 SS 必须为 5");
+        assertEquals(6.8, res.getSampleMean(), 1e-9, "均值需求必须为 6.8");
+        assertEquals(0.95, res.getServiceLevel(), 1e-9, "服务水平必须为 0.95");
     }
 
     @Test
     @DisplayName("边界与异常单测：非法输入抛出异常，提前期为 0 时返回 0")
     void testBoundariesAndExceptions() {
         ForecastProperties properties = createProperties();
-        LeadTimeDemandSimulator simulator = new LeadTimeDemandSimulator(properties);
+        RestTemplate restTemplate = Mockito.mock(RestTemplate.class);
+        LeadTimeDemandSimulator simulator = new LeadTimeDemandSimulator(properties, restTemplate);
 
         // 概率越界校验
         assertThrows(IllegalArgumentException.class, () ->

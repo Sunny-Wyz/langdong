@@ -7,7 +7,6 @@ import com.langdong.spare.entity.SparePart;
 import com.langdong.spare.forecast.classify.AbcXyzCalculator;
 import com.langdong.spare.forecast.classify.AbcXyzClassifier;
 import com.langdong.spare.forecast.config.ForecastProperties;
-import com.langdong.spare.forecast.config.XGBoostProperties;
 import com.langdong.spare.forecast.feature.FeatureBuilder;
 import com.langdong.spare.forecast.feature.ForecastFeatureLoader;
 import com.langdong.spare.forecast.feature.MonthlyClassCodeProvider;
@@ -17,21 +16,18 @@ import com.langdong.spare.forecast.model.ForecastResult;
 import com.langdong.spare.forecast.model.SafetyStockResult;
 import com.langdong.spare.forecast.model.TrainingSample;
 import com.langdong.spare.forecast.montecarlo.LeadTimeDemandSimulator;
-import com.langdong.spare.forecast.stage.TwoStageModel;
 import com.langdong.spare.mapper.AiForecastResultMapper;
 import com.langdong.spare.mapper.AiModelRegistryMapper;
 import com.langdong.spare.mapper.PartClassifyMapper;
 import com.langdong.spare.mapper.SparePartMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.*;
@@ -40,8 +36,7 @@ import java.util.stream.Collectors;
 /**
  * 两阶段智能预测与库存阈值重算业务服务（模块 G）。
  *
- * <p>主要编排：加载历史特征 -> ABC×XYZ 分类 -> 两阶段模型重训(包含增量快照优化)
- * -> 两阶段概率预测 -> 蒙特卡洛提前期累计需求模拟 -> 事务一致性落库与模型注册。</p>
+ * <p>已重构：使用外部 Python 算法微服务进行 XGBoost 两阶段回归预测与蒙特卡洛安全库存计算。</p>
  */
 @Service
 public class StockThresholdService {
@@ -51,7 +46,6 @@ public class StockThresholdService {
     private final ForecastFeatureLoader featureLoader;
     private final AbcXyzClassifier abcXyzClassifier;
     private final FeatureBuilder featureBuilder;
-    private final PredictionService predictionService;
     private final LeadTimeDemandSimulator leadTimeDemandSimulator;
 
     private final SparePartMapper sparePartMapper;
@@ -60,36 +54,31 @@ public class StockThresholdService {
     private final AiModelRegistryMapper aiModelRegistryMapper;
 
     private final ForecastProperties forecastProperties;
-    private final XGBoostProperties xgboostProperties;
+    private final RestTemplate restTemplate;
 
-    // 增量优化配置开关，可通过 application.yml 中的 forecast.incremental 覆盖，默认 true
-    private boolean incrementalEnabled = true;
-    private String modelBaseDir = "target/models/";
+    @Value("${ai.python.base-url:http://localhost:8001}")
+    private String pythonBaseUrl;
 
     public StockThresholdService(ForecastFeatureLoader featureLoader,
                                  AbcXyzClassifier abcXyzClassifier,
                                  FeatureBuilder featureBuilder,
-                                 PredictionService predictionService,
                                  LeadTimeDemandSimulator leadTimeDemandSimulator,
                                  SparePartMapper sparePartMapper,
                                  AiForecastResultMapper aiForecastResultMapper,
                                  PartClassifyMapper partClassifyMapper,
                                  AiModelRegistryMapper aiModelRegistryMapper,
                                  ForecastProperties forecastProperties,
-                                 XGBoostProperties xgboostProperties) {
+                                 RestTemplate pythonRestTemplate) {
         this.featureLoader = featureLoader;
         this.abcXyzClassifier = abcXyzClassifier;
         this.featureBuilder = featureBuilder;
-        this.predictionService = predictionService;
         this.leadTimeDemandSimulator = leadTimeDemandSimulator;
         this.sparePartMapper = sparePartMapper;
         this.aiForecastResultMapper = aiForecastResultMapper;
         this.partClassifyMapper = partClassifyMapper;
         this.aiModelRegistryMapper = aiModelRegistryMapper;
         this.forecastProperties = forecastProperties;
-        this.xgboostProperties = xgboostProperties;
-        this.incrementalEnabled = forecastProperties.isIncrementalEnabled();
-        this.modelBaseDir = forecastProperties.getModelBaseDir();
+        this.restTemplate = pythonRestTemplate;
     }
 
     public static final class ProgressUpdate {
@@ -108,14 +97,6 @@ public class StockThresholdService {
         }
     }
 
-    public void setIncrementalEnabled(boolean incrementalEnabled) {
-        this.incrementalEnabled = incrementalEnabled;
-    }
-
-    public void setModelBaseDir(String modelBaseDir) {
-        this.modelBaseDir = modelBaseDir;
-    }
-
     /**
      * 全量执行需求预测与库存阈值计算。
      */
@@ -125,20 +106,19 @@ public class StockThresholdService {
     }
 
     /**
-     * 全量执行需求预测与库存阈值计算，包含进度更新。
+     * 全量执行需求预测与库存阈值计算，并调用外部 Python 微服务进行预测仿真。
      */
     @Transactional
     public List<ForecastResult> executeForecastAndStockThreshold(String targetMonth, java.util.function.Consumer<ProgressUpdate> progressConsumer) {
-        log.info("[重算任务] 开始执行两阶段智能预测与安全库存计算，目标月份: {}", targetMonth);
+        log.info("[重算任务] 开始调用 Python 算法微服务执行智能预测与安全库存计算，目标月份: {}", targetMonth);
 
         YearMonth target = YearMonth.parse(targetMonth);
-        String cutoffMonth = target.minusMonths(1).toString();
-        String modelVersion = "two-stage-" + targetMonth;
+        String modelVersion = "two-stage-python-" + targetMonth;
 
         // 1. ABC×XYZ 批量分类（截止到上月）
         Map<String, AbcXyzCalculator.Classification> classifications = abcXyzClassifier.classifyAsOf(targetMonth);
 
-        // 2. 加载全量备件的 36 个月历史特征
+        // 2. 加载全量备件的历史特征
         int historyMonths = forecastProperties.getHistoryMonths();
         Map<String, PartFeatureContext> contexts = featureLoader.loadAllContexts(targetMonth, historyMonths);
 
@@ -148,11 +128,10 @@ public class StockThresholdService {
             return Collections.emptyList();
         }
 
-        // 找出上月的最新生产模型，用于增量快照复用
+        // 找出上月的最新模型注册信息以做参考
         AiModelRegistry prevRegistry = aiModelRegistryMapper.findProductionModel("demand-forecaster-two-stage");
-        String prevModelVersion = prevRegistry != null ? prevRegistry.getModelVersion() : null;
 
-        // 获取月度分类编码提供者 (防泄露)
+        // 获取分类编码提供者 (防止数据泄露)
         MonthlyClassCodeProvider codeProvider = abcXyzClassifier.codeProviderWithCache();
 
         List<ForecastResult> results = new ArrayList<>();
@@ -160,13 +139,8 @@ public class StockThresholdService {
         List<PartClassify> classifiesToInsert = new ArrayList<>();
 
         if (progressConsumer != null) {
-            progressConsumer.accept(new ProgressUpdate(parts.size(), 0, 0, "TRAINING", "正在执行分类与XGBoost两阶段模型训练"));
+            progressConsumer.accept(new ProgressUpdate(parts.size(), 0, 0, "TRAINING", "正在组装历史特征矩阵并进行 Python 算法模型训练"));
         }
-
-        Path baseDir = Paths.get(modelBaseDir);
-        int trainCount = 0;
-        int reuseCount = 0;
-        int skipCount = 0;
 
         // 构造训练时间段（36 个月，终止于上月）
         List<String> trainingMonths = new ArrayList<>();
@@ -174,11 +148,59 @@ public class StockThresholdService {
             trainingMonths.add(target.minusMonths(i + 1L).toString());
         }
 
+        // ==================== 1. 批量收集特征矩阵，发起全局微服务训练 ====================
+        List<List<Double>> allTrainX = new ArrayList<>();
+        List<Double> allTrainY = new ArrayList<>();
+        List<String> allTrainGroups = new ArrayList<>();
+
         for (SparePart part : parts) {
-            if (progressConsumer != null) {
-                progressConsumer.accept(new ProgressUpdate(parts.size(), results.size(), skipCount, "TRAINING", "正在执行第 " + (results.size() + 1) + "/" + parts.size() + " 个备件的两阶段XGBoost预测重算"));
+            String partCode = part.getCode();
+            PartFeatureContext context = contexts.get(partCode);
+            AbcXyzCalculator.Classification classification = classifications.get(partCode);
+
+            if (context == null || classification == null) {
+                continue;
             }
 
+            List<TrainingSample> trainingSamples = featureBuilder.buildTrainingSamples(context, trainingMonths, codeProvider);
+            for (TrainingSample sample : trainingSamples) {
+                float[] featArr = sample.getFeatures().toStage2Array();
+                List<Double> row = new ArrayList<>();
+                for (float val : featArr) {
+                    row.add((double) val);
+                }
+                allTrainX.add(row);
+                allTrainY.add(sample.getDemand());
+                allTrainGroups.add(classification.xyzClass());
+            }
+        }
+
+        int trainCount = allTrainX.size();
+        if (trainCount > 0) {
+            Map<String, Object> trainRequest = new HashMap<>();
+            trainRequest.put("X", allTrainX);
+            trainRequest.put("y", allTrainY);
+            trainRequest.put("xyz_groups", allTrainGroups);
+
+            String trainUrl = pythonBaseUrl + "/api/algorithm/train";
+            try {
+                restTemplate.postForObject(trainUrl, trainRequest, Map.class);
+                log.info("[重算任务] Python 算法端全局模型训练成功，样本行数: {}", trainCount);
+            } catch (Exception e) {
+                log.error("[重算任务] 发起 Python 全局模型训练网络请求失败", e);
+                throw new RuntimeException("Python 端算法训练异常", e);
+            }
+        }
+
+        // ==================== 2. 批量组装推理向量，发起 Python 批量推理 ====================
+        List<List<Double>> allPredictX = new ArrayList<>();
+        List<String> allPredictGroups = new ArrayList<>();
+        List<SparePart> validParts = new ArrayList<>();
+        List<AbcXyzCalculator.Classification> validClassifications = new ArrayList<>();
+
+        int skipCount = 0;
+
+        for (SparePart part : parts) {
             String partCode = part.getCode();
             PartFeatureContext context = contexts.get(partCode);
             AbcXyzCalculator.Classification classification = classifications.get(partCode);
@@ -189,79 +211,81 @@ public class StockThresholdService {
                 continue;
             }
 
-            Path currentModelDir = baseDir.resolve(modelVersion).resolve(partCode);
-            Path prevModelDir = prevModelVersion != null ? baseDir.resolve(prevModelVersion).resolve(partCode) : null;
-
-            TwoStageModel partModel = null;
-            boolean hasPrevModel = prevModelDir != null && Files.exists(prevModelDir.resolve("classifier.xgb"));
-
-            // 增量优化：判断上月有无新增消耗
-            double lastMonthDemand = context.demandOf(cutoffMonth);
-            boolean hasNewConsumption = lastMonthDemand > 0.0;
-
-            if (incrementalEnabled && hasPrevModel && !hasNewConsumption) {
-                // 复用上月模型，进行快照拷贝
-                try {
-                    copyDirectory(prevModelDir, currentModelDir);
-                    partModel = TwoStageModel.load(currentModelDir, cutoffMonth, modelVersion);
-                    reuseCount++;
-                } catch (Exception e) {
-                    log.warn("[重算任务] 复用上月模型快照失败，将重新训练: part={}, error={}", partCode, e.getMessage());
-                }
-            }
-
-            // 若无法复用（无上月模型、有新领用、或增量开关关闭），则重新训练
-            if (partModel == null) {
-                List<TrainingSample> trainingSamples = featureBuilder.buildTrainingSamples(context, trainingMonths, codeProvider);
-                List<TrainingSample> positives = trainingSamples.stream().filter(TrainingSample::isPositive).collect(Collectors.toList());
-
-                if (positives.isEmpty()) {
-                    // 没有正需求样本，无法训练回归器，跳过
-                    results.add(ForecastResult.insufficient(partCode, targetMonth, "正需求历史数据不足，跳过训练"));
-                    skipCount++;
-                    continue;
-                }
-
-                try {
-                    partModel = predictionService.train(trainingSamples, cutoffMonth, modelVersion);
-                    partModel.save(currentModelDir);
-                    trainCount++;
-                } catch (Exception e) {
-                    log.error("[重算任务] 模型训练失败: part={}, error={}", partCode, e.getMessage());
-                    results.add(ForecastResult.insufficient(partCode, targetMonth, "模型训练失败: " + e.getMessage()));
-                    skipCount++;
-                    continue;
-                }
-            }
-
-            // 4. 执行单月推理
             FeatureVector fv = featureBuilder.buildInferenceVector(context, targetMonth, codeProvider, true);
-            ForecastResult fr = predictionService.forecast(partModel, fv);
-
-            double ltQuantile = 0.0;
-            if (!fr.isDataInsufficient()) {
-                // 5. 蒙特卡洛模拟安全库存
-                int leadTime = part.getLeadTime() != null ? part.getLeadTime() : 30;
-                double serviceLevel = forecastProperties.getClassify().serviceLevelOf(classification.abcClass());
-
-                SafetyStockResult ssRes = leadTimeDemandSimulator.calculateSafetyStock(
-                        fr.getOccurrenceProb(),
-                        fr.getPositiveQty(),
-                        fr.getLowerBound(),
-                        fr.getUpperBound(),
-                        leadTime,
-                        serviceLevel
-                );
-
-                fr.setReorderPoint(ssRes.getReorderPoint());
-                fr.setSafetyStock(ssRes.getSafetyStock());
-                fr.setServiceLevel(ssRes.getServiceLevel());
-                ltQuantile = ssRes.getLeadTimeDemandQuantile();
-            } else {
-                fr.setReorderPoint(0);
-                fr.setSafetyStock(0);
-                fr.setServiceLevel(0.0);
+            if (fv.isDataInsufficient()) {
+                results.add(ForecastResult.insufficient(partCode, targetMonth, fv.getInsufficientReason()));
+                skipCount++;
+                continue;
             }
+
+            float[] featArr = fv.toStage2Array();
+            List<Double> row = new ArrayList<>();
+            for (float val : featArr) {
+                row.add((double) val);
+            }
+
+            allPredictX.add(row);
+            allPredictGroups.add(classification.xyzClass());
+            validParts.add(part);
+            validClassifications.add(classification);
+        }
+
+        List<Map<String, Object>> predictions = new ArrayList<>();
+        if (!allPredictX.isEmpty()) {
+            Map<String, Object> predictRequest = new HashMap<>();
+            predictRequest.put("X", allPredictX);
+            predictRequest.put("xyz_groups", allPredictGroups);
+
+            String predictUrl = pythonBaseUrl + "/api/algorithm/predict";
+            try {
+                Map response = restTemplate.postForObject(predictUrl, predictRequest, Map.class);
+                if (response != null && response.containsKey("predictions")) {
+                    predictions = (List<Map<String, Object>>) response.get("predictions");
+                }
+            } catch (Exception e) {
+                log.error("[重算任务] 发起 Python 批量推理预测接口网络请求失败", e);
+                throw new RuntimeException("Python 端推理预测异常", e);
+            }
+        }
+
+        // ==================== 3. 循环解析结果并调用库存模拟 ====================
+        for (int i = 0; i < validParts.size(); i++) {
+            SparePart part = validParts.get(i);
+            String partCode = part.getCode();
+            AbcXyzCalculator.Classification classification = validClassifications.get(i);
+            Map<String, Object> pred = predictions.get(i);
+
+            double p = ((Number) pred.get("p_t")).doubleValue();
+            double mu = ((Number) pred.get("mu_t")).doubleValue();
+            double lower = ((Number) pred.get("lower_bound")).doubleValue();
+            double upper = ((Number) pred.get("upper_bound")).doubleValue();
+
+            ForecastResult fr = new ForecastResult();
+            fr.setPartCode(partCode);
+            fr.setTargetMonth(targetMonth);
+            fr.setOccurrenceProb(p);
+            fr.setPositiveQty(mu);
+            fr.setLowerBound(lower);
+            fr.setUpperBound(upper);
+            fr.setDemandHat(p * mu);
+            fr.setModelVersion(modelVersion);
+
+            if (progressConsumer != null) {
+                progressConsumer.accept(new ProgressUpdate(parts.size(), results.size(), skipCount, "SIMULATION", 
+                        "正在计算第 " + (results.size() + 1) + "/" + parts.size() + " 个备件的蒙特卡洛安全库存"));
+            }
+
+            int leadTime = part.getLeadTime() != null ? part.getLeadTime() : 30;
+            double serviceLevel = forecastProperties.getClassify().serviceLevelOf(classification.abcClass());
+
+            SafetyStockResult ssRes = leadTimeDemandSimulator.calculateSafetyStock(
+                    p, mu, lower, upper, leadTime, serviceLevel
+            );
+
+            fr.setReorderPoint(ssRes.getReorderPoint());
+            fr.setSafetyStock(ssRes.getSafetyStock());
+            fr.setServiceLevel(ssRes.getServiceLevel());
+            double ltQuantile = ssRes.getLeadTimeDemandQuantile();
 
             results.add(fr);
 
@@ -275,7 +299,7 @@ public class StockThresholdService {
             fEntity.setOccurrenceProb(BigDecimal.valueOf(fr.getOccurrenceProb()));
             fEntity.setPositiveQty(BigDecimal.valueOf(fr.getPositiveQty()));
             fEntity.setLeadTimeQuantile(BigDecimal.valueOf(ltQuantile));
-            fEntity.setAlgoType(fr.getAlgoType());
+            fEntity.setAlgoType("TWO_STAGE");
             fEntity.setModelVersion(modelVersion);
             fEntity.setCreateTime(LocalDateTime.now());
             entitiesToInsert.add(fEntity);
@@ -296,7 +320,7 @@ public class StockThresholdService {
             classifiesToInsert.add(cEntity);
         }
 
-        // 6. 批量且幂等持久化落库
+        // 4. 批量且幂等持久化落库
         List<String> partCodes = parts.stream().map(SparePart::getCode).collect(Collectors.toList());
 
         // 删除旧的预测与分类结果
@@ -311,14 +335,13 @@ public class StockThresholdService {
             partClassifyMapper.insertBatch(classifiesToInsert);
         }
 
-        // 7. 模型版本注册记录
+        // 5. 模型版本注册记录
         AiModelRegistry registry = new AiModelRegistry();
         registry.setModelName("demand-forecaster-two-stage");
         registry.setModelVersion(modelVersion);
         registry.setAlgoType("TWO_STAGE");
-        registry.setArtifactPath(baseDir.resolve(modelVersion).toAbsolutePath().toString());
-        registry.setTrainParts(trainCount + reuseCount);
-        // 估计每个备件 36 个月的大概周数 (36 * 4)
+        registry.setArtifactPath("python-microservice");
+        registry.setTrainParts(validParts.size());
         registry.setTrainWeeks(36 * 4);
         registry.setStatus("PRODUCTION");
         registry.setDeployTime(LocalDateTime.now());
@@ -330,27 +353,9 @@ public class StockThresholdService {
         }
         aiModelRegistryMapper.insert(registry);
 
-        log.info("[重算任务] 两阶段预测重算落库成功！重训数={}, 复用数={}, 跳过数={}, 已注册生产版本: {}",
-                trainCount, reuseCount, skipCount, modelVersion);
+        log.info("[重算任务] 调用 Python 接口重算落库成功！有效备件数={}, 跳过数={}, 已注册生产版本: {}",
+                validParts.size(), skipCount, modelVersion);
 
         return results;
-    }
-
-    private void copyDirectory(Path src, Path dest) throws IOException {
-        if (!Files.exists(src)) {
-            return;
-        }
-        Files.createDirectories(dest);
-        try (java.util.stream.Stream<Path> stream = Files.walk(src)) {
-            List<Path> paths = stream.collect(Collectors.toList());
-            for (Path source : paths) {
-                Path target = dest.resolve(src.relativize(source));
-                if (Files.isDirectory(source)) {
-                    Files.createDirectories(target);
-                } else {
-                    Files.copy(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-        }
     }
 }

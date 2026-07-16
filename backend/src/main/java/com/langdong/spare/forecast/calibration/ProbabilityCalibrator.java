@@ -1,6 +1,5 @@
 package com.langdong.spare.forecast.calibration;
 
-import com.langdong.spare.forecast.xgboost.ForecastModelException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -137,7 +136,7 @@ public class ProbabilityCalibrator {
                 p.store(os, "Probability calibrator");
             }
         } catch (IOException e) {
-            throw new ForecastModelException("保存校准器失败: " + name, e);
+            throw new RuntimeException("保存校准器失败: " + name, e);
         }
     }
 
@@ -160,7 +159,7 @@ public class ProbabilityCalibrator {
             }
             return c;
         } catch (IOException e) {
-            throw new ForecastModelException("加载校准器失败: " + name, e);
+            throw new RuntimeException("加载校准器失败: " + name, e);
         }
     }
 
