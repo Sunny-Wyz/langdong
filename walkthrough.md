@@ -1,6 +1,6 @@
 # JDK 21 虚拟线程升级 & Python 需求预测与库存仿真重构验证说明
 
-本报告汇总了 Spring Boot 后端项目升级（JDK 21 + 虚拟线程）、Python AI 微服务重构（两阶段 Hurdle-Gamma 需求预测模型与蒙特卡洛提前期库存仿真）、以及前端项目整体升级为 Vue 3 + TS + Vite + Pinia 并引入双 Token 静默刷新控制的全部修改、设计初衷、系统架构意义和验证结果。
+本报告汇总了 Spring Boot 后端项目升级（JDK 21 + 虚拟线程）、Python AI 微服务重构（两阶段 Hurdle-Gamma 需求预测模型与蒙特卡洛提前期库存仿真）、以及前端项目整体升级为 Vue 3 + TS + Vite + Pinia 并引入双 Token 静默刷新控制与关键业务视图重构的全部修改、设计初衷、系统架构意义和验证结果。
 
 ---
 
@@ -12,7 +12,7 @@
 * **ForecastThreadPoolConfig.java**：弃用传统的 `ThreadPoolTaskExecutor` 物理线程池，替换为支持虚拟线程的 `SimpleAsyncTaskExecutor`，并调用 `executor.setVirtualThreads(true)`，移除了池大小等物理限制参数。
 
 ### 2. 为什么这么干（设计初衷）
-* **消除池化开销**：在高并发或大量异步重算任务中，传统的物理线程（Platform Threads）是一对一映射到操作系统内核线程的，其创建、销毁和上下文切换成本高昂。虚拟线程（Virtual Threads）是 JDK 21 引入的轻量级用户态线程，成千上万的虚拟线程可以共享极少数的载体线程，从而完全消除了线程池池化和排队的必要。
+* **消除池化开销**：在高并发或大量异步重算任务中，传统的物理线程（Platform Threads）是一对一映射到操作系统内核线程的，其创建、销毁和上下文切换成本高昂。虚拟线程（Virtual Threads）是 JDK 21 引入的轻量级用户态线程，成千上万 of 虚拟线程可以共享极少数的载体线程，从而完全消除了线程池池化和排队的必要。
 * **保持同步编程模型**：虚拟线程允许开发者继续编写直观的阻塞式同步代码，但在执行网络 I/O（如调用 Python 微服务）或文件 I/O 时，JVM 会自动将该虚拟线程挂起并释放底层物理线程，从而实现了非阻塞的极高吞吐量。
 
 ### 3. 这么干的意义/价值
@@ -112,7 +112,31 @@
 
 ---
 
-## Part 6: 验证测试结论
+## Part 6: 关键业务视图重构与 ECharts 渲染优化
+
+### 1. 变更内容汇总
+* **全局月份筛选 store 引入**：新建 [dashboard.ts](file:///Users/weiyaozhou/Documents/langdong/frontend/src/store/dashboard.ts) 全局看板筛选 store，实现多组件、看板 KPI 卡片与图表对同一月份选择的同步共享。
+* **预测结果页改写 ([AiForecastResult.vue](file:///Users/weiyaozhou/Documents/langdong/frontend/src/views/ai/AiForecastResult.vue))**：
+  * 使用 Vue 3 `<script setup lang="ts">` 重构，添加完整的类型接口约束。
+  * 将所有 Element UI 的插槽与属性升级为 Element Plus 规范（例如用 `#default` 替换 `slot-scope`，用 `v-model` 替换 `visible.sync`，用 Emoji/SVG 替换旧的图标类等）。
+  * 改造 ECharts 图表趋势弹框：使用 Vue 的 `ref`（`trendChartRef`）获取 DOM，在组件加载与卸载生命周期内妥善初始化和销毁 ECharts 实例，排除了内存泄漏隐患。
+* **管理层看板重构 ([Dashboard.vue](file:///Users/weiyaozhou/Documents/langdong/frontend/src/views/report/Dashboard.vue))**：
+  * 使用 `<script setup lang="ts">` 与 TS 重构，将原接口网络请求由 `this.$http` 替换为 TypeScript 版的统一 `@/utils/request` 工具。
+  * **现代响应式布局（CSS Grid）**：彻底移除了原先基于 Element 传统 `<el-row>` 与 `<el-col>` 的栅格标签，替换为 CSS Grid 图表网格布局。在样式表中定义 `.chart-grid-layout` 实现跨设备自适应。
+  * **看板数据与月份联动**：引入并侦听 `useDashboardStore` 的 `selectedMonth` 状态。一旦月份切换，自动触发 `loadAll` 加载对应月度的库存周转率、采购额、设备可用率等 KPI 卡片数据，刷新图表，并自适应 `resize`。
+
+### 2. 为什么这么干（设计初衷）
+* **消除 Options API 残留与硬编码 ID**：原先的 `document.getElementById('trendChart')` 在多页面或组件多次复用时可能因为 ID 重名而导致渲染目标出错。使用 Vue 3 的 `ref` 绑定能在虚拟 DOM 层面直接精确定位真实的 DOM 节点，更加安全。
+* **利用 CSS Grid 替代 Flex 栅格**：传统的 Flex/Col 行列栅格在处理复杂的多卡片、多列且对齐要求极高的仪表盘大屏时，需要书写大量冗余的标签与嵌套样式。CSS Grid 提供了真正的二维布局能力，使得可以用极简的 CSS 定义极其强大的卡片排列与自适应对齐。
+* **提供多组件月份选择共享**：大屏中的筛选器应能同步影响系统内其他分析报表的默认月份。使用 Pinia 管理该 KPI 筛选状态，提供了极高的组件解耦能力。
+
+### 3. 这么干的意义/价值
+* **建立高质量的 Vue 3 组件模板标杆**：为该项目后续成百个经典 Options API 页面的重构提供了兼具类型安全、性能优异、结构优雅的模范样板。
+* **改善看板响应式呈现体验**：通过 CSS Grid 实现了极佳的多端大屏适应效果，保障了管理层在移动端/平板/PC 看板阅读体验的绝对一致。
+
+---
+
+## Part 7: 验证测试结论
 
 * **Java 后端测试**：使用 JDK 21 编译与运行全部 157 项单元测试及集成测试，**100% 通过**，无任何异常。
 * **Python 算法测试**：使用 Conda 虚拟环境及 Pytest 运行集成接口测试，**7 项测试 100% 通过**。

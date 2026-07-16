@@ -1,450 +1,484 @@
 <template>
-    <div class="page-container ai-forecast-container">
-        <el-card shadow="hover">
-            <div slot="header" class="phead header">
-                <i class="el-icon-s-data" />
-                <div class="title">需求预测结果</div>
-                <div class="head-btn-group">
-                    <el-button type="text" @click="goJobCenter" v-if="hasJobCenterPermission">任务中心</el-button>
-                    <el-button type="text" :loading="triggeringForecast" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算</el-button>
-                </div>
+  <div class="page-container ai-forecast-container">
+    <el-card shadow="hover">
+      <template #header>
+        <div class="phead header">
+          <span class="header-icon">📊</span>
+          <div class="title">需求预测结果</div>
+          <div class="head-btn-group">
+            <el-button type="primary" link @click="goJobCenter" v-if="hasJobCenterPermission">任务中心</el-button>
+            <el-button type="primary" link :loading="triggeringForecast" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算</el-button>
+          </div>
+        </div>
+      </template>
+
+      <div v-if="hasProgressPermission && runStatus" style="margin-bottom: 14px;">
+        <el-alert
+          :title="runStatusTitle"
+          :type="runStatusAlertType"
+          :closable="false"
+          show-icon
+        >
+          <div v-if="isRunActive" style="margin-top: 8px;">
+            <el-progress :percentage="runStatus.percent || 0" :stroke-width="14" />
+            <div style="font-size: 12px; color: #606266; margin-top: 4px;">
+              阶段：{{ runStatus.stage || '-' }}
+              ｜处理：{{ runStatus.processed || 0 }}/{{ runStatus.total || 0 }}
+              ｜失败：{{ runStatus.failed || 0 }}
             </div>
+          </div>
+        </el-alert>
+      </div>
 
-            <div v-if="hasProgressPermission && runStatus" style="margin-bottom: 14px;">
-                <el-alert
-                    :title="runStatusTitle"
-                    :type="runStatusAlertType"
-                    :closable="false"
-                    show-icon
-                >
-                    <div v-if="isRunActive" style="margin-top: 8px;">
-                        <el-progress :percentage="runStatus.percent || 0" :stroke-width="14" />
-                        <div style="font-size: 12px; color: #606266; margin-top: 4px;">
-                            阶段：{{ runStatus.stage || '-' }}
-                            ｜处理：{{ runStatus.processed || 0 }}/{{ runStatus.total || 0 }}
-                            ｜失败：{{ runStatus.failed || 0 }}
-                        </div>
-                    </div>
-                </el-alert>
-            </div>
+      <!-- 搜索栏 -->
+      <el-form :inline="true" :model="searchForm" class="search-form" size="default">
+        <el-form-item label="预测目标月份">
+          <el-date-picker v-model="searchForm.month" type="month" placeholder="选择月份" value-format="YYYY-MM"
+            clearable>
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="备件编码">
+          <el-input v-model="searchForm.partCode" placeholder="输入备件编码或名称" clearable></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">🔍 查询</el-button>
+          <el-button @click="resetSearch">🔄 重置</el-button>
+        </el-form-item>
+      </el-form>
 
-            <!-- 搜索栏 -->
-            <el-form :inline="true" :model="searchForm" class="search-form" size="small">
-                <el-form-item label="预测目标月份">
-                    <el-date-picker v-model="searchForm.month" type="month" placeholder="选择月份" value-format="yyyy-MM"
-                        clearable>
-                    </el-date-picker>
-                </el-form-item>
-                <el-form-item label="备件编码">
-                    <el-input v-model="searchForm.partCode" placeholder="输入备件编码或名称" clearable></el-input>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
-                    <el-button icon="el-icon-refresh-left" @click="resetSearch">重置</el-button>
-                </el-form-item>
-            </el-form>
+      <!-- 数据表格 -->
+      <el-table :data="tableData" border style="width: 100%" v-loading="loading">
+        <el-table-column prop="partCode" label="备件编码" width="120" sortable="custom"></el-table-column>
+        <el-table-column prop="partName" label="备件名称" min-width="150" show-overflow-tooltip></el-table-column>
+        <el-table-column prop="forecastMonth" label="预测月份" width="100"></el-table-column>
+        <el-table-column prop="algoType" label="算法" width="160">
+          <template #default="scope">
+            <el-tag :type="getAlgoTagType(scope.row.algoType)" size="small">
+              {{ getAlgoDisplayName(scope.row.algoType) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="predictQty" label="预测消耗量" width="120">
+          <template #default="scope">
+            <span style="font-weight: bold; color: #409EFF">{{ scope.row.predictQty }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="demand3Months" label="未来3个月累计需求" width="150">
+          <template #default="scope">
+            <span style="font-weight: bold; color: #67C23A">{{ scope.row.demand3Months ?? 'N/A' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="90% 置信区间" width="150">
+          <template #default="scope">
+            [ {{ scope.row.lowerBound }} , {{ scope.row.upperBound }} ]
+          </template>
+        </el-table-column>
+        <el-table-column prop="occurrenceProb" label="发生概率 (pt)" width="110">
+          <template #default="scope">
+            {{ scope.row.occurrenceProb != null ? (scope.row.occurrenceProb * 100).toFixed(1) + '%' : 'N/A' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="positiveQty" label="正需求均值 (ŷt)" width="120">
+          <template #default="scope">
+            {{ scope.row.positiveQty ?? 'N/A' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="leadTimeQuantile" label="提前期需求分位数" width="140">
+          <template #default="scope">
+            {{ scope.row.leadTimeQuantile ?? 'N/A' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="safetyStock" label="安全库存 (SS)" width="110">
+          <template #default="scope">
+            <span :style="{ fontWeight: 'bold', color: scope.row.safetyStock > 0 ? '#E6A23C' : '#909399' }">
+              {{ scope.row.safetyStock ?? 'N/A' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reorderPoint" label="补货触发点 (ROP)" width="130">
+          <template #default="scope">
+            <span :style="{ fontWeight: 'bold', color: scope.row.reorderPoint > 0 ? '#E6A23C' : '#909399' }">
+              {{ scope.row.reorderPoint ?? 'N/A' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="mase" label="MASE指标" width="100">
+          <template #default="scope">
+            <span :style="{ color: (scope.row.mase && scope.row.mase > 1.0) ? '#F56C6C' : '#67C23A' }">
+              {{ scope.row.mase || 'N/A' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="计算时间" width="160"></el-table-column>
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="scope">
+            <el-button @click="showTrend(scope.row)" type="primary" link size="small">📈 历史趋势</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-            <!-- 数据表格 -->
-            <el-table :data="tableData" border style="width: 100%" v-loading="loading">
-                <el-table-column prop="partCode" label="备件编码" width="120"  sortable="custom"></el-table-column>
-                <el-table-column prop="partName" label="备件名称" min-width="150" show-overflow-tooltip ></el-table-column>
-                <el-table-column prop="forecastMonth" label="预测月份" width="100" ></el-table-column>
-                <el-table-column prop="algoType" label="算法" width="160" >
-                    <template slot-scope="scope">
-                        <el-tag :type="getAlgoTagType(scope.row.algoType)" size="small">
-                            {{ getAlgoDisplayName(scope.row.algoType) }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column prop="predictQty" label="预测消耗量" width="120" >
-                    <template slot-scope="scope">
-                        <span style="font-weight: bold; color: #409EFF">{{ scope.row.predictQty }}</span>
-                    </template>
-                </el-table-column>
-                <el-table-column prop="demand3Months" label="未来3个月累计需求" width="150" >
-                    <template slot-scope="scope">
-                        <span style="font-weight: bold; color: #67C23A">{{ scope.row.demand3Months ?? 'N/A' }}</span>
-                    </template>
-                </el-table-column>
-                <el-table-column label="90% 置信区间" width="150" >
-                    <template slot-scope="scope">
-                        [ {{ scope.row.lowerBound }} , {{ scope.row.upperBound }} ]
-                    </template>
-                </el-table-column>
-                <el-table-column prop="occurrenceProb" label="发生概率 (pt)" width="110" >
-                    <template slot-scope="scope">
-                        {{ scope.row.occurrenceProb != null ? (scope.row.occurrenceProb * 100).toFixed(1) + '%' : 'N/A' }}
-                    </template>
-                </el-table-column>
-                <el-table-column prop="positiveQty" label="正需求均值 (ŷt)" width="120" >
-                    <template slot-scope="scope">
-                        {{ scope.row.positiveQty ?? 'N/A' }}
-                    </template>
-                </el-table-column>
-                <el-table-column prop="leadTimeQuantile" label="提前期需求分位数" width="140" >
-                    <template slot-scope="scope">
-                        {{ scope.row.leadTimeQuantile ?? 'N/A' }}
-                    </template>
-                </el-table-column>
-                <el-table-column prop="safetyStock" label="安全库存 (SS)" width="110" >
-                    <template slot-scope="scope">
-                        <span :style="{ fontWeight: 'bold', color: scope.row.safetyStock > 0 ? '#E6A23C' : '#909399' }">
-                            {{ scope.row.safetyStock ?? 'N/A' }}
-                        </span>
-                    </template>
-                </el-table-column>
-                <el-table-column prop="reorderPoint" label="补货触发点 (ROP)" width="130" >
-                    <template slot-scope="scope">
-                        <span :style="{ fontWeight: 'bold', color: scope.row.reorderPoint > 0 ? '#E6A23C' : '#909399' }">
-                            {{ scope.row.reorderPoint ?? 'N/A' }}
-                        </span>
-                    </template>
-                </el-table-column>
-                <el-table-column prop="mase" label="MASE指标" width="100" >
-                    <template slot-scope="scope">
-                        <span :style="{ color: scope.row.mase > 1.0 ? '#F56C6C' : '#67C23A' }">
-                            {{ scope.row.mase || 'N/A' }}
-                        </span>
-                    </template>
-                </el-table-column>
-                <el-table-column prop="createTime" label="计算时间" width="160" ></el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
-                    <template slot-scope="scope">
-                        <el-button @click="showTrend(scope.row)" type="text" size="small"
-                            icon="el-icon-data-line">历史趋势</el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
+      <!-- 分页 -->
+      <div class="pagination-container">
+        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+          :current-page="page" :page-sizes="[10, 20, 50, 100]" :page-size="size"
+          layout="total, sizes, prev, pager, next, jumper" :total="total">
+        </el-pagination>
+      </div>
+    </el-card>
 
-            <!-- 分页 -->
-            <div class="pagination-container">
-                <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
-                    :current-page="page" :page-sizes="[10, 20, 50, 100]" :page-size="size"
-                    layout="total, sizes, prev, pager, next, jumper" :total="total">
-                </el-pagination>
-            </div>
-        </el-card>
-
-        <!-- 趋势图弹窗 -->
-        <el-dialog :title="chartTitle" :visible.sync="chartVisible" width="70%" @opened="renderChart">
-            <div id="trendChart" style="width: 100%; height: 400px;" v-loading="chartLoading"></div>
-        </el-dialog>
-    </div>
+    <!-- 趋势图弹窗 -->
+    <el-dialog :title="chartTitle" v-model="chartVisible" width="70%" @opened="renderChart">
+      <div ref="trendChartRef" style="width: 100%; height: 400px;" v-loading="chartLoading"></div>
+    </el-dialog>
+  </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import request from '@/utils/request'
 import * as echarts from 'echarts'
+import { useAuthStore } from '@/store/auth'
+import { useRouter } from 'vue-router'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
-export default {
-    name: 'AiForecastResult',
-    data() {
-        return {
-            searchForm: { month: '', partCode: '' },
-            tableData: [],
-            loading: false,
-            page: 1,
-            size: 20,
-            total: 0,
-
-            // 图表相关
-            chartVisible: false,
-            chartLoading: false,
-            chartTitle: '预测趋势分析',
-            chartInstance: null,
-            currentChartData: null,
-            triggeringForecast: false,
-            runStatus: null,
-            progressPollTimer: null
-        }
-    },
-    computed: {
-        hasTriggerPermission() {
-            // 从 vuex 获取权限列表和用户名
-            const permissions = this.$store.state.permissions || []
-            const username = this.$store.state.username
-            return permissions.includes('ai:forecast:trigger') || username === 'admin'
-        },
-        hasJobCenterPermission() {
-            const permissions = this.$store.state.permissions || []
-            const username = this.$store.state.username
-            return permissions.includes('ai:forecast:list') || username === 'admin'
-        },
-        hasProgressPermission() {
-            const permissions = this.$store.state.permissions || []
-            const username = this.$store.state.username
-            return permissions.includes('ai:forecast:list') || permissions.includes('ai:forecast:trigger') || username === 'admin'
-        },
-        isRunActive() {
-            return this.runStatus && this.runStatus.status === 'RUNNING'
-        },
-        runStatusTitle() {
-            if (!this.runStatus) {
-                return ''
-            }
-            if (this.runStatus.status === 'RUNNING') {
-                return this.runStatus.message || '重算任务执行中'
-            }
-            if (this.runStatus.status === 'SUCCESS') {
-                return this.runStatus.message || '重算任务已完成'
-            }
-            if (this.runStatus.status === 'FAILED') {
-                return this.runStatus.message || '重算任务执行失败'
-            }
-            return this.runStatus.message || '暂无运行中的重算任务'
-        },
-        runStatusAlertType() {
-            if (!this.runStatus) {
-                return 'info'
-            }
-            if (this.runStatus.status === 'RUNNING') {
-                return 'warning'
-            }
-            if (this.runStatus.status === 'SUCCESS') {
-                return 'success'
-            }
-            if (this.runStatus.status === 'FAILED') {
-                return 'error'
-            }
-            return 'info'
-        }
-    },
-    created() {
-        this.fetchData()
-        if (this.hasProgressPermission) {
-            this.fetchRunStatus(true)
-        }
-    },
-    beforeDestroy() {
-        this.stopProgressPolling()
-    },
-    methods: {
-        fetchData() {
-            this.loading = true
-            request.get('/ai/forecast/result', {
-                params: {
-                    month: this.searchForm.month,
-                    partCode: this.searchForm.partCode,
-                    page: this.page,
-                    size: this.size
-                }
-            }).then(res => {
-                if (res.data) {
-                    this.tableData = res.data.list || []
-                    this.total = res.data.total || 0
-                }
-            }).finally(() => {
-                this.loading = false
-            })
-        },
-        handleSearch() {
-            this.page = 1
-            this.fetchData()
-        },
-        resetSearch() {
-            this.searchForm = { month: '', partCode: '' }
-            this.handleSearch()
-        },
-        handleSizeChange(val) {
-            this.size = val
-            this.page = 1
-            this.fetchData()
-        },
-        handleCurrentChange(val) {
-            this.page = val
-            this.fetchData()
-        },
-        triggerForecast() {
-            this.$confirm('此操作将启动全量备件特征分析和算法预测任务，该任务耗时较长，是否继续？', '手动触发', {
-                confirmButtonText: '确定启动',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                this.triggeringForecast = true
-                request.post('/ai/forecast/trigger').then(res => {
-                    if (res && res.data && res.data.runStatus) {
-                        this.runStatus = res.data.runStatus
-                    }
-                    this.$message.success(res.data.message || '重算任务已启动')
-                    this.startProgressPolling()
-                }).catch(error => {
-                    const msg = (error && error.response && error.response.data && error.response.data.message)
-                        ? error.response.data.message
-                        : '触发重算失败'
-                    this.$message.error(msg)
-                }).finally(() => {
-                    this.triggeringForecast = false
-                })
-            }).catch(() => { })
-        },
-        fetchRunStatus(silent = true) {
-            if (!this.hasProgressPermission) {
-                return Promise.resolve()
-            }
-            return request.get('/ai/forecast/trigger/status')
-                .then(res => {
-                    this.runStatus = res.data || null
-                    if (this.isRunActive && !this.progressPollTimer) {
-                        this.startProgressPolling()
-                    }
-                    if (!this.isRunActive) {
-                        this.stopProgressPolling()
-                        if (this.runStatus && this.runStatus.status === 'SUCCESS') {
-                            this.fetchData()
-                        }
-                    }
-                })
-                .catch(error => {
-                    if (error && error.response && error.response.status === 403) {
-                        this.stopProgressPolling()
-                        return
-                    }
-                    if (!silent) {
-                        const msg = (error && error.response && error.response.data && error.response.data.message)
-                            ? error.response.data.message
-                            : '获取重算进度失败'
-                        this.$message.error(msg)
-                    }
-                })
-        },
-        startProgressPolling() {
-            if (this.progressPollTimer) {
-                return
-            }
-            this.progressPollTimer = setInterval(() => {
-                this.fetchRunStatus(true)
-            }, 3000)
-            this.fetchRunStatus(true)
-        },
-        stopProgressPolling() {
-            if (!this.progressPollTimer) {
-                return
-            }
-            clearInterval(this.progressPollTimer)
-            this.progressPollTimer = null
-        },
-        goJobCenter() {
-            this.$router.push('/ai/job-center')
-        },
-        getAlgoTagType(algo) {
-            if (algo === 'TWO_STAGE') return 'success'
-            if (algo === 'RF') return 'success'
-            if (algo === 'SBA') return 'warning'
-            if (algo === 'FALLBACK') return 'info'
-            return ''
-        },
-        getAlgoDisplayName(algo) {
-            if (algo === 'TWO_STAGE') return '两阶段 XGBoost 预测'
-            if (algo === 'RF') return '随机森林 (RF)'
-            if (algo === 'SBA') return 'SBA 算法'
-            if (algo === 'FALLBACK') return '两阶段概率预测模型'
-            return algo || '未知算法'
-        },
-
-        // 图表趋势
-        showTrend(row) {
-            this.chartTitle = `[${row.partCode}] ${row.partName} - 预测趋势分析`
-            this.chartVisible = true
-            this.chartLoading = true
-
-            // 调用未实现的一个 API 拿寻历史结果，如果有实现的话
-            request.get(`/ai/forecast/result/${row.partCode}`).then(res => {
-                this.currentChartData = res.data || []
-            }).catch((e) => {
-                // Mock data fallback if endpoint missing
-                console.warn('Endpoint misconfiguration for history, using self-mock data.')
-                this.currentChartData = [row]
-            }).finally(() => {
-                this.chartLoading = false
-                if (this.chartVisible) {
-                    this.$nextTick(() => {
-                        this.renderChart()
-                    })
-                }
-            })
-        },
-        renderChart() {
-            const dom = document.getElementById('trendChart')
-            if (!dom || !this.currentChartData) return
-
-            if (this.chartInstance) {
-                this.chartInstance.dispose()
-            }
-            this.chartInstance = echarts.init(dom)
-
-            const data = this.currentChartData
-            const xData = data.map(item => item.forecastMonth)
-            const predictData = data.map(item => item.predictQty)
-            const lowerData = data.map(item => item.lowerBound)
-            const upperData = data.map(item => item.upperBound)
-
-            const option = {
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: { type: 'cross' }
-                },
-                legend: {
-                    data: ['预测量', '下界', '上界']
-                },
-                grid: {
-                    left: '3%', right: '4%', bottom: '3%', containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    boundaryGap: false,
-                    data: xData
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '需求量 (件)'
-                },
-                series: [
-                    {
-                        name: '上界',
-                        type: 'line',
-                        data: upperData,
-                        lineStyle: { opacity: 0 },
-                        symbol: 'none'
-                    },
-                    {
-                        name: '下界',
-                        type: 'line',
-                        data: lowerData,
-                        lineStyle: { opacity: 0 },
-                        symbol: 'none',
-                        areaStyle: {
-                            color: '#d9ecff',
-                            origin: 'start'
-                        }
-                    },
-                    {
-                        name: '预测量',
-                        type: 'line',
-                        data: predictData,
-                        symbol: 'circle',
-                        symbolSize: 8,
-                        itemStyle: { color: '#409EFF' },
-                        lineStyle: { width: 3, color: '#409EFF' }
-                    }
-                ]
-            }
-            this.chartInstance.setOption(option)
-        }
-    }
+interface SearchForm {
+  month: string
+  partCode: string
 }
+
+interface RunStatus {
+  status: string
+  percent?: number
+  stage?: string
+  processed?: number
+  total?: number
+  failed?: number
+  message?: string
+}
+
+interface ForecastItem {
+  partCode: string
+  partName: string
+  forecastMonth: string
+  algoType: string
+  predictQty: number
+  demand3Months?: number
+  lowerBound: number
+  upperBound: number
+  occurrenceProb?: number
+  positiveQty?: number
+  leadTimeQuantile?: number
+  safetyStock?: number
+  reorderPoint?: number
+  mase?: number
+  createTime: string
+}
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+const searchForm = reactive<SearchForm>({ month: '', partCode: '' })
+const tableData = ref<ForecastItem[]>([])
+const loading = ref(false)
+const page = ref(1)
+const size = ref(20)
+const total = ref(0)
+
+// 图表和弹窗相关
+const chartVisible = ref(false)
+const chartLoading = ref(false)
+const chartTitle = ref('预测趋势分析')
+const trendChartRef = ref<HTMLDivElement | null>(null)
+let chartInstance: echarts.ECharts | null = null
+const currentChartData = ref<ForecastItem[]>([])
+
+const triggeringForecast = ref(false)
+const runStatus = ref<RunStatus | null>(null)
+let progressPollTimer: ReturnType<typeof setInterval> | null = null
+
+// 权限判定
+const hasTriggerPermission = computed(() => {
+  const permissions = authStore.permissions || []
+  const username = authStore.username
+  return permissions.includes('ai:forecast:trigger') || username === 'admin'
+})
+
+const hasJobCenterPermission = computed(() => {
+  const permissions = authStore.permissions || []
+  const username = authStore.username
+  return permissions.includes('ai:forecast:list') || username === 'admin'
+})
+
+const hasProgressPermission = computed(() => {
+  const permissions = authStore.permissions || []
+  const username = authStore.username
+  return permissions.includes('ai:forecast:list') || permissions.includes('ai:forecast:trigger') || username === 'admin'
+})
+
+const isRunActive = computed(() => {
+  return runStatus.value && runStatus.value.status === 'RUNNING'
+})
+
+const runStatusTitle = computed(() => {
+  if (!runStatus.value) return ''
+  if (runStatus.value.status === 'RUNNING') return runStatus.value.message || '重算任务执行中'
+  if (runStatus.value.status === 'SUCCESS') return runStatus.value.message || '重算任务已完成'
+  if (runStatus.value.status === 'FAILED') return runStatus.value.message || '重算任务执行失败'
+  return runStatus.value.message || '暂无运行中的重算任务'
+})
+
+type AlertType = 'info' | 'warning' | 'success' | 'error'
+
+const runStatusAlertType = computed<AlertType>(() => {
+  if (!runStatus.value) return 'info'
+  if (runStatus.value.status === 'RUNNING') return 'warning'
+  if (runStatus.value.status === 'SUCCESS') return 'success'
+  if (runStatus.value.status === 'FAILED') return 'error'
+  return 'info'
+})
+
+function fetchData() {
+  loading.value = true
+  request.get('/ai/forecast/result', {
+    params: {
+      month: searchForm.month,
+      partCode: searchForm.partCode,
+      page: page.value,
+      size: size.value
+    }
+  }).then(res => {
+    if (res.data) {
+      tableData.value = res.data.list || []
+      total.value = res.data.total || 0
+    }
+  }).finally(() => {
+    loading.value = false
+  })
+}
+
+function handleSearch() {
+  page.value = 1
+  fetchData()
+}
+
+function resetSearch() {
+  searchForm.month = ''
+  searchForm.partCode = ''
+  handleSearch()
+}
+
+function handleSizeChange(val: number) {
+  size.value = val
+  page.value = 1
+  fetchData()
+}
+
+function handleCurrentChange(val: number) {
+  page.value = val
+  fetchData()
+}
+
+function triggerForecast() {
+  ElMessageBox.confirm('此操作将启动全量备件特征分析和算法预测任务，该任务耗时较长，是否继续？', '手动触发', {
+    confirmButtonText: '确定启动',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    triggeringForecast.value = true
+    request.post('/ai/forecast/trigger').then(res => {
+      if (res && res.data && res.data.runStatus) {
+        runStatus.value = res.data.runStatus
+      }
+      ElMessage.success(res.data.message || '重算任务已启动')
+      startProgressPolling()
+    }).catch(error => {
+      const msg = error.response?.data?.message || '触发重算失败'
+      ElMessage.error(msg)
+    }).finally(() => {
+      triggeringForecast.value = false
+    })
+  }).catch(() => {})
+}
+
+function fetchRunStatus(silent = true) {
+  if (!hasProgressPermission.value) {
+    return Promise.resolve()
+  }
+  return request.get('/ai/forecast/trigger/status')
+    .then(res => {
+      runStatus.value = res.data || null
+      if (isRunActive.value && !progressPollTimer) {
+        startProgressPolling()
+      }
+      if (!isRunActive.value) {
+        stopProgressPolling()
+        if (runStatus.value && runStatus.value.status === 'SUCCESS') {
+          fetchData()
+        }
+      }
+    })
+    .catch(error => {
+      if (error.response?.status === 403) {
+        stopProgressPolling()
+        return
+      }
+      if (!silent) {
+        const msg = error.response?.data?.message || '获取重算进度失败'
+        ElMessage.error(msg)
+      }
+    })
+}
+
+function startProgressPolling() {
+  if (progressPollTimer) return
+  progressPollTimer = setInterval(() => {
+    fetchRunStatus(true)
+  }, 3000)
+  fetchRunStatus(true)
+}
+
+function stopProgressPolling() {
+  if (!progressPollTimer) return
+  clearInterval(progressPollTimer)
+  progressPollTimer = null
+}
+
+function goJobCenter() {
+  router.push('/ai/job-center')
+}
+
+type TagType = 'success' | 'warning' | 'info' | ''
+
+function getAlgoTagType(algo: string): TagType {
+  if (algo === 'TWO_STAGE') return 'success'
+  if (algo === 'RF') return 'success'
+  if (algo === 'SBA') return 'warning'
+  if (algo === 'FALLBACK') return 'info'
+  return ''
+}
+
+function getAlgoDisplayName(algo: string) {
+  if (algo === 'TWO_STAGE') return '两阶段 XGBoost 预测'
+  if (algo === 'RF') return '随机森林 (RF)'
+  if (algo === 'SBA') return 'SBA 算法'
+  if (algo === 'FALLBACK') return '两阶段概率预测模型'
+  return algo || '未知算法'
+}
+
+function showTrend(row: ForecastItem) {
+  chartTitle.value = `[${row.partCode}] ${row.partName} - 预测趋势分析`
+  chartVisible.value = true
+  chartLoading.value = true
+
+  request.get(`/ai/forecast/result/${row.partCode}`).then(res => {
+    currentChartData.value = res.data || []
+  }).catch(() => {
+    console.warn('Endpoint misconfiguration for history, using self-mock data.')
+    currentChartData.value = [row]
+  }).finally(() => {
+    chartLoading.value = false
+    if (chartVisible.value) {
+      nextTick(() => {
+        renderChart()
+      })
+    }
+  })
+}
+
+function renderChart() {
+  const dom = trendChartRef.value
+  if (!dom || !currentChartData.value) return
+
+  if (chartInstance) {
+    chartInstance.dispose()
+  }
+  chartInstance = echarts.init(dom)
+
+  const data = currentChartData.value
+  const xData = data.map(item => item.forecastMonth)
+  const predictData = data.map(item => item.predictQty)
+  const lowerData = data.map(item => item.lowerBound)
+  const upperData = data.map(item => item.upperBound)
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    legend: {
+      data: ['预测量', '下界', '上界']
+    },
+    grid: {
+      left: '3%', right: '4%', bottom: '3%', containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: xData
+    },
+    yAxis: {
+      type: 'value',
+      name: '需求量 (件)'
+    },
+    series: [
+      {
+        name: '上界',
+        type: 'line',
+        data: upperData,
+        lineStyle: { opacity: 0 },
+        symbol: 'none'
+      },
+      {
+        name: '下界',
+        type: 'line',
+        data: lowerData,
+        lineStyle: { opacity: 0 },
+        symbol: 'none',
+        areaStyle: {
+          color: '#d9ecff',
+          origin: 'start'
+        }
+      },
+      {
+        name: '预测量',
+        type: 'line',
+        data: predictData,
+        symbol: 'circle',
+        symbolSize: 8,
+        itemStyle: { color: '#409EFF' },
+        lineStyle: { width: 3, color: '#409EFF' }
+      }
+    ]
+  }
+  chartInstance.setOption(option)
+}
+
+onMounted(() => {
+  fetchData()
+  if (hasProgressPermission.value) {
+    fetchRunStatus(true)
+  }
+})
+
+onBeforeUnmount(() => {
+  stopProgressPolling()
+  if (chartInstance) {
+    chartInstance.dispose()
+  }
+})
 </script>
 
 <style scoped>
 .ai-forecast-container {
-    padding: 20px;
+  padding: 20px;
 }
 
 .search-form {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .pagination-container {
-    margin-top: 20px;
-    text-align: right;
+  margin-top: 20px;
+  text-align: right;
 }
 </style>
