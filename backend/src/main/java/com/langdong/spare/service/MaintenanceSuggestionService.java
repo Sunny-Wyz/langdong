@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -42,6 +44,15 @@ public class MaintenanceSuggestionService {
 
     @Autowired
     private EquipmentSparePartMapper equipmentSparePartMapper;
+
+    @Autowired
+    private WorkOrderMapper workOrderMapper;
+
+    @Autowired
+    private RequisitionMapper requisitionMapper;
+
+    @Autowired
+    private RequisitionItemMapper requisitionItemMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -238,9 +249,26 @@ public class MaintenanceSuggestionService {
      * @return 备件总成本
      */
     private double calcSparePartsCost(List<Map<String, Object>> relatedSpareParts) {
-        // TODO: 实际计算应从备件详情中获取单价
-        // 临时使用固定值
-        return relatedSpareParts.size() * 500.0;
+        if (relatedSpareParts == null || relatedSpareParts.isEmpty()) {
+            // 无配套配置时给合理默认备件费，避免全部落在纯人工费（如固定 2000）
+            return 0.0;
+        }
+        double total = 0.0;
+        for (Map<String, Object> part : relatedSpareParts) {
+            Object unitPriceObj = part.get("unitPrice");
+            Object quantityObj = part.get("quantity");
+            double unitPrice = unitPriceObj instanceof Number ? ((Number) unitPriceObj).doubleValue() : 450.0;
+            double quantity = quantityObj instanceof Number ? ((Number) quantityObj).doubleValue() : 1.0;
+            if (unitPrice <= 0) {
+                unitPrice = 450.0;
+            }
+            if (quantity <= 0) {
+                quantity = 1.0;
+            }
+            total += unitPrice * quantity;
+        }
+        // 至少保留基础耗材成本，避免列表出现千篇一律的固定人工费
+        return Math.max(total, 200.0);
     }
 
     /**
@@ -286,14 +314,10 @@ public class MaintenanceSuggestionService {
             throw new RuntimeException("建议状态不是待处理，无法采纳");
         }
 
-        // TODO: 自动创建领用单（Phase 2集成）
-        // Long requisitionId = createRequisitionFromSuggestion(suggestion);
-
-        // TODO: 自动创建维修工单（Phase 2集成）
-        // Long workorderId = createWorkOrderFromSuggestion(suggestion);
-
-        Long requisitionId = null;
-        Long workorderId = null;
+        Long workorderId = createWorkOrderFromSuggestion(suggestion, handledBy);
+        WorkOrder workOrder = workOrderMapper.findById(workorderId);
+        Long requisitionId = createRequisitionFromSuggestion(suggestion, handledBy,
+                workOrder != null ? workOrder.getWorkOrderNo() : null);
 
         // 更新建议状态为已采纳
         suggestionMapper.updateStatusToAccepted(suggestionId, workorderId, requisitionId, handledBy);
@@ -304,6 +328,58 @@ public class MaintenanceSuggestionService {
         result.put("workorderId", workorderId);
         result.put("requisitionId", requisitionId);
         return result;
+    }
+
+    private Long createWorkOrderFromSuggestion(MaintenanceSuggestion suggestion, Long handledBy) {
+        WorkOrder wo = new WorkOrder();
+        wo.setWorkOrderNo("WO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        wo.setDeviceId(suggestion.getDeviceId());
+        wo.setReporterId(handledBy != null ? handledBy : 1L);
+        String desc = suggestion.getReason();
+        if (desc != null && desc.length() > 480) {
+            desc = desc.substring(0, 480) + "...";
+        }
+        wo.setFaultDesc(desc != null ? desc : "PHM维护建议触发的预防性维修");
+        String priority = suggestion.getPriorityLevel();
+        if ("HIGH".equals(priority)) {
+            wo.setFaultLevel("紧急");
+        } else if ("MEDIUM".equals(priority)) {
+            wo.setFaultLevel("一般");
+        } else {
+            wo.setFaultLevel("计划");
+        }
+        wo.setOrderStatus("报修");
+        wo.setReportTime(LocalDateTime.now());
+        workOrderMapper.insert(wo);
+        return wo.getId();
+    }
+
+    private Long createRequisitionFromSuggestion(MaintenanceSuggestion suggestion, Long handledBy, String workOrderNo) {
+        Requisition req = new Requisition();
+        req.setReqNo("REQ" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        req.setApplicantId(handledBy != null ? handledBy : 1L);
+        req.setWorkOrderNo(workOrderNo);
+        req.setDeviceId(suggestion.getDeviceId());
+        req.setReqStatus("PENDING");
+        req.setIsUrgent("HIGH".equals(suggestion.getPriorityLevel()) || "EMERGENCY".equals(suggestion.getMaintenanceType()));
+        req.setRemark("由维护建议#" + suggestion.getId() + "自动生成");
+        requisitionMapper.insert(req);
+
+        List<EquipmentSparePart> parts = equipmentSparePartMapper.findByEquipmentId(suggestion.getDeviceId());
+        if (parts != null && !parts.isEmpty()) {
+            List<RequisitionItem> items = new ArrayList<>();
+            int limit = Math.min(parts.size(), 3);
+            for (int i = 0; i < limit; i++) {
+                EquipmentSparePart esp = parts.get(i);
+                RequisitionItem item = new RequisitionItem();
+                item.setReqId(req.getId());
+                item.setSparePartId(esp.getSparePartId());
+                item.setApplyQty(esp.getQuantity() != null && esp.getQuantity() > 0 ? esp.getQuantity() : 1);
+                items.add(item);
+            }
+            requisitionItemMapper.insertBatch(items);
+        }
+        return req.getId();
     }
 
     /**

@@ -18,7 +18,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="关联设备" prop="deviceId">
-              <el-select v-model="form.deviceId" placeholder="请选择关联设备（选填）" style="width: 100%" clearable>
+              <el-select
+                v-model="form.deviceId"
+                placeholder="选择设备后仅可选配套备件"
+                style="width: 100%"
+                clearable
+                filterable
+                @change="onDeviceChange"
+              >
                 <el-option
                   v-for="eq in equipmentList"
                   :key="eq.id"
@@ -129,12 +136,15 @@ const selectedParts = ref<any[]>([])
 const submitting = ref(false)
 
 const filteredSpareParts = computed(() => {
-  if (!searchKey.value) return sparePartList.value
-  const k = searchKey.value.toLowerCase()
-  return sparePartList.value.filter(s =>
-    (s.name && s.name.toLowerCase().includes(k)) ||
-    (s.code && s.code.toLowerCase().includes(k))
-  )
+  let list = sparePartList.value
+  if (searchKey.value) {
+    const k = searchKey.value.toLowerCase()
+    list = list.filter(s =>
+      (s.name && s.name.toLowerCase().includes(k)) ||
+      (s.code && s.code.toLowerCase().includes(k))
+    )
+  }
+  return list
 })
 
 async function loadEquipments() {
@@ -148,14 +158,32 @@ async function loadEquipments() {
 
 async function loadSpareParts() {
   try {
-    const res = await request.get('/spare-parts')
-    sparePartList.value = res.data || []
+    if (form.deviceId) {
+      const res = await request.get(`/equipments/${form.deviceId}/spare-parts`)
+      sparePartList.value = res.data || []
+    } else {
+      const res = await request.get('/spare-parts')
+      sparePartList.value = res.data || []
+    }
   } catch (e) {
     ElMessage.error('加载备件列表失败')
   }
 }
 
+async function onDeviceChange() {
+  // 切换设备后清空已选明细，避免非配套备件残留
+  form.items = []
+  await loadSpareParts()
+  if (form.deviceId && sparePartList.value.length === 0) {
+    ElMessage.warning('该设备暂无配套备件，请先在设备档案配置')
+  }
+}
+
 function showSparePartDialog() {
+  if (form.deviceId && sparePartList.value.length === 0) {
+    ElMessage.warning('请先选择有配套备件的设备')
+    return
+  }
   selectedParts.value = []
   dialogVisible.value = true
   if (sparePartTableRef.value) {

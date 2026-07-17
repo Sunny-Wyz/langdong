@@ -83,7 +83,11 @@ public class PurchaseOrderController {
     @PutMapping("/{id}/accept")
     @PreAuthorize("hasAuthority('po:receive:confirm')")
     public ResponseEntity<?> accept(@PathVariable Long id, @RequestBody AcceptanceDTO dto) {
-        purchaseOrderService.accept(id, dto);
-        return ResponseEntity.ok().build();
+        try {
+            purchaseOrderService.accept(id, dto, getCurrentUserId());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

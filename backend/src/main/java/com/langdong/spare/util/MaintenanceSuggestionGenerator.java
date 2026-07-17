@@ -300,8 +300,25 @@ public class MaintenanceSuggestionGenerator {
         // 停机损失（根据设备重要性）
         double downtimeLoss = calcDowntimeLoss(deviceImportance, estimatedDowntimeHours);
 
+        // 无备件明细时按维护类型给合理默认备件费，避免全部落在固定人工费（如 2000）
+        double effectiveSpareCost = sparePartsCost;
+        if (effectiveSpareCost <= 0) {
+            switch (maintenanceType != null ? maintenanceType : "") {
+                case TYPE_EMERGENCY:
+                    effectiveSpareCost = 3500.0;
+                    break;
+                case TYPE_PREDICTIVE:
+                    effectiveSpareCost = 1800.0;
+                    break;
+                case TYPE_PREVENTIVE:
+                default:
+                    effectiveSpareCost = 600.0;
+                    break;
+            }
+        }
+
         // 总成本 = 备件成本 + 人工成本 + 停机损失
-        return sparePartsCost + laborCost + downtimeLoss;
+        return effectiveSpareCost + laborCost + downtimeLoss;
     }
 
     /**

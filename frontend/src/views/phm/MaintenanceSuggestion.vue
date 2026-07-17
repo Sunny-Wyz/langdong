@@ -27,7 +27,7 @@
         >
           <div class="stat-content">
             <div class="stat-label">已采纳</div>
-            <div class="stat-value">{{ dashboard.statusDistribution?.ACCEPTED || 0 }}</div>
+            <div class="stat-value">{{ (dashboard.statusDistribution?.ACCEPTED || 0) + (dashboard.statusDistribution?.APPROVED || 0) }}</div>
           </div>
         </el-card>
       </el-col>
@@ -143,8 +143,8 @@
 
         <el-table-column label="健康评分" width="90" align="center">
           <template #default="{ row }">
-            <span :style="{ color: getScoreColor(row.healthScore) }">
-              {{ formatDecimal(row.healthScore) }}
+            <span :style="{ color: getScoreColor(getHealthScore(row)) }">
+              {{ formatDecimal(getHealthScore(row)) }}
             </span>
           </template>
         </el-table-column>
@@ -225,8 +225,8 @@
           <el-descriptions-item label="建议日期">{{ selectedSuggestion.suggestionDate }}</el-descriptions-item>
 
           <el-descriptions-item label="健康评分">
-            <span :style="{ color: getScoreColor(selectedSuggestion.healthScore) }">
-              {{ formatDecimal(selectedSuggestion.healthScore) }} 分
+            <span :style="{ color: getScoreColor(getHealthScore(selectedSuggestion)) }">
+              {{ formatDecimal(getHealthScore(selectedSuggestion)) }} 分
             </span>
           </el-descriptions-item>
           <el-descriptions-item label="故障概率">
@@ -300,7 +300,7 @@
               </router-link>
               <span v-else>-</span>
             </el-descriptions-item>
-            <el-descriptions-item label="处理人">{{ selectedSuggestion.handledByName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="处理人">{{ selectedSuggestion.handledByName || selectedSuggestion.handlerName || '-' }}</el-descriptions-item>
             <el-descriptions-item label="处理时间">{{ selectedSuggestion.handledAt || '-' }}</el-descriptions-item>
           </el-descriptions>
         </div>
@@ -519,14 +519,26 @@ function handlePageChange(newPage: number) {
 }
 
 function formatDecimal(val: any, digits = 2) {
-  return val != null ? Number(val).toFixed(digits) : '0.00'
+  return val != null && val !== '' && !Number.isNaN(Number(val))
+    ? Number(val).toFixed(digits)
+    : '—'
 }
 
 function formatPercent(val: any) {
-  return val != null ? (Number(val) * 100).toFixed(1) + '%' : '0.0%'
+  return val != null && val !== '' && !Number.isNaN(Number(val))
+    ? (Number(val) * 100).toFixed(1) + '%'
+    : '—'
 }
 
-function getScoreColor(score: number) {
+/** 兼容 healthScore / currentHealthScore 两种字段名 */
+function getHealthScore(row: any) {
+  if (!row) return null
+  const score = row.healthScore ?? row.currentHealthScore
+  return score != null && score !== '' ? Number(score) : null
+}
+
+function getScoreColor(score: number | null) {
+  if (score == null || Number.isNaN(score)) return '#909399'
   if (score >= 80) return '#67c23a'
   if (score >= 60) return '#409eff'
   if (score >= 40) return '#e6a23c'
@@ -537,6 +549,7 @@ function getStatusTagType(status: string) {
   const map: Record<string, string> = {
     PENDING: 'warning',
     ACCEPTED: 'success',
+    APPROVED: 'success',
     REJECTED: 'danger',
     COMPLETED: 'info'
   }
@@ -547,6 +560,7 @@ function getStatusText(status: string) {
   const map: Record<string, string> = {
     PENDING: '待处理',
     ACCEPTED: '已采纳',
+    APPROVED: '已采纳',
     REJECTED: '已拒绝',
     COMPLETED: '已完成'
   }

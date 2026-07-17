@@ -118,10 +118,22 @@
             e.name AS device_name,
             e.importance_level AS device_importance,
             h.health_score AS current_health_score,
-            h.risk_level AS current_risk_level
+            h.risk_level AS current_risk_level,
+            p.failure_probability AS failure_probability,
+            u.username AS handler_name
         FROM biz_maintenance_suggestion s
         LEFT JOIN equipment e ON s.device_id = e.id
         LEFT JOIN ai_device_health h ON s.health_record_id = h.id
+        LEFT JOIN (
+            SELECT fp.device_id, fp.failure_probability
+            FROM ai_fault_prediction fp
+            INNER JOIN (
+                SELECT device_id, MAX(prediction_date) AS max_date
+                FROM ai_fault_prediction
+                GROUP BY device_id
+            ) latest ON fp.device_id = latest.device_id AND fp.prediction_date = latest.max_date
+        ) p ON s.device_id = p.device_id
+        LEFT JOIN user u ON s.handled_by = u.id
         WHERE 1=1
         <if test="status != null and status != ''">
             AND s.status = #{status}

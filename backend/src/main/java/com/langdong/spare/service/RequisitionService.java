@@ -1,8 +1,10 @@
 package com.langdong.spare.service;
 
 import com.langdong.spare.dto.*;
+import com.langdong.spare.entity.EquipmentSparePart;
 import com.langdong.spare.entity.Requisition;
 import com.langdong.spare.entity.RequisitionItem;
+import com.langdong.spare.mapper.EquipmentSparePartMapper;
 import com.langdong.spare.mapper.RequisitionItemMapper;
 import com.langdong.spare.mapper.RequisitionMapper;
 import com.langdong.spare.mapper.SparePartStockMapper;
@@ -12,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,8 +34,23 @@ public class RequisitionService {
     @Autowired
     private FifoOutboundService fifoOutboundService;
 
+    @Autowired
+    private EquipmentSparePartMapper equipmentSparePartMapper;
+
     @Transactional
     public void apply(RequisitionApplyDTO dto, Long userId) {
+        if (dto.getDeviceId() != null && dto.getItems() != null && !dto.getItems().isEmpty()) {
+            List<EquipmentSparePart> linked = equipmentSparePartMapper.findByEquipmentId(dto.getDeviceId());
+            Set<Long> allowed = linked == null ? Set.of() : linked.stream()
+                    .map(EquipmentSparePart::getSparePartId)
+                    .collect(Collectors.toCollection(HashSet::new));
+            for (var line : dto.getItems()) {
+                if (line.getSparePartId() != null && !allowed.contains(line.getSparePartId())) {
+                    throw new RuntimeException("备件ID=" + line.getSparePartId() + " 不属于所选设备配套，请重新选择");
+                }
+            }
+        }
+
         Requisition req = new Requisition();
         req.setReqNo("REQ" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
         req.setApplicantId(userId);

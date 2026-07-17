@@ -3,28 +3,33 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.langdong.spare.mapper.PurchaseOrderMapper">
 
+    <sql id="BizOrderSelectColumns">
+        o.id, o.order_no as orderNo, o.spare_part_id as sparePartId,
+        o.supplier_id as supplierId, o.order_qty as orderQty,
+        IFNULL(o.received_qty, 0) as receivedQty,
+        o.unit_price as unitPrice, o.total_amount as totalAmount,
+        o.order_status as orderStatus, o.expected_date as expectedDate,
+        o.actual_date as actualDate, o.reorder_suggest_id as reorderSuggestId,
+        o.purchaser_id as purchaserId, o.remark,
+        o.created_at as createdAt, o.updated_at as updatedAt,
+        sp.code as sparePartCode, sp.name as sparePartName,
+        s.name as supplierName,
+        u.name as purchaserName
+    </sql>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO biz_purchase_order (
-            order_no, spare_part_id, supplier_id, order_qty, order_status,
+            order_no, spare_part_id, supplier_id, order_qty, received_qty, order_status,
             expected_date, reorder_suggest_id, purchaser_id, remark
         ) VALUES (
-            #{orderNo}, #{sparePartId}, #{supplierId}, #{orderQty}, #{orderStatus},
+            #{orderNo}, #{sparePartId}, #{supplierId}, #{orderQty}, IFNULL(#{receivedQty}, 0), #{orderStatus},
             #{expectedDate}, #{reorderSuggestId}, #{purchaserId}, #{remark}
         )
     </insert>
 
     <select id="findById" resultType="com.langdong.spare.entity.PurchaseOrder">
         SELECT
-            o.id, o.order_no as orderNo, o.spare_part_id as sparePartId,
-            o.supplier_id as supplierId, o.order_qty as orderQty,
-            o.unit_price as unitPrice, o.total_amount as totalAmount,
-            o.order_status as orderStatus, o.expected_date as expectedDate,
-            o.actual_date as actualDate, o.reorder_suggest_id as reorderSuggestId,
-            o.purchaser_id as purchaserId, o.remark,
-            o.created_at as createdAt, o.updated_at as updatedAt,
-            sp.code as sparePartCode, sp.name as sparePartName,
-            s.name as supplierName,
-            u.name as purchaserName
+            <include refid="BizOrderSelectColumns"/>
         FROM biz_purchase_order o
         LEFT JOIN spare_part sp ON o.spare_part_id = sp.id
         LEFT JOIN supplier s ON o.supplier_id = s.id
@@ -34,16 +39,7 @@
 
     <select id="findList" resultType="com.langdong.spare.entity.PurchaseOrder">
         SELECT
-            o.id, o.order_no as orderNo, o.spare_part_id as sparePartId,
-            o.supplier_id as supplierId, o.order_qty as orderQty,
-            o.unit_price as unitPrice, o.total_amount as totalAmount,
-            o.order_status as orderStatus, o.expected_date as expectedDate,
-            o.actual_date as actualDate, o.reorder_suggest_id as reorderSuggestId,
-            o.purchaser_id as purchaserId, o.remark,
-            o.created_at as createdAt, o.updated_at as updatedAt,
-            sp.code as sparePartCode, sp.name as sparePartName,
-            s.name as supplierName,
-            u.name as purchaserName
+            <include refid="BizOrderSelectColumns"/>
         FROM biz_purchase_order o
         LEFT JOIN spare_part sp ON o.spare_part_id = sp.id
         LEFT JOIN supplier s ON o.supplier_id = s.id
@@ -78,8 +74,37 @@
         WHERE id = #{id}
     </update>
 
-    <!-- Legacy: used by StockInService — reads old purchase_order table -->
-    <select id="findByCode" resultType="com.langdong.spare.entity.PurchaseOrder">
+    <select id="findBizByCode" resultType="com.langdong.spare.entity.PurchaseOrder">
+        SELECT
+            <include refid="BizOrderSelectColumns"/>
+        FROM biz_purchase_order o
+        LEFT JOIN spare_part sp ON o.spare_part_id = sp.id
+        LEFT JOIN supplier s ON o.supplier_id = s.id
+        LEFT JOIN user u ON o.purchaser_id = u.id
+        WHERE o.order_no = #{poCode}
+        LIMIT 1
+    </select>
+
+    <select id="findReceivableBizOrders" resultType="com.langdong.spare.entity.PurchaseOrder">
+        SELECT
+            <include refid="BizOrderSelectColumns"/>
+        FROM biz_purchase_order o
+        LEFT JOIN spare_part sp ON o.spare_part_id = sp.id
+        LEFT JOIN supplier s ON o.supplier_id = s.id
+        LEFT JOIN user u ON o.purchaser_id = u.id
+        WHERE o.order_status IN ('到货', '验收通过')
+          AND IFNULL(o.received_qty, 0) &lt; o.order_qty
+        ORDER BY o.created_at DESC
+    </select>
+
+    <update id="addBizReceivedQty">
+        UPDATE biz_purchase_order
+        SET received_qty = IFNULL(received_qty, 0) + #{addedQuantity}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Legacy: old purchase_order table -->
+    <select id="findByLegacyCode" resultType="com.langdong.spare.entity.PurchaseOrder">
         SELECT id, po_code as orderNo, supplier_id as supplierId, status as orderStatus,
                total_amount as totalAmount, expected_delivery_date as expectedDate,
                remark, created_at as createdAt, updated_at as updatedAt, created_by as purchaserId

@@ -340,12 +340,13 @@ public class MaintenanceSuggestionGeneratorTest {
 
     @Test
     public void testEstimateMaintenanceCost_ZeroSparePartCost() {
-        // 零备件成本
+        // 零备件成本：使用类型默认备件费 + 人工费，避免固定落在纯人工费
         double cost = MaintenanceSuggestionGenerator.estimateMaintenanceCost(
                 0.0, "PREVENTIVE", "NORMAL", 2.0
         );
 
-        assertEquals(1000.0, cost, 0.01, "零备件成本时应只有人工成本");
+        // 预期：600（默认备件） + 1000（人工） + 0（停机） = 1600
+        assertEquals(1600.0, cost, 0.01, "零备件成本时应使用默认备件费+人工成本");
     }
 
     @Test

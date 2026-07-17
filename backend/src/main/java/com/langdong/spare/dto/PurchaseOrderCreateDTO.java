@@ -11,4 +11,6 @@ public class PurchaseOrderCreateDTO {
     private LocalDate expectedDate;
     private Long reorderSuggestId; // nullable, set when triggered from suggestion
     private String remark;
+    /** 可选：关联设备，若填写则校验备件属于该设备配套 */
+    private Long equipmentId;
 }

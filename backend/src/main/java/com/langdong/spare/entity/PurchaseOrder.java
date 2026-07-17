@@ -12,6 +12,8 @@ public class PurchaseOrder {
     private Long sparePartId;
     private Long supplierId;
     private Integer orderQty;
+    /** 累计已入库数量（biz_purchase_order.received_qty） */
+    private Integer receivedQty;
     private BigDecimal unitPrice;
     private BigDecimal totalAmount;
     private String orderStatus; // 已下单/已发货/到货/验收通过/验收失败

@@ -1,5 +1,6 @@
 package com.langdong.spare.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -94,4 +95,22 @@ public class MaintenanceSuggestion {
 
     /** 处理人姓名（联查 user.username） */
     private String handlerName;
+
+    /** 序列化为 healthScore，与前端 MaintenanceSuggestion 字段对齐 */
+    @JsonProperty("healthScore")
+    public BigDecimal getHealthScore() {
+        return currentHealthScore;
+    }
+
+    /** 序列化为 riskLevel */
+    @JsonProperty("riskLevel")
+    public String getRiskLevel() {
+        return currentRiskLevel;
+    }
+
+    /** 序列化为 handledByName */
+    @JsonProperty("handledByName")
+    public String getHandledByName() {
+        return handlerName;
+    }
 }

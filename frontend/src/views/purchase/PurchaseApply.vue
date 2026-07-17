@@ -23,6 +23,24 @@
         label-width="120px"
         label-position="right"
       >
+        <el-form-item label="关联设备（可选）">
+          <el-select
+            v-model="form.equipmentId"
+            placeholder="选择设备后仅显示配套备件"
+            filterable
+            clearable
+            class="field-full"
+            @change="onEquipmentChange"
+          >
+            <el-option
+              v-for="e in equipments"
+              :key="e.id"
+              :label="`${e.code}  ${e.name}`"
+              :value="e.id"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="备件" prop="sparePartId">
           <el-select
             v-model="form.sparePartId"
@@ -32,7 +50,7 @@
             @change="onPartChange"
           >
             <el-option
-              v-for="p in spareParts"
+              v-for="p in filteredSpareParts"
               :key="p.id"
               :label="`${p.code}  ${p.name}`"
               :value="p.id"
@@ -104,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import request from '../../utils/request'
@@ -112,16 +130,26 @@ import request from '../../utils/request'
 const route = useRoute()
 const formRef = ref<FormInstance | null>(null)
 const spareParts = ref<any[]>([])
+const equipments = ref<any[]>([])
+const equipmentParts = ref<any[]>([])
 const suppliers = ref<any[]>([])
 const submitting = ref(false)
 const suggestId = ref<string | number | null>(null)
 
 const form = reactive({
+  equipmentId: null as number | null,
   sparePartId: null as number | null,
   supplierId: null as number | null,
   orderQty: 1,
   expectedDate: '',
   remark: ''
+})
+
+const filteredSpareParts = computed(() => {
+  if (form.equipmentId && equipmentParts.value.length > 0) {
+    return equipmentParts.value
+  }
+  return spareParts.value
 })
 
 const rules: FormRules = {
@@ -132,12 +160,14 @@ const rules: FormRules = {
 }
 
 async function loadOptions() {
-  const [p, s] = await Promise.all([
+  const [p, s, e] = await Promise.all([
     request.get('/spare-parts'),
-    request.get('/suppliers')
+    request.get('/suppliers'),
+    request.get('/equipments')
   ])
   spareParts.value = p.data || []
   suppliers.value = s.data || []
+  equipments.value = e.data || []
 
   if (route.query.partCode) {
     const part = spareParts.value.find((x: any) => x.code === route.query.partCode)
@@ -148,6 +178,25 @@ async function loadOptions() {
   }
   if (route.query.suggestId) {
     suggestId.value = route.query.suggestId as string
+  }
+  if (route.query.equipmentId) {
+    form.equipmentId = Number(route.query.equipmentId)
+    await onEquipmentChange()
+  }
+}
+
+async function onEquipmentChange() {
+  form.sparePartId = null
+  equipmentParts.value = []
+  if (!form.equipmentId) return
+  try {
+    const res = await request.get(`/equipments/${form.equipmentId}/spare-parts`)
+    equipmentParts.value = res.data || []
+    if (equipmentParts.value.length === 0) {
+      ElMessage.warning('该设备暂无配套备件，请先在设备档案中配置')
+    }
+  } catch {
+    equipmentParts.value = []
   }
 }
 
@@ -176,8 +225,10 @@ async function submit() {
 
 function reset() {
   formRef.value?.resetFields()
+  form.equipmentId = null
   form.orderQty = 1
   form.remark = ''
+  equipmentParts.value = []
 }
 
 onMounted(() => {
