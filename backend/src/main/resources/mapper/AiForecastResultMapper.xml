@@ -22,6 +22,8 @@
         <result property="safetyStock"       column="safety_stock"/>
         <result property="reorderPoint"      column="reorder_point"/>
         <result property="serviceLevel"      column="service_level"/>
+        <result property="abcClass"          column="abc_class"/>
+        <result property="xyzClass"          column="xyz_class"/>
     </resultMap>
 
     <!-- 批量插入预测结果 -->
@@ -55,7 +57,7 @@
             r.id, r.part_code, r.forecast_month, r.predict_qty, r.lower_bound, r.upper_bound,
             r.algo_type, r.mase, r.model_version, r.occurrence_prob, r.positive_qty, r.lead_time_quantile, r.create_time,
             sp.name AS part_name,
-            c.safety_stock, c.reorder_point, c.service_level
+            c.safety_stock, c.reorder_point, c.service_level, c.abc_class, c.xyz_class
         FROM ai_forecast_result r
         LEFT JOIN spare_part sp ON r.part_code = sp.code
         LEFT JOIN biz_part_classify c ON r.part_code = c.part_code AND r.forecast_month = c.classify_month
@@ -69,7 +71,7 @@
             r.id, r.part_code, r.forecast_month, r.predict_qty, r.lower_bound, r.upper_bound,
             r.algo_type, r.mase, r.model_version, r.occurrence_prob, r.positive_qty, r.lead_time_quantile, r.create_time,
             sp.name AS part_name,
-            c.safety_stock, c.reorder_point, c.service_level
+            c.safety_stock, c.reorder_point, c.service_level, c.abc_class, c.xyz_class
         FROM ai_forecast_result r
         LEFT JOIN spare_part sp ON r.part_code = sp.code
         LEFT JOIN biz_part_classify c ON r.part_code = c.part_code AND r.forecast_month = c.classify_month

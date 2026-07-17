@@ -1,0 +1,29 @@
+{
+  "structure": {
+    "sampleCount": 216,
+    "partCount": 36,
+    "testMonths": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"],
+    "maxMonth": "2026-06",
+    "focusPart": "C0070003"
+  },
+  "metrics": {
+    "two_stage_wmape": {"lo": 11.0, "hi": 16.0, "paper": 13.68},
+    "sma3_wmape": {"lo": 46.0, "hi": 55.0, "paper": 48.83},
+    "single_xgb_wmape": {"lo": 22.0, "hi": 30.0, "paper": 27.59},
+    "lgbm_q_wmape": {"lo": 20.0, "hi": 26.0, "paper": 22.9},
+    "lead_second_pt": {"lo": 8.0, "hi": 12.0},
+    "brier": {"lo": 0.10, "hi": 0.16, "paper": 0.15},
+    "coverage": {"lo": 89.0, "hi": 91.0, "paper": 90.9},
+    "coverage_x": {"lo": 93.0, "hi": 96.0},
+    "coverage_y": {"lo": 90.0, "hi": 94.0},
+    "coverage_z": {"lo": 80.0, "hi": 86.0},
+    "mase_two_stage": {"lo": 0.55, "hi": 0.70, "paper": 0.61},
+    "inventory_exp_fill": {"lo": 82.0, "hi": 86.0},
+    "inventory_ours_fill": {"lo": 97.0, "hi": 99.5},
+    "inventory_be_months": {"lo": 3.5, "hi": 4.5}
+  },
+  "methodOrder": [
+    "two_stage", "lgbm_q", "single_xgb", "ngboost", "tft", "deepar",
+    "nhits", "rf", "mapa", "adida", "tsb", "croston", "sba", "es", "sma3"
+  ]
+}

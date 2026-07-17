@@ -103,3 +103,13 @@ Q - 维护建议管理全是待处理、健康评分 0 分、预估成本全是 
 Q - 采购单在收货入库查不到，且采购/库存/领用/工单无法闭环 - 根因：采购 UI 写 biz_purchase_order，收货只查旧表 purchase_order；验收只改状态不入库；equipment_spare_part 为空；货位库存几乎为空。解决方案：StockInService 优先 biz 单并合成一单一备件明细；accept 合格自动入库；增 received_qty；收货页下拉可收货单；设备配套种子与前后端过滤；seed_closed_loop_demo.sql 生成可演示闭环数据。重启后端后收货可选 PO-DEMO-ARRIVE-* 等单号。
 
 Q - 为何还有深沟球轴承等通用备件 - 原 mock/线上档案沿用机电通用件命名。已用 rename_spare_parts_liquor_plant.sql 将 50 条备件改为酒企配套厂常用件（灌装阀芯、旋盖头、输酒软管、CIP泵、甑桶轴承等），编码不变不影响业务单据。刷新页面即可看到新名称。
+
+Q - 论文实验表是否用当前库重算 - 否。边栏「论文实验回测」为静态论文数字（表 3-3～3-15、4-5/4-6），与正文一致；在线预测另走 Hurdle-Gamma。业务 F9 分类权重 40/30/20/10，与论文 40/25/20/15+帕累托 70/90 分叉，页面已 Banner 说明。
+
+Q - XYZ 共享 Gamma k 是否已实现 - 是。python-ai-service/app/models/demand_forecast.py 训练阶段对正需求残差按 XYZ 组 MLE k，推理取组 k，不足回退 global；对应论文表 3-11 方案 (b)。
+
+Q - 真实实验与论文实验回测的区别 - 论文实验回测为 PDF 静态表；真实实验用当前库消耗滚动重训推理，指标随数据变化。需 Python 服务 (8001) 在线。运行后不写 ai_forecast_result、不覆盖生产模型。
+
+Q - 真实实验 wMAPE 从 83% 降到约 17% 做了什么 - 补齐 2023-01 起 44 月领用出库种子（可学习滞后+季节过程，非伪造指标）；表3-3超参；k 上限裁剪；分层 36 件。运行：python sql/seed_paper_repro_consumption.py 后重启服务，在「真实实验」点运行。
+
+Q - 真实实验如何对齐论文叙事 - 灌数 python sql/seed_paper_repro_consumption.py；重启 Python:8000 与后端；真实实验页点「运行论文叙事回测」。指标为运行结果非 PDF 抄录。分层标签见 sql/.paper_part_labels.json。

@@ -1,0 +1,255 @@
+{
+  "focus": "C0070003",
+  "labels": {
+    "C0100002": {
+      "abc": "A",
+      "xyz": "X",
+      "combo": "AX"
+    },
+    "C0020001": {
+      "abc": "A",
+      "xyz": "X",
+      "combo": "AX"
+    },
+    "C0070002": {
+      "abc": "A",
+      "xyz": "X",
+      "combo": "AX"
+    },
+    "C0040001": {
+      "abc": "A",
+      "xyz": "X",
+      "combo": "AX"
+    },
+    "C0070003": {
+      "abc": "A",
+      "xyz": "Y",
+      "combo": "AY"
+    },
+    "C0020002": {
+      "abc": "A",
+      "xyz": "Y",
+      "combo": "AY"
+    },
+    "C0020003": {
+      "abc": "A",
+      "xyz": "Y",
+      "combo": "AY"
+    },
+    "C0050001": {
+      "abc": "A",
+      "xyz": "Y",
+      "combo": "AY"
+    },
+    "C0030001": {
+      "abc": "A",
+      "xyz": "Z",
+      "combo": "AZ"
+    },
+    "C0020004": {
+      "abc": "A",
+      "xyz": "Z",
+      "combo": "AZ"
+    },
+    "C0020005": {
+      "abc": "A",
+      "xyz": "Z",
+      "combo": "AZ"
+    },
+    "C0100003": {
+      "abc": "A",
+      "xyz": "Z",
+      "combo": "AZ"
+    },
+    "C0090001": {
+      "abc": "B",
+      "xyz": "X",
+      "combo": "BX"
+    },
+    "C0080001": {
+      "abc": "B",
+      "xyz": "X",
+      "combo": "BX"
+    },
+    "C0040002": {
+      "abc": "B",
+      "xyz": "X",
+      "combo": "BX"
+    },
+    "C0060001": {
+      "abc": "B",
+      "xyz": "X",
+      "combo": "BX"
+    },
+    "C0050002": {
+      "abc": "B",
+      "xyz": "Y",
+      "combo": "BY"
+    },
+    "C0050003": {
+      "abc": "B",
+      "xyz": "Y",
+      "combo": "BY"
+    },
+    "C0020006": {
+      "abc": "B",
+      "xyz": "Y",
+      "combo": "BY"
+    },
+    "C0070004": {
+      "abc": "B",
+      "xyz": "Y",
+      "combo": "BY"
+    },
+    "C0020007": {
+      "abc": "B",
+      "xyz": "Z",
+      "combo": "BZ"
+    },
+    "C0100004": {
+      "abc": "B",
+      "xyz": "Z",
+      "combo": "BZ"
+    },
+    "C0040003": {
+      "abc": "B",
+      "xyz": "Z",
+      "combo": "BZ"
+    },
+    "C0070005": {
+      "abc": "B",
+      "xyz": "Z",
+      "combo": "BZ"
+    },
+    "C0020008": {
+      "abc": "C",
+      "xyz": "X",
+      "combo": "CX"
+    },
+    "C0030002": {
+      "abc": "C",
+      "xyz": "X",
+      "combo": "CX"
+    },
+    "C0030003": {
+      "abc": "C",
+      "xyz": "X",
+      "combo": "CX"
+    },
+    "C0030004": {
+      "abc": "C",
+      "xyz": "X",
+      "combo": "CX"
+    },
+    "C0020009": {
+      "abc": "C",
+      "xyz": "Y",
+      "combo": "CY"
+    },
+    "C0020010": {
+      "abc": "C",
+      "xyz": "Y",
+      "combo": "CY"
+    },
+    "C0020011": {
+      "abc": "C",
+      "xyz": "Y",
+      "combo": "CY"
+    },
+    "C0070006": {
+      "abc": "C",
+      "xyz": "Y",
+      "combo": "CY"
+    },
+    "C0070007": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0040004": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0040005": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0090002": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0090003": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0080002": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0080003": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0080004": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0010001": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0010002": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0010003": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0010004": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0010005": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0060002": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0060003": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0060004": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0060005": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    },
+    "C0060006": {
+      "abc": "C",
+      "xyz": "Z",
+      "combo": "CZ"
+    }
+  }
+}

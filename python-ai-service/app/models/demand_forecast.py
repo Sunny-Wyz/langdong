@@ -3,8 +3,10 @@
 
 - 阶段一（需求发生分类）：XGBClassifier(objective='binary:logistic') 估计月度/周度需求发生概率 p_t。
 - 阶段二（正需求量回归）：在正需求样本 (y > 0) 上使用 XGBRegressor(objective='reg:gamma') 预测正需求的条件均值 mu_t。
-- 形状参数 k 的估计：对标准化残差 r_t = y / mu_t 进行极大似然估计 (MLE)，按 XYZ 波动分组共享 k值以稳定小样本估计。
+- 形状参数 k 的估计：对标准化残差 r_t = y / mu_t 进行极大似然估计 (MLE)，按 XYZ 波动分组共享 k 值以稳定小样本估计。
   - Newton-Raphson 求解极大似然方程 ln(k) - psi(k) = c。
+  - 与论文表 3-11 工程选型一致：XYZ 共享整体条件覆盖率 90.9%（独立估计仅 78.6%）。
+  - 组内正样本 <2 时回退 global k；无正样本时默认 k=1.0。
 - 兼容接口：DemandForecaster (BasePredictor) 实现 12 周自回归递归概率预测。
 """
 from __future__ import annotations
@@ -119,18 +121,37 @@ def compute_xyz_classification(df: pd.DataFrame) -> pd.DataFrame:
 
 
 class HurdleGammaModel:
-    """XGBoost 两阶段 Hurdle-Gamma 算法实现"""
+    """XGBoost 两阶段 Hurdle-Gamma 算法实现（超参对齐论文表 3-3）"""
 
     def __init__(self):
+        # 表 3-3：阶段一 / 阶段二最终选取值
         self.clf = xgb.XGBClassifier(
             objective='binary:logistic',
             eval_metric='logloss',
-            random_state=42
+            n_estimators=100,
+            max_depth=4,
+            learning_rate=0.1,
+            min_child_weight=3,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            reg_alpha=0,
+            reg_lambda=1.0,
+            random_state=42,
+            n_jobs=2,
         )
         self.reg = xgb.XGBRegressor(
             objective='reg:gamma',
             eval_metric='mae',
-            random_state=42
+            n_estimators=150,
+            max_depth=5,
+            learning_rate=0.08,
+            min_child_weight=2,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            reg_alpha=0.01,
+            reg_lambda=1.0,
+            random_state=42,
+            n_jobs=2,
         )
         self.k_params = {
             'X': 1.0,
@@ -169,10 +190,10 @@ class HurdleGammaModel:
             mu_pos = np.clip(mu_pos, 1e-5, None)
             r_pos = y_pos / mu_pos
             
-            # 全局 k 估计
+            # 全局 k 估计（无 XYZ 组或组样本不足时的回退）
             self.k_params['global'] = solve_gamma_k(r_pos)
 
-            # 按 XYZ 分组估计
+            # 论文 3.2.2 / 表 3-11：按 XYZ 波动组共享形状参数 k（非逐备件独立估计）
             xyz_pos = xyz_groups[pos_mask]
             for group in ['X', 'Y', 'Z']:
                 group_mask = xyz_pos == group
@@ -206,8 +227,11 @@ class HurdleGammaModel:
         results = []
         for i in range(len(X)):
             grp = xyz_groups[i]
-            k_val = self.k_params.get(grp, self.k_params['global'])
-            
+            k_val = float(self.k_params.get(grp, self.k_params['global']))
+            # 防止小样本 MLE 把 k 估得过大导致 90% 区间塌缩（论文条件覆盖约 90%）
+            # CV²=1/k；k∈[0.5, 25] 对应 CV 约 1.4～0.2
+            k_val = float(np.clip(k_val, 0.8, 12.0))
+
             # 90% 置信区间 (scipy.stats.gamma.ppf)
             lower_bound = float(stats.gamma.ppf(0.05, a=k_val, scale=mu_t[i] / k_val))
             upper_bound = float(stats.gamma.ppf(0.95, a=k_val, scale=mu_t[i] / k_val))

@@ -88,12 +88,31 @@
         </el-table-column>
         <el-table-column prop="positiveQty" label="正需求均值 (ŷt)" width="120">
           <template #default="scope">
-            {{ scope.row.positiveQty ?? 'N/A' }}
+            <el-tooltip content="正需求条件均值 μ；总需求点估计 D̂ = p × μ" placement="top">
+              <span>{{ scope.row.positiveQty != null ? scope.row.positiveQty : '—' }}</span>
+            </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="leadTimeQuantile" label="提前期需求分位数" width="140">
+        <el-table-column prop="serviceLevel" label="目标服务水平 α" width="130">
           <template #default="scope">
-            {{ scope.row.leadTimeQuantile ?? 'N/A' }}
+            <el-tooltip
+              :content="serviceLevelTooltip(scope.row)"
+              placement="top"
+            >
+              <span style="font-weight: bold; color: #0f3086">
+                {{ formatServiceLevel(scope.row.serviceLevel) }}
+              </span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column prop="leadTimeQuantile" label="提前期需求分位数" width="150">
+          <template #default="scope">
+            <el-tooltip
+              content="论文 Qα(DL)：蒙特卡洛提前期累计需求的 α 分位数；ROP = ⌈该分位数⌉"
+              placement="top"
+            >
+              <span>{{ scope.row.leadTimeQuantile != null ? scope.row.leadTimeQuantile : '—' }}</span>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column prop="safetyStock" label="安全库存 (SS)" width="110">
@@ -175,9 +194,13 @@ interface ForecastItem {
   upperBound: number
   occurrenceProb?: number
   positiveQty?: number
+  /** 目标服务水平：库中多为百分比 99/95/90，亦可能为小数 0.99 */
+  serviceLevel?: number
   leadTimeQuantile?: number
   safetyStock?: number
   reorderPoint?: number
+  abcClass?: string
+  xyzClass?: string
   mase?: number
   createTime: string
 }
@@ -363,6 +386,20 @@ function getAlgoTagType(algo: string): TagType {
   if (algo === 'SBA') return 'warning'
   if (algo === 'FALLBACK') return 'info'
   return ''
+}
+
+/** 将 serviceLevel 规范为「99%」展示；兼容 0.99 与 99 两种落库口径 */
+function formatServiceLevel(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(Number(v))) return '—'
+  const n = Number(v)
+  const pct = n <= 1 ? n * 100 : n
+  return `${Math.round(pct)}%`
+}
+
+function serviceLevelTooltip(row: ForecastItem): string {
+  const abc = row.abcClass || '—'
+  const xyz = row.xyzClass || '—'
+  return `ABC=${abc} · XYZ=${xyz}；论文规则 A→99% / B→95% / C→90%（周期服务水平 CSL）`
 }
 
 function getAlgoDisplayName(algo: string) {

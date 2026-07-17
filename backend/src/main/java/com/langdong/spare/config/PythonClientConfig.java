@@ -12,9 +12,10 @@ public class PythonClientConfig {
 
     @Bean
     public RestTemplate pythonRestTemplate(RestTemplateBuilder builder) {
+        // 叙事多基线回测可能数分钟
         return builder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(20))
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofMinutes(15))
                 .build();
     }
 }

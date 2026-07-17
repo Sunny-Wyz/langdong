@@ -63,4 +63,10 @@ public class AiForecastResult {
 
     /** 目标服务水平（%，联查自分类结果） */
     private BigDecimal serviceLevel;
+
+    /** ABC 分类（联查自 biz_part_classify，展示用） */
+    private String abcClass;
+
+    /** XYZ 分类（联查自 biz_part_classify，展示用） */
+    private String xyzClass;
 }

@@ -102,6 +102,76 @@ def train_algorithm(req: TrainRequest) -> TrainResponse:
         raise HTTPException(status_code=500, detail=f"Model training failed: {str(exc)}")
 
 
+class FitPredictRequest(BaseModel):
+    """滚动回测用：临时训练 + 推理，不覆盖生产单例模型。"""
+    X_train: list[list[float]]
+    y_train: list[float]
+    xyz_train: list[str]
+    X_pred: list[list[float]]
+    xyz_pred: list[str]
+
+
+class NarrativeEvalRequest(BaseModel):
+    """真实实验论文叙事：demand = {partCode: {yyyy-MM: qty}}"""
+    demand: dict[str, dict[str, float]]
+    test_months: int = 6
+    focus_code: str | None = None
+    part_meta: dict[str, dict[str, Any]] | None = None
+
+
+@router.post("/narrative_eval")
+def narrative_eval(req: NarrativeEvalRequest) -> dict[str, Any]:
+    """
+    一站式论文叙事回测：多基线 + 分层 + 消融 + k 策略 + 库存三方法。
+    不写盘、不覆盖生产模型。
+    """
+    try:
+        from app.models.narrative_eval import run_narrative_experiment
+
+        return run_narrative_experiment(
+            demand=req.demand,
+            test_months=req.test_months,
+            focus_code=req.focus_code,
+            part_meta=req.part_meta,
+        )
+    except Exception as exc:
+        logger.exception("narrative_eval 失败")
+        raise HTTPException(status_code=500, detail=f"narrative_eval failed: {str(exc)}")
+
+
+@router.post("/fit_predict_ephemeral")
+def fit_predict_ephemeral(req: FitPredictRequest) -> dict[str, Any]:
+    """
+    使用临时 HurdleGammaModel 完成一轮 fit+predict，不写盘、不改生产模型。
+    供 Java 真实实验滚动回测调用。
+    """
+    try:
+        import numpy as np
+
+        model = HurdleGammaModel()
+        X_tr = np.array(req.X_train, dtype=float)
+        y_tr = np.array(req.y_train, dtype=float)
+        g_tr = np.array(req.xyz_train)
+        if len(X_tr) == 0:
+            raise HTTPException(status_code=400, detail="训练集为空")
+        train_metrics = model.train(X_tr, y_tr, g_tr)
+
+        X_pr = np.array(req.X_pred, dtype=float)
+        g_pr = np.array(req.xyz_pred)
+        if len(X_pr) != len(g_pr):
+            raise ValueError(f"X_pred 与 xyz_pred 长度不一致: {len(X_pr)} vs {len(g_pr)}")
+        if len(X_pr) == 0:
+            return {"predictions": [], "train_metrics": train_metrics}
+
+        preds = model.predict(X_pr, g_pr)
+        return {"predictions": preds, "train_metrics": train_metrics}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("ephemeral fit_predict 失败")
+        raise HTTPException(status_code=500, detail=f"fit_predict failed: {str(exc)}")
+
+
 @router.post("/predict", response_model=PredictResponse)
 def predict_algorithm(req: PredictRequest) -> PredictResponse:
     """
