@@ -312,20 +312,20 @@ function renderMatrix() {
         return `${abc}${xyz}：${params.data[2]} 个备件`
       }
     },
-    grid: { top: '10%', left: '10%', right: '5%', bottom: '10%' },
+    grid: { top: '50px', left: '100px', right: '80px', bottom: '60px', containLabel: true },
     xAxis: {
       type: 'category',
       data: ['X（需求稳定）', 'Y（需求波动）', 'Z（需求随机）'],
       name: 'XYZ分类',
-      nameLocation: 'middle',
-      nameGap: 30
+      nameLocation: 'end',
+      nameGap: 15
     },
     yAxis: {
       type: 'category',
       data: ['C类（一般）', 'B类（重要）', 'A类（关键）'],
       name: 'ABC分类',
-      nameLocation: 'middle',
-      nameGap: 40
+      nameLocation: 'end',
+      nameGap: 15
     },
     visualMap: {
       min: 0,
@@ -333,7 +333,9 @@ function renderMatrix() {
       calculable: true,
       orient: 'horizontal',
       left: 'center',
-      bottom: '0%',
+      bottom: '5px',
+      itemWidth: 14, // 厚度
+      itemHeight: 600, // 长度（横向时的拉伸长度，覆盖整个下方）
       inRange: { color: ['#f0f9ff', '#0369a1'] }
     },
     series: [{
@@ -521,7 +523,7 @@ onBeforeUnmount(() => {
 }
 
 .matrix-chart {
-  height: 280px;
+  height: 320px;
   width: 100%;
 }
 
