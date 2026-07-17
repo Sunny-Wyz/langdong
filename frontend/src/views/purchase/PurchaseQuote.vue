@@ -11,19 +11,8 @@
 
       <el-form :inline="true" style="margin-bottom: 16px">
         <el-form-item label="选择采购订单">
-          <el-select
-            v-model="selectedOrderId"
-            placeholder="请选择订单"
-            filterable
-            style="width: 280px"
-            @change="loadQuotes"
-          >
-            <el-option
-              v-for="o in orders"
-              :key="o.id"
-              :label="`${o.orderNo}  ${o.sparePartName}`"
-              :value="o.id"
-            />
+          <el-select v-model="selectedOrderId" placeholder="请选择订单" filterable style="width: 280px" @change="loadQuotes">
+            <el-option v-for="o in orders" :key="o.id" :label="`${o.orderNo}  ${o.sparePartName}`" :value="o.id" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -57,7 +46,7 @@
             <el-input-number v-model="quoteForm.quotePrice" :min="0" :precision="2" style="width: 140px" />
           </el-form-item>
           <el-form-item label="交期(天)">
-            <el-input-number v-model="quoteForm.leadTimeDays" :min="1" style="width: 120px" />
+            <el-input-number v-model="quoteForm.deliveryDays" :min="1" style="width: 120px" />
           </el-form-item>
           <el-form-item label="备注">
             <el-input v-model="quoteForm.remark" placeholder="选填" style="width: 160px" />
@@ -78,7 +67,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="leadTimeDays" label="交期(天)" width="100" align="center" />
+        <el-table-column prop="deliveryDays" label="交期(天)" width="100" align="center" />
         <el-table-column prop="remark" label="备注" />
         <el-table-column prop="isSelected" label="中标" width="90" align="center">
           <template #default="scope">
@@ -88,11 +77,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120" align="center">
           <template #default="scope">
-            <el-button
-              v-if="!scope.row.isSelected"
-              size="small"
-              @click="selectWinner(scope.row)"
-            >
+            <el-button v-if="!scope.row.isSelected" size="small" @click="selectWinner(scope.row)">
               选中中标
             </el-button>
           </template>
@@ -118,7 +103,7 @@ const priceWarning = ref(false)
 const quoteForm = reactive({
   supplierId: null as number | null,
   quotePrice: 0,
-  leadTimeDays: 7,
+  deliveryDays: 7,
   remark: ''
 })
 
@@ -146,7 +131,7 @@ async function loadQuotes() {
     refPrice.value = pRes.data || 0
     quoteForm.supplierId = null
     quoteForm.quotePrice = 0
-    quoteForm.leadTimeDays = 7
+    quoteForm.deliveryDays = 7
     quoteForm.remark = ''
   } finally {
     loading.value = false

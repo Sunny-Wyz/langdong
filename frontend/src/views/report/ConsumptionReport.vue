@@ -12,7 +12,7 @@
                 <el-option :value="6" label="近6个月" />
                 <el-option :value="12" label="近12个月" />
               </el-select>
-              <el-button type="success" size="small" @click="exportCsv">📥 导出 CSV</el-button>
+              <el-button size="small" @click="exportCsv">📥 导出 CSV</el-button>
             </div>
           </div>
         </div>

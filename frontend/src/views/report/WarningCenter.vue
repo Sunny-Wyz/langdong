@@ -29,7 +29,7 @@
             <el-table-column prop="detail" label="详情" />
             <el-table-column label="操作" width="100" align="center">
               <template #default="scope">
-                <el-button size="small" type="primary" @click="navigate(scope.row)">去处理</el-button>
+                <el-button size="small" @click="navigate(scope.row)">去处理</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -52,7 +52,7 @@
             <el-table-column prop="detail" label="详情" />
             <el-table-column label="操作" width="100" align="center">
               <template #default="scope">
-                <el-button size="small" type="primary" @click="navigate(scope.row)">去处理</el-button>
+                <el-button size="small" @click="navigate(scope.row)">去处理</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -75,7 +75,7 @@
             <el-table-column prop="detail" label="详情" />
             <el-table-column label="操作" width="100" align="center">
               <template #default="scope">
-                <el-button size="small" type="primary" @click="navigate(scope.row)">去处理</el-button>
+                <el-button size="small" @click="navigate(scope.row)">去处理</el-button>
               </template>
             </el-table-column>
           </el-table>

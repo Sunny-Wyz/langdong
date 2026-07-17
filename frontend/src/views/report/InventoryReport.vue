@@ -6,7 +6,7 @@
           <span class="title-icon">📊</span>
           <div class="title">库存分析报告</div>
           <div class="head-btn-group">
-            <el-button type="success" size="small" @click="exportCsv">📥 导出 CSV</el-button>
+            <el-button size="small" @click="exportCsv">📥 导出 CSV</el-button>
           </div>
         </div>
       </template>

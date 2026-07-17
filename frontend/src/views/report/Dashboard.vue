@@ -13,7 +13,7 @@
       <el-tag v-if="todoBar.overduePO > 0" size="small" class="todo-tag" style="background:#e6f7ff;color:#1890ff;border-color:#91d5ff">
         采购延期 {{ todoBar.overduePO }} 条
       </el-tag>
-      <el-button type="primary" link size="small" class="todo-link" @click="goToWarning">查看全部 →</el-button>
+      <el-button size="small" class="todo-link" @click="goToWarning">查看全部 →</el-button>
     </div>
 
     <!-- 月份筛选栏 -->
@@ -99,7 +99,7 @@
           <div class="title">库存预警</div>
           <div class="head-btn-group">
             <el-badge :value="lowStockList.length" type="danger" style="margin-right: 15px;"></el-badge>
-            <el-button type="primary" link size="small" class="header-link" @click="goToWarning">查看全部 →</el-button>
+            <el-button size="small" class="header-link" @click="goToWarning">查看全部 →</el-button>
           </div>
         </div>
       </template>
@@ -116,7 +116,7 @@
         <el-table-column prop="detail" label="详情" min-width="220" show-overflow-tooltip></el-table-column>
         <el-table-column label="操作" width="90" align="center">
           <template #default>
-            <el-button size="small" type="primary" plain @click="goToWarning">去处理</el-button>
+            <el-button size="small" @click="goToWarning">去处理</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -376,7 +376,7 @@ function resizeCharts() {
 }
 
 function goToWarning() {
-  router.push('/report/warning-center')
+  router.push('/home/warning-center')
 }
 
 // 侦听全局月份选择变化
