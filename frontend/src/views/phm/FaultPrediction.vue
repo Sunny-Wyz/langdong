@@ -69,8 +69,8 @@
           <el-option label="中风险 (50-70%)" :value="0.5" />
           <el-option label="低风险 (<50%)" :value="0" />
         </el-select>
-        <el-button type="primary" @click="handleQuery">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button size="small" @click="handleQuery">查询</el-button>
+        <el-button size="small" @click="handleReset">重置</el-button>
       </div>
       <div class="toolbar-right">
         <el-switch
@@ -131,16 +131,12 @@
           <template #default="{ row }">
             <el-button
               v-if="hasPermission('phm:prediction:predict')"
-              type="primary"
-              link
               size="small"
               @click="handleRePredict(row)"
             >
               重新预测
             </el-button>
             <el-button
-              type="primary"
-              link
               size="small"
               @click="handleViewHistory(row)"
             >

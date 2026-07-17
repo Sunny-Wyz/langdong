@@ -21,7 +21,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="load">🔍 查询</el-button>
+          <el-button size="small" @click="load">🔍 查询</el-button>
         </el-form-item>
       </el-form>
 
@@ -42,12 +42,11 @@
         </el-table-column>
         <el-table-column prop="expectedDate" label="期望到货" width="120" />
         <el-table-column prop="actualDate" label="实际到货" width="120" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="scope">
             <el-button
               v-if="scope.row.orderStatus === '已下单'"
               size="small"
-              type="warning"
               @click="advance(scope.row, '已发货')"
             >
               标记发货
@@ -55,7 +54,6 @@
             <el-button
               v-if="scope.row.orderStatus === '已发货'"
               size="small"
-              type="primary"
               @click="advance(scope.row, '到货')"
             >
               确认到货
@@ -63,7 +61,6 @@
             <el-button
               v-if="scope.row.orderStatus === '到货'"
               size="small"
-              type="success"
               @click="goAccept(scope.row)"
             >
               去验收

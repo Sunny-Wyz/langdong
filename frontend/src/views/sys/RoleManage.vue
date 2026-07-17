@@ -6,7 +6,7 @@
           <span class="title-icon">🔐</span>
           <div class="title">角色管理</div>
           <div class="head-btn-group">
-            <el-button type="primary" size="small" @click="handleAdd">新增角色</el-button>
+            <el-button size="small" @click="handleAdd">新增角色</el-button>
           </div>
         </div>
       </template>
@@ -16,13 +16,14 @@
         <el-table-column prop="code" label="角色编码" sortable="custom" />
         <el-table-column prop="name" label="角色名称" />
         <el-table-column prop="remark" label="备注" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button size="small" type="success" @click="handleAssignMenus(scope.row)">权限分配</el-button>
+            <el-button size="small" @click="handleAssignMenus(scope.row)">权限分配</el-button>
             <el-button
               size="small"
               type="danger"
+              link
               @click="handleDelete(scope.row)"
               v-if="scope.row.code !== 'ADMIN'"
             >

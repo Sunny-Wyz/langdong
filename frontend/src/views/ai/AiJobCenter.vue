@@ -6,7 +6,7 @@
           <i class="el-icon-s-operation" />
           <div class="title">AI 任务中心</div>
           <div class="head-btn-group">
-            <el-button type="primary" link @click="router.push('/ai/forecast-result')">返回预测结果</el-button>
+            <el-button size="small" @click="router.push('/ai/forecast-result')">返回预测结果</el-button>
           </div>
         </div>
       </template>
@@ -38,7 +38,7 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="submitting" :disabled="!hasTriggerPermission" @click="submitJob">提交补货任务</el-button>
+          <el-button :loading="submitting" :disabled="!hasTriggerPermission" @click="submitJob">提交补货任务</el-button>
           <el-button @click="refreshAllRunning" :loading="refreshing">刷新进行中任务</el-button>
           <el-button @click="clearFinished">清理已完成</el-button>
         </el-form-item>
@@ -70,15 +70,17 @@
         <el-table-column prop="resultSummary" label="结果摘要" min-width="220" show-overflow-tooltip />
         <el-table-column prop="error" label="错误信息" min-width="180" show-overflow-tooltip />
         <el-table-column prop="updatedAt" label="更新时间" width="170" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="scope">
-            <el-button type="primary" link size="small" @click="queryTask(scope.row.taskId)">刷新</el-button>
-            <el-button type="primary" link size="small" :disabled="!scope.row.payloadData" @click="openResultDialog(scope.row)">查看结果</el-button>
-            <el-button type="primary" link size="small" @click="copyTaskId(scope.row.taskId)">复制ID</el-button>
+            <el-button size="small" @click="queryTask(scope.row.taskId)">刷新</el-button>
+            <el-button
+              size="small"
+              :disabled="!scope.row.payloadData"
+              @click="openResultDialog(scope.row)"
+            >查看结果</el-button>
+            <el-button size="small" @click="copyTaskId(scope.row.taskId)">复制ID</el-button>
             <el-button
               v-if="isRunning(scope.row.status)"
-              type="primary"
-              link
               size="small"
               @click="stopPolling(scope.row.taskId)"
             >暂停轮询</el-button>
@@ -558,4 +560,5 @@ onBeforeUnmount(() => {
 .search-form {
   margin-bottom: 14px;
 }
+/* button style unified globally */
 </style>

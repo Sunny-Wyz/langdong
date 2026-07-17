@@ -1,17 +1,36 @@
 <template>
   <div class="page-container">
-    <el-card>
+    <el-card class="apply-card" shadow="never">
       <template #header>
         <div class="phead header">
-          <span class="title-icon">📊</span>
+          <span class="title-icon" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+              <rect x="1" y="9" width="3" height="6" rx="0.5" />
+              <rect x="6.5" y="5" width="3" height="10" rx="0.5" />
+              <rect x="12" y="1" width="3" height="14" rx="0.5" />
+            </svg>
+          </span>
           <div class="title">发起采购申请</div>
           <div class="head-btn-group" />
         </div>
       </template>
 
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="120px" style="max-width: 700px">
+      <el-form
+        ref="formRef"
+        class="apply-form"
+        :model="form"
+        :rules="rules"
+        label-width="120px"
+        label-position="right"
+      >
         <el-form-item label="备件" prop="sparePartId">
-          <el-select v-model="form.sparePartId" placeholder="请选择备件" style="width: 100%" filterable @change="onPartChange">
+          <el-select
+            v-model="form.sparePartId"
+            placeholder="请选择备件"
+            filterable
+            class="field-full"
+            @change="onPartChange"
+          >
             <el-option
               v-for="p in spareParts"
               :key="p.id"
@@ -22,13 +41,28 @@
         </el-form-item>
 
         <el-form-item label="供应商" prop="supplierId">
-          <el-select v-model="form.supplierId" placeholder="请选择供应商" style="width: 100%" filterable>
-            <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
+          <el-select
+            v-model="form.supplierId"
+            placeholder="请选择供应商"
+            filterable
+            class="field-full"
+          >
+            <el-option
+              v-for="s in suppliers"
+              :key="s.id"
+              :label="s.name"
+              :value="s.id"
+            />
           </el-select>
         </el-form-item>
 
         <el-form-item label="采购数量" prop="orderQty">
-          <el-input-number v-model="form.orderQty" :min="1" style="width: 180px" />
+          <el-input-number
+            v-model="form.orderQty"
+            :min="1"
+            :step="1"
+            class="field-qty"
+          />
         </el-form-item>
 
         <el-form-item label="期望到货日期" prop="expectedDate">
@@ -37,12 +71,19 @@
             type="date"
             value-format="YYYY-MM-DD"
             placeholder="选择日期"
-            style="width: 200px"
+            class="field-date"
           />
         </el-form-item>
 
         <el-form-item label="备注">
-          <el-input type="textarea" :rows="3" v-model="form.remark" placeholder="请输入采购原因或备注" />
+          <el-input
+            v-model="form.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入采购原因或备注"
+            class="field-full"
+            resize="both"
+          />
         </el-form-item>
 
         <el-alert
@@ -50,12 +91,12 @@
           type="info"
           :closable="false"
           title="本次采购由系统补货建议触发，提交后将自动更新建议状态为「已采购」"
-          style="margin-bottom: 16px"
+          class="suggest-alert"
         />
 
-        <el-form-item>
-          <el-button type="primary" @click="submit" :loading="submitting">提交申请</el-button>
-          <el-button @click="reset">重置</el-button>
+        <el-form-item class="form-actions">
+          <el-button size="small" :loading="submitting" @click="submit">提交申请</el-button>
+          <el-button size="small" @click="reset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -135,9 +176,84 @@ async function submit() {
 
 function reset() {
   formRef.value?.resetFields()
+  form.orderQty = 1
+  form.remark = ''
 }
 
 onMounted(() => {
   loadOptions()
 })
 </script>
+
+<style scoped>
+.apply-card {
+  border: 1px solid #e8eaee;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ecedf2;
+}
+
+.apply-card :deep(.el-card__header) {
+  padding: 0;
+  border-bottom: 0;
+}
+
+.apply-card :deep(.el-card__body) {
+  padding: 20px 24px 28px;
+}
+
+.title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 1px;
+  border: 1px solid #0f3086;
+  border-radius: 4px;
+  color: #0f3086;
+  flex-shrink: 0;
+}
+
+.apply-form {
+  max-width: 640px;
+  padding-top: 8px;
+}
+
+.apply-form :deep(.el-form-item) {
+  margin-bottom: 22px;
+}
+
+.apply-form :deep(.el-form-item__label) {
+  color: #606266;
+  font-weight: 400;
+}
+
+.field-full {
+  width: 100%;
+}
+
+.field-qty {
+  width: 160px;
+}
+
+.field-date {
+  width: 200px;
+}
+
+.suggest-alert {
+  margin: 0 0 16px 120px;
+  max-width: 520px;
+}
+
+.form-actions {
+  margin-bottom: 0;
+  margin-top: 4px;
+}
+
+.form-actions :deep(.el-form-item__content) {
+  display: flex;
+  gap: 12px;
+}
+
+/* button style unified globally */
+</style>

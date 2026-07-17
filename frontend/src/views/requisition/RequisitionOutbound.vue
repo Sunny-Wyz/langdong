@@ -6,7 +6,7 @@
           <span class="title-icon">📤</span>
           <div class="title">领用出库确认</div>
           <div class="head-btn-group">
-            <el-button type="primary" size="small" @click="loadData" style="float: right">🔄 刷新</el-button>
+            <el-button size="small" @click="loadData" style="float: right">🔄 刷新</el-button>
           </div>
         </div>
       </template>
@@ -31,9 +31,10 @@
             {{ formatTime(row.applyTime) }}
           </template>
         </el-table-column>
+        <el-table-column prop="remark" label="事由" show-overflow-tooltip />
         <el-table-column label="操作" width="120" align="center">
           <template #default="{ row }">
-            <el-button type="success" size="small" @click="openDialog(row)">发料出库</el-button>
+            <el-button size="small" @click="openDialog(row)">发料出库</el-button>
           </template>
         </el-table-column>
       </el-table>

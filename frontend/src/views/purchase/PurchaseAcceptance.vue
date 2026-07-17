@@ -62,7 +62,7 @@
         />
 
         <el-form-item>
-          <el-button type="primary" @click="submitAcceptance" :loading="submitting">提交验收</el-button>
+          <el-button size="small" @click="submitAcceptance" :loading="submitting">提交验收</el-button>
         </el-form-item>
       </el-form>
     </el-card>

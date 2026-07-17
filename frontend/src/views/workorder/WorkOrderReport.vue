@@ -46,8 +46,8 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="submitReport" :loading="submitting">提交报修</el-button>
-          <el-button @click="resetForm">🔄 重置</el-button>
+          <el-button size="small" @click="submitReport" :loading="submitting">提交报修</el-button>
+          <el-button size="small" @click="resetForm">🔄 重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>

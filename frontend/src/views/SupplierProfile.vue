@@ -6,8 +6,8 @@
                 <span class="title-icon">🛒</span>
                 <div class="title">供应商档案管理</div>
                 <div class="head-btn-group">
-                <el-button style="float: right;" type="primary" size="small" @click="handleAdd">新增供应商</el-button>
-                <el-button style="float: right; margin-right: 10px;" type="info" size="small"
+                <el-button style="float: right;" size="small" @click="handleAdd">新增供应商</el-button>
+                <el-button style="float: right; margin-right: 10px;" size="small"
                     @click="goToCategory">品类字典</el-button>
                 </div>
               </div>
@@ -32,11 +32,11 @@
                         <el-tag :type="row.status === '正常' ? 'success' : 'danger'">{{ row.status }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="280" align="center">
+                <el-table-column label="操作" width="220" align="center">
                     <template #default="{ row }">
-                        <el-button type="success" size="small" @click="handleCategories(row)">供货品类</el-button>
-                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                        <el-button size="small" @click="handleCategories(row)">供货品类</el-button>
+                        <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>

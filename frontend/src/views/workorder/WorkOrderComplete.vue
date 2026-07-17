@@ -32,7 +32,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120" align="center" fixed="right">
           <template #default="scope">
-            <el-button type="success" size="small" @click="openComplete(scope.row)">完工确认</el-button>
+            <el-button size="small" @click="openComplete(scope.row)">完工确认</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -79,7 +79,7 @@
             <el-alert type="info" :closable="false" show-icon title="备件费用由系统根据关联领用单自动汇总，无需手动填写" />
           </el-form-item>
           <el-form-item>
-            <el-button type="success" @click="submitComplete" :loading="submitting">确认完工</el-button>
+            <el-button type="primary" @click="submitComplete" :loading="submitting">确认完工</el-button>
             <el-button @click="closeDrawer">取消</el-button>
           </el-form-item>
         </el-form>

@@ -9,7 +9,7 @@
           </div>
           <div class="header-actions">
             <el-button size="small" :loading="loading" @click="fetchStatus">刷新</el-button>
-            <el-button size="small" type="primary" link @click="router.push('/ai/weekly-forecast')">返回周粒度预测</el-button>
+            <el-button size="small" class="ghost-btn" @click="router.push('/ai/weekly-forecast')">返回周粒度预测</el-button>
           </div>
         </div>
       </template>
@@ -294,6 +294,17 @@ onBeforeUnmount(() => {
 }
 .header-actions .el-button {
   margin-left: 8px;
+}
+.ghost-btn {
+  background: #fff !important;
+  border: 1px solid #0f3086 !important;
+  color: #0f3086 !important;
+}
+.ghost-btn:hover,
+.ghost-btn:focus {
+  background: #fff !important;
+  border-color: #0f3086 !important;
+  color: #0f3086 !important;
 }
 .page-alert {
   margin-bottom: 16px;

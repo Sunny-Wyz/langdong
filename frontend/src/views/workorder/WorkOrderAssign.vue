@@ -28,7 +28,7 @@
         <el-table-column prop="faultDesc" label="故障描述" show-overflow-tooltip />
         <el-table-column label="操作" width="100" align="center" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="openAssign(scope.row)">派工</el-button>
+            <el-button size="small" @click="openAssign(scope.row)">派工</el-button>
           </template>
         </el-table-column>
       </el-table>

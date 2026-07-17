@@ -27,7 +27,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button class="ghost-btn" @click="handleSearch">查询</el-button>
           <el-button @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
@@ -372,5 +372,16 @@ onBeforeUnmount(() => {
 .pagination {
   margin-top: 20px;
   text-align: right;
+}
+.ghost-btn {
+  background: #fff !important;
+  border: 1px solid #0f3086 !important;
+  color: #0f3086 !important;
+}
+.ghost-btn:hover,
+.ghost-btn:focus {
+  background: #fff !important;
+  border-color: #0f3086 !important;
+  color: #0f3086 !important;
 }
 </style>

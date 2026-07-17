@@ -6,7 +6,7 @@
           <span class="title-icon">✅</span>
           <div class="title">审批领用申请</div>
           <div class="head-btn-group">
-            <el-button type="primary" size="small" @click="loadData" style="float: right">🔄 刷新</el-button>
+            <el-button size="small" @click="loadData" style="float: right">🔄 刷新</el-button>
           </div>
         </div>
       </template>
@@ -34,7 +34,7 @@
         <el-table-column prop="remark" label="事由" show-overflow-tooltip />
         <el-table-column label="操作" width="120" align="center">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="openDrawer(row)">查阅审批</el-button>
+            <el-button size="small" @click="openDrawer(row)">查阅审批</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -72,7 +72,7 @@
 
           <div style="margin-top: 20px; text-align: center">
             <el-button type="danger" @click="submitApproval('REJECT')" :loading="submitting">驳回重填</el-button>
-            <el-button type="success" @click="submitApproval('APPROVE')" :loading="submitting">同意放行</el-button>
+            <el-button type="primary" @click="submitApproval('APPROVE')" :loading="submitting">同意放行</el-button>
           </div>
         </div>
       </div>

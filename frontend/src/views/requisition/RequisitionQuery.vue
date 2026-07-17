@@ -23,7 +23,7 @@
           <el-option label="已结案 (INSTALLED)" value="INSTALLED" />
           <el-option label="已驳回 (REJECTED)" value="REJECTED" />
         </el-select>
-        <el-button type="primary" @click="loadData">🔍 查询/刷新过滤</el-button>
+        <el-button size="small" @click="loadData">🔍 查询/刷新过滤</el-button>
       </div>
 
       <el-table :data="list" border stripe style="width: 100%" v-loading="loading">
@@ -49,9 +49,10 @@
             {{ formatTime(row.applyTime) }}
           </template>
         </el-table-column>
+        <el-table-column prop="remark" label="事由" show-overflow-tooltip />
         <el-table-column label="详情查阅" width="120" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="openDialog(row)">追溯明细档案</el-button>
+            <el-button size="small" @click="openDialog(row)">追溯明细档案</el-button>
           </template>
         </el-table-column>
       </el-table>

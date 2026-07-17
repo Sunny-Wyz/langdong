@@ -14,7 +14,7 @@
           <el-input v-model="poCode" placeholder="请输入采购单号 (例: PO202602270001)" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="fetchPendingItems">加载待收明细</el-button>
+          <el-button size="small" @click="fetchPendingItems">加载待收明细</el-button>
         </el-form-item>
       </el-form>
 
@@ -48,7 +48,6 @@
         </el-checkbox>
         <div style="margin-top: 15px; text-align: center;">
           <el-button
-            type="success"
             @click="submitStockIn"
             :disabled="hasOverReceiving && !allowOverReceive"
           >

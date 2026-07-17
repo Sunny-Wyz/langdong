@@ -44,7 +44,7 @@
 
         <el-form-item label="申请物料明细" required>
           <div style="margin-bottom: 10px;">
-            <el-button type="primary" size="small" @click="showSparePartDialog">➕ 添加备件</el-button>
+            <el-button size="small" @click="showSparePartDialog">➕ 添加备件</el-button>
           </div>
           <el-table :data="form.items" border style="width: 100%">
             <el-table-column prop="sparePartCode" label="备件编码" width="150" sortable="custom" />
@@ -56,15 +56,15 @@
             </el-table-column>
             <el-table-column label="操作" width="100" align="center">
               <template #default="scope">
-                <el-button type="danger" circle size="small" @click="removeItem(scope.$index)">🗑</el-button>
+                <el-button type="danger" link size="small" @click="removeItem(scope.$index)">移除</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="submitApply" :loading="submitting">提交申请</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button size="small" @click="submitApply" :loading="submitting">提交申请</el-button>
+          <el-button size="small" @click="resetForm">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>

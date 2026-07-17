@@ -381,3 +381,7 @@ F - 需求预测模块逻辑收敛（目标月/主链路/训练集/任务落库/
 F - 训练看板体验+业务样本种子+生成窗口贴齐 - 1) 看板默认插补=否、出库量优先排序、meta 增加非零占比/最近有消耗日、空态提示；2) generate 脚本 end=LEAST(昨天,业务最大出库日) 并清理窗外行；3) 新增 sql/seed_recent_requisition_consumption.sql 近6个月约20%工作日领用出库种子；4) 已执行种子+重建日表：nonzero≈2542/36500，last_demand=昨天。
 F - 收敛预测模块：隐藏周粒度/训练看板，删除 RF·SBA 与多余入口 - 前端仅保留 forecast-result 与 job-center；DB 菜单隐藏 weekly/training-progress/train-data-dashboard 并撤权；删除 RandomForest/SBA/AiFeature/OldStockThreshold/ForecastController/WeeklyForecastController/AiTrainData*；AiForecastService 仅查询+异步回调落库；月度重算唯一走 MonthlyForecastScheduler+Hurdle-Gamma。
 F - 报表侧栏与库存/维修费用数据可用性修复 - 隐藏周粒度/训练看板菜单；修复库存 ABC 字段映射；补滞库与 7 月维修费用数据；维修费用 API 路径对齐 cost-by-month/cost-by-device；落实于 Documents/langdong 运行目录并同步 worktree。
+
+F - 发起采购申请页 UI 对齐参考截图 - 已落实。PurchaseApply.vue：蓝色柱状图标题图标、表单间距/字段宽度（备件与供应商全宽、数量160、日期200）、卡片内边距与按钮主色#0f3086；Home.vue 顶栏退出登录改为线性图标样式，与参考图一致。
+F - AI模块次要操作按钮改为白底描边 - 已落实。需求预测结果页「任务中心」「手动触发重算」「历史趋势」、任务中心操作列与返回按钮、训练看板/训练进度头部按钮由 primary link 改为 ghost-btn（白底 + #0f3086 描边）；reference-theme 补充全局 .ghost-btn 与 default 按钮白底样式。
+F - 查询/重置按钮改为白底描边 - 已落实。AiForecastResult、AiTrainDataDashboard、WeeklyForecastResult 的「查询」「重置」由 primary 实心改为 ghost-btn 白底描边，与任务中心/历史趋势按钮风格一致。

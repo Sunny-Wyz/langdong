@@ -7,8 +7,8 @@
         <div class="head-btn-group">
           <el-button size="small" @click="handleFilter">🔍 查询</el-button>
           <el-button size="small" @click="resetFilter">🔄 重置</el-button>
-          <el-button size="small" type="success" @click="importDialogVisible = true">📤 批量导入</el-button>
-          <el-button size="small" type="primary" @click="dialogVisible = true">➕ 增加备件</el-button>
+          <el-button v-if="hasImportPermission" size="small" type="success" @click="importDialogVisible = true">📤 批量导入</el-button>
+          <el-button v-if="hasAddPermission" size="small" @click="dialogVisible = true">➕ 增加备件</el-button>
         </div>
       </div>
 
@@ -72,9 +72,9 @@
             {{ getLocationName(row.locationId) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" align="center" fixed="right">
+        <el-table-column v-if="hasAddPermission" label="操作" width="160" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">✏️ 编辑</el-button>
+            <el-button size="small" @click="handleEdit(row)">✏️ 编辑</el-button>
             <el-button type="danger" link size="small" @click="handleDelete(row)">🗑️ 删除</el-button>
           </template>
         </el-table-column>
@@ -195,6 +195,21 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
+import { useAuthStore } from '../store/auth'
+
+const authStore = useAuthStore()
+
+const hasAddPermission = computed(() => {
+  const permissions = authStore.permissions || []
+  const username = authStore.username
+  return permissions.includes('base:spare:add') || username === 'admin'
+})
+
+const hasImportPermission = computed(() => {
+  const permissions = authStore.permissions || []
+  const username = authStore.username
+  return permissions.includes('base:spare:import') || username === 'admin'
+})
 
 // State variables
 const list = ref<any[]>([])

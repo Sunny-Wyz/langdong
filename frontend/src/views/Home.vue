@@ -68,7 +68,16 @@
       <!-- 顶部导航 -->
       <el-header class="home-header">
         <span class="header-user">{{ username }}</span>
-        <el-button type="primary" link @click="logout">🚪 退出登录</el-button>
+        <el-button type="primary" link class="logout-btn" @click="logout">
+          <span class="logout-icon" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v7A1.5 1.5 0 0 0 3.5 13H6" />
+              <path d="M10 11l3-3-3-3" />
+              <path d="M13 8H6.5" />
+            </svg>
+          </span>
+          退出登录
+        </el-button>
       </el-header>
 
       <!-- 主内容区 -->
@@ -159,10 +168,13 @@ function getMenuIconEmoji(iconClass: string | null | undefined): string {
   if (iconClass.includes('folder') || iconClass.includes('collection')) return '📁'
   if (iconClass.includes('user')) return '👤'
   if (iconClass.includes('lock') || iconClass.includes('key')) return '🔒'
-  if (iconClass.includes('cpu')) return '🤖'
+  if (iconClass.includes('cpu')) return '💡'
   if (iconClass.includes('tools') || iconClass.includes('odometer')) return '🔧'
   if (iconClass.includes('sell') || iconClass.includes('sold')) return '📤'
   if (iconClass.includes('truck')) return '🚚'
+  if (iconClass.includes('bell') || iconClass.includes('message')) return '🔔'
+  if (iconClass.includes('price') || iconClass.includes('ticket')) return '🏷️'
+  if (iconClass.includes('circle-check') || iconClass.includes('check')) return '✅'
   return '📄'
 }
 
@@ -238,6 +250,22 @@ onMounted(() => {
 .header-user {
   margin-right: 12px;
   color: #606266;
+  font-size: 14px;
+}
+
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #0f3086 !important;
+  font-size: 14px;
+}
+
+.logout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .home-main {

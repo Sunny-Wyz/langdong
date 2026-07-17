@@ -54,7 +54,7 @@
         <!-- 手动触发重算（仅ADMIN可见） -->
         <el-button
           v-if="hasPermission('classify:trigger:run')"
-          type="warning"
+          size="small"
           :loading="triggering"
           @click="handleTrigger"
           style="margin-left:10px"

@@ -9,8 +9,13 @@
             月特征来自领用月汇总现算（两阶段 Hurdle-Gamma），非「训练数据看板」日表
           </span>
           <div class="head-btn-group">
-            <el-button type="primary" link @click="goJobCenter" v-if="hasJobCenterPermission">任务中心</el-button>
-            <el-button type="primary" link :loading="triggeringForecast" @click="triggerForecast" v-if="hasTriggerPermission">手动触发重算（下月·Hurdle-Gamma）</el-button>
+            <el-button v-if="hasJobCenterPermission" size="small" @click="goJobCenter">任务中心</el-button>
+            <el-button
+              v-if="hasTriggerPermission"
+              size="small"
+              :loading="triggeringForecast"
+              @click="triggerForecast"
+            >手动触发重算（下月·Hurdle-Gamma）</el-button>
           </div>
         </div>
       </template>
@@ -44,8 +49,8 @@
           <el-input v-model="searchForm.partCode" placeholder="输入备件编码或名称" clearable></el-input>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">🔍 查询</el-button>
-          <el-button @click="resetSearch">🔄 重置</el-button>
+          <el-button size="small" @click="handleSearch">🔍 查询</el-button>
+          <el-button size="small" @click="resetSearch">🔄 重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -115,7 +120,7 @@
         <el-table-column prop="createTime" label="计算时间" width="160"></el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="scope">
-            <el-button @click="showTrend(scope.row)" type="primary" link size="small">📈 历史趋势</el-button>
+            <el-button size="small" @click="showTrend(scope.row)">📈 历史趋势</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -580,4 +585,6 @@ onBeforeUnmount(() => {
   margin-top: 20px;
   text-align: right;
 }
+
+/* button style unified globally */
 </style>

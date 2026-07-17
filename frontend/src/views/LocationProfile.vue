@@ -6,7 +6,7 @@
                 <span class="title-icon">📁</span>
                 <div class="title">货位档案管理</div>
                 <div class="head-btn-group">
-                <el-button style="float: right; margin-left: 10px;" type="primary" size="small" @click="handleAdd">
+                <el-button v-if="hasAddPermission" style="float: right; margin-left: 10px;" size="small" @click="handleAdd">
                     新增货位
                 </el-button>
                 </div>
@@ -32,11 +32,11 @@
                 </el-table-column>
                 <el-table-column prop="capacity" label="货位容量" width="120" />
                 <el-table-column prop="remark" label="备注" show-overflow-tooltip />
-                <el-table-column label="操作" width="250" fixed="right" align="center">
+                <el-table-column label="操作" :width="hasAddPermission ? 220 : 100" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="info" size="small" @click="handleViewSpareParts(row)">查看备件</el-button>
-                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                        <el-button size="small" @click="handleViewSpareParts(row)">查看备件</el-button>
+                        <el-button v-if="hasAddPermission" size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button v-if="hasAddPermission" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -97,6 +97,15 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
+import { useAuthStore } from '../store/auth'
+
+const authStore = useAuthStore()
+
+const hasAddPermission = computed(() => {
+  const permissions = authStore.permissions || []
+  const username = authStore.username
+  return permissions.includes('base:location:add') || username === 'admin'
+})
 
 const list = ref<any[]>([])
 const loading = ref(true)

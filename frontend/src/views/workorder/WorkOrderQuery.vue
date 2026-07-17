@@ -47,8 +47,8 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="loadList">🔍 查询</el-button>
-          <el-button @click="resetQuery">🔄 重置</el-button>
+          <el-button size="small" @click="loadList">🔍 查询</el-button>
+          <el-button size="small" @click="resetQuery">🔄 重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -84,7 +84,7 @@
         </el-table-column>
         <el-table-column label="操作" width="80" align="center" fixed="right">
           <template #default="scope">
-            <el-button type="primary" link @click="viewDetail(scope.row)">详情</el-button>
+            <el-button size="small" @click="viewDetail(scope.row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>

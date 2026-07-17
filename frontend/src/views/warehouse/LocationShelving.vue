@@ -6,7 +6,7 @@
           <span class="title-icon">📍</span>
           <div class="title">货位上架工作台 (Pending Shelving)</div>
           <div class="head-btn-group">
-            <el-button type="primary" size="small" @click="fetchPendingItems">🔄 刷新</el-button>
+            <el-button size="small" @click="fetchPendingItems">🔄 刷新</el-button>
           </div>
         </div>
       </template>
@@ -27,14 +27,13 @@
         <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button
-              type="primary"
               size="small"
               @click="handleShelving(row)"
               :disabled="(row.shelvedQuantity || 0) >= row.actualQuantity"
             >
               一键分配
             </el-button>
-            <el-button type="success" size="small" @click="handlePrintLabel(row)">🖨 打标签</el-button>
+            <el-button size="small" @click="handlePrintLabel(row)">🖨 打标签</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -73,13 +72,13 @@
         </el-table-column>
         <el-table-column label="操作" width="80" align="center">
           <template #default="scope">
-            <el-button type="danger" circle size="small" @click="removeDistLine(scope.$index)">🗑</el-button>
+            <el-button type="danger" link size="small" @click="removeDistLine(scope.$index)">移除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div style="margin-top: 15px;">
-        <el-button type="primary" plain size="small" @click="addDistLine">➕ 增加货位</el-button>
+        <el-button size="small" @click="addDistLine">➕ 增加货位</el-button>
       </div>
 
       <template #footer>

@@ -95,7 +95,7 @@
         </el-input>
 
         <!-- 重置按钮 -->
-        <el-button @click="resetFilter">重置</el-button>
+        <el-button size="small" @click="resetFilter">重置</el-button>
       </div>
 
       <div class="action-area">
@@ -174,23 +174,19 @@
 
         <el-table-column label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="viewDetail(row)">详情</el-button>
+            <el-button size="small" @click="viewDetail(row)">详情</el-button>
             <el-button
               v-if="row.status === 'PENDING' && hasPermission('phm:suggestion:approve')"
-              type="primary"
-              link
               size="small"
-              style="color: #67c23a"
               @click="approveSuggestion(row)"
             >
               采纳
             </el-button>
             <el-button
               v-if="row.status === 'PENDING' && hasPermission('phm:suggestion:reject')"
-              type="primary"
+              type="danger"
               link
               size="small"
-              style="color: #f56c6c"
               @click="rejectSuggestion(row)"
             >
               拒绝

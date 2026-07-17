@@ -31,10 +31,10 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" align="center">
+        <el-table-column label="操作" width="140" align="center">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="launchPurchase(scope.row)">发起采购</el-button>
-            <el-button type="warning" size="small" @click="ignoreSuggest(scope.row)">忽略</el-button>
+            <el-button size="small" @click="launchPurchase(scope.row)">发起采购</el-button>
+            <el-button type="danger" link size="small" @click="ignoreSuggest(scope.row)">忽略</el-button>
           </template>
         </el-table-column>
       </el-table>

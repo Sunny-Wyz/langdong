@@ -62,7 +62,7 @@
         />
         <el-button
           v-if="hasPermission('phm:health:evaluate')"
-          type="primary"
+          size="small"
           :loading="triggering"
           @click="handleTriggerEvaluation"
         >
@@ -109,12 +109,12 @@
 
         <el-table-column prop="recordDate" label="评估日期" width="120" align="center" />
 
-        <el-table-column label="操作" width="150" align="center">
+        <el-table-column label="操作" width="160" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="viewTrend(row.deviceId)">
+            <el-button size="small" @click="viewTrend(row.deviceId)">
               查看趋势
             </el-button>
-            <el-button type="primary" link size="small" @click="viewDetails(row.deviceId)">
+            <el-button size="small" @click="viewDetails(row.deviceId)">
               详情
             </el-button>
           </template>

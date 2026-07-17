@@ -63,7 +63,7 @@
             <el-input v-model="quoteForm.remark" placeholder="选填" style="width: 160px" />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="addQuote">录入</el-button>
+            <el-button size="small" @click="addQuote">录入</el-button>
           </el-form-item>
         </el-form>
       </el-card>
@@ -90,7 +90,6 @@
           <template #default="scope">
             <el-button
               v-if="!scope.row.isSelected"
-              type="success"
               size="small"
               @click="selectWinner(scope.row)"
             >

@@ -6,7 +6,7 @@
           <span class="title-icon">📒</span>
           <div class="title">库存台账</div>
           <div class="head-btn-group">
-            <el-button type="primary" size="small" @click="refreshData">🔄 刷新</el-button>
+            <el-button size="small" @click="refreshData">🔄 刷新</el-button>
           </div>
         </div>
       </template>

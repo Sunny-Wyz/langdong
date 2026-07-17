@@ -142,6 +142,7 @@ body {
 .page-container .el-button--default {
   border-color: #0f3086;
   color: #0f3086;
+  background: #fff;
 }
 
 .page-container .el-button--default:hover,
@@ -149,6 +150,32 @@ body {
   border-color: #0f3086;
   color: #0f3086;
   background: #fff;
+}
+
+/* 白底描边按钮（任务中心 / 历史趋势等次要操作） */
+.page-container .ghost-btn.el-button,
+.home-main .ghost-btn.el-button {
+  background: #fff !important;
+  border: 1px solid #0f3086 !important;
+  color: #0f3086 !important;
+}
+
+.page-container .ghost-btn.el-button:hover,
+.page-container .ghost-btn.el-button:focus,
+.home-main .ghost-btn.el-button:hover,
+.home-main .ghost-btn.el-button:focus {
+  background: #fff !important;
+  border-color: #0f3086 !important;
+  color: #0f3086 !important;
+}
+
+.page-container .ghost-btn.el-button.is-disabled,
+.page-container .ghost-btn.el-button:disabled,
+.home-main .ghost-btn.el-button.is-disabled,
+.home-main .ghost-btn.el-button:disabled {
+  background: #fff !important;
+  border-color: #c0c4cc !important;
+  color: #c0c4cc !important;
 }
 
 .page-container .el-button--primary {

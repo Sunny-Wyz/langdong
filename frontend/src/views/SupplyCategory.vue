@@ -6,7 +6,7 @@
                 <span class="title-icon">📂</span>
                 <div class="title">供货品类字典</div>
                 <div class="head-btn-group">
-                <el-button style="float: right;" type="primary" size="small" @click="handleAdd">新增品类</el-button>
+                <el-button style="float: right;" size="small" @click="handleAdd">新增品类</el-button>
                 <el-button style="float: right; margin-right: 10px;" size="small"
                     @click="$router.push('/home/supplier-profiles')">返回供应商列表</el-button>
                 </div>
@@ -17,10 +17,10 @@
                 <el-table-column prop="code" label="品类编码" width="120" sortable="custom" />
                 <el-table-column prop="name" label="品类名称" width="150" />
                 <el-table-column prop="description" label="描述" />
-                <el-table-column label="操作" width="150" align="center">
+                <el-table-column label="操作" width="120" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                        <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>

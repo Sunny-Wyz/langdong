@@ -6,7 +6,7 @@
                 <span class="title-icon">⚙️</span>
                 <div class="title">设备档案管理</div>
                 <div class="head-btn-group">
-                <el-button style="float: right; margin-left: 10px;" type="primary" size="small" @click="handleAdd">
+                <el-button style="float: right; margin-left: 10px;" size="small" @click="handleAdd">
                     新增设备
                 </el-button>
                 </div>
@@ -25,11 +25,11 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="remark" label="备注" show-overflow-tooltip />
-                <el-table-column label="操作" width="280" fixed="right" align="center">
+                <el-table-column label="操作" width="220" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="success" size="small" @click="handleManageSpareParts(row)">配套备件</el-button>
-                        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                        <el-button size="small" @click="handleManageSpareParts(row)">配套备件</el-button>
+                        <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+                        <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -77,7 +77,7 @@
                     <el-option v-for="sp in allSpareParts" :key="sp.id" :label="sp.name + ' (' + sp.model + ')'"
                         :value="sp.id" />
                 </el-select>
-                <el-button type="primary" @click="addLinkedSparePart">添加关联</el-button>
+                <el-button size="small" @click="addLinkedSparePart">添加关联</el-button>
             </div>
 
             <el-table :data="linkedSpareParts" border style="width: 100%" v-loading="spLoading">
@@ -91,7 +91,7 @@
                 </el-table-column>
                 <el-table-column label="操作" width="100" align="center">
                     <template #default="{ row }">
-                        <el-button type="danger" size="small" @click="removeLinkedSparePart(row)">移除</el-button>
+                        <el-button type="danger" link size="small" @click="removeLinkedSparePart(row)">移除</el-button>
                     </template>
                 </el-table-column>
             </el-table>

@@ -6,7 +6,7 @@
           <span class="title-icon">👤</span>
           <div class="title">用户管理</div>
           <div class="head-btn-group">
-            <el-button type="primary" size="small" @click="handleAdd" v-if="hasPerm('sys:user:add')">
+            <el-button size="small" @click="handleAdd" v-if="hasPerm('sys:user:add')">
               新增用户
             </el-button>
           </div>
@@ -25,13 +25,14 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button size="small" type="success" @click="handleAssignRoles(scope.row)">分配角色</el-button>
+            <el-button size="small" @click="handleAssignRoles(scope.row)">分配角色</el-button>
             <el-button
               size="small"
               type="danger"
+              link
               @click="handleDelete(scope.row)"
               v-if="scope.row.username !== 'admin'"
             >

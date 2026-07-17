@@ -39,14 +39,14 @@ public class LocationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('base:location:list')")
+    @PreAuthorize("hasAuthority('base:location:add')")
     public Location createLocation(@RequestBody Location location) {
         locationMapper.insert(location);
         return location;
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('base:location:list')")
+    @PreAuthorize("hasAuthority('base:location:add')")
     public ResponseEntity<Location> updateLocation(@PathVariable Long id, @RequestBody Location location) {
         Location existing = locationMapper.findById(id);
         if (existing == null) {
@@ -58,7 +58,7 @@ public class LocationController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('base:location:list')")
+    @PreAuthorize("hasAuthority('base:location:add')")
     public ResponseEntity<Void> deleteLocation(@PathVariable Long id) {
         Location existing = locationMapper.findById(id);
         if (existing == null) {
