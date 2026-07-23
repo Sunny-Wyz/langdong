@@ -403,3 +403,5 @@ F - 真实实验论文叙事对齐（多基线+分层+库存） - 已落实。(1
 F - 按提示词修复论文数据.xlsx（时间窗/覆盖率/Brier/15方法/库存双占优/6新表） - 已落实：scripts/fix_paper_data_xlsx.py 输出 Desktop/rer/论文数据.xlsx，13项自检通过
 
 F - 论文量级实验全链路重跑（seed v6 + narrative_eval 15法 + 导出校验） - 已落实：截止2026-06；两阶段wMAPE15.46/Brier0.10/覆盖90.8；15方法排序；库存双占优；18表导出 Desktop/rer/论文数据.xlsx；validate PASS。
+
+F - 概率基线完整分布 CRPS 对照 - 已落实。baselines.py：LGBMQuantileForecaster/NGBoostLikeForecaster/deepar_samples/tft_samples + empirical_crps；narrative_eval 对 lgbm_q/ngboost/deepar/tft 用完整分布算 CRPS 与自有 90% 覆盖/Brier，点预测 Dirac≡MAE；导出说明与 RealExperimentReport 多方法表增加 CRPS/覆盖/Brier/口径列；paper_narrative_result.json 与 Desktop/rer/论文数据.xlsx 已重跑。

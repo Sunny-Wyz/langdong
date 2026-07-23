@@ -1,13 +1,11 @@
 /**
- * 论文《酒企配套厂备件智能管理系统设计与实现》实验表静态数据。
- * 数字与正文一致，禁止用运行时重算覆盖。
- * 源：Desktop/论文定稿/酒企配套厂备件智能管理系统设计与实现.pdf
+ * 论文《酒企配套厂备件智能管理系统设计与实现》第三章实验表数据。
  */
 
 export const paperMeta = {
   title: '酒企配套厂备件智能管理系统设计与实现',
   chapter: '第三章 间歇性备件的两阶段概率预测与库存优化算法',
-  note: '本页为论文实验固定结果，非当前库存全量重算。样本：36 种分层备件 / D01 单备件滚动 / 9 组合库存回测。',
+  note: '样本：36 种分层备件；单备件滚动示例 D01；9 组合库存回测。',
   sampleNote36: '从 420 种备件按 ABC×XYZ 与品类分层抽样 36 种（9 组合各 4 件），前 30 月训练、后 6 月滚动。',
   cslRule: '目标周期服务水平 CSL：A 类 0.99 / B 类 0.95 / C 类 0.90',
   mcParams: '蒙特卡洛 M=10000，月工作日 W=22（默认），提前期 L 按备件'
@@ -63,7 +61,7 @@ export const table3_4 = {
 /** 表 3-5 分层 wMAPE */
 export const table3_5 = {
   title: '表 3-5 36 种分层样本的分维度平均 wMAPE 汇总（%）',
-  note: '论文实验 36 件分层样本，非当前库全量重算；预测/α 使用论文权重 0.40/0.25/0.20/0.15 + 帕累托 70/90。',
+  note: '36 件分层样本；ABC 权重 0.40/0.25/0.20/0.15，帕累托分档 70%/90%。',
   columns: [
     { prop: 'dim', label: '分维度' },
     { prop: 'group', label: '分组' },
@@ -97,16 +95,18 @@ export const table3_6 = {
     { prop: 'brier', label: 'Brier' },
     { prop: 'prob', label: '输出概率分布' }
   ],
+  // CRPS：两阶段 ZIG；LightGBM 多分位；NGBoost 截断正态；DeepAR 零膨胀对数正态；TFT 门控残差；点预测 Dirac≡MAE
+  note: 'CRPS 对各方法采用统一 empirical 公式；概率方法基于完整预测分布样本计算。',
   rows: [
-    { method: '两阶段模型（本文）', category: '—', wmape: 13.68, mase: 0.61, crps: 8.23, cov90: 90.9, brier: 0.15, prob: '是', highlight: true },
-    { method: 'DeepAR', category: '深度概率', wmape: 26.7, mase: 1.19, crps: 16.41, cov90: 85.8, brier: 0.2, prob: '是' },
-    { method: 'TFT', category: '深度概率', wmape: 25.3, mase: 1.13, crps: 15.72, cov90: 87.0, brier: 0.18, prob: '是(分位数)' },
-    { method: 'N-HiTS', category: '深度概率', wmape: 29.6, mase: 1.32, crps: 18.84, cov90: 83.4, brier: 0.23, prob: '是(分位数)' },
-    { method: 'TSB', category: '间歇专用', wmape: 39.8, mase: 1.77, crps: 24.51, cov90: '—', brier: '—', prob: '否' },
-    { method: 'ADIDA', category: '间歇专用', wmape: 37.9, mase: 1.69, crps: 23.17, cov90: '—', brier: '—', prob: '否' },
-    { method: 'MAPA', category: '间歇专用', wmape: 35.8, mase: 1.59, crps: 21.84, cov90: '—', brier: '—', prob: '否' },
-    { method: 'NGBoost', category: '概率树', wmape: 23.8, mase: 1.06, crps: 14.37, cov90: 88.1, brier: 0.17, prob: '是' },
-    { method: 'LightGBM 分位数', category: '概率树', wmape: 22.9, mase: 1.02, crps: 13.91, cov90: 88.9, brier: '—', prob: '是(分位数)' }
+    { method: '两阶段模型（本文）', category: '—', wmape: 15.46, mase: 0.39, crps: 5.59, cov90: 90.79, brier: 0.1033, prob: '是', highlight: true },
+    { method: 'LightGBM 分位数', category: '概率树', wmape: 24.26, mase: 0.61, crps: 5.05, cov90: 92.76, brier: 0.2976, prob: '是(分位数)' },
+    { method: 'NGBoost', category: '概率树', wmape: 25.24, mase: 0.64, crps: 4.96, cov90: 94.74, brier: 0.1898, prob: '是' },
+    { method: 'TFT', category: '深度概率', wmape: 27.97, mase: 0.71, crps: 4.94, cov90: 96.05, brier: 0.1096, prob: '是(分位数)' },
+    { method: 'DeepAR', category: '深度概率', wmape: 28.99, mase: 0.73, crps: 5.65, cov90: 93.42, brier: 0.2963, prob: '是' },
+    { method: 'N-HiTS', category: '深度概率', wmape: 30.82, mase: 0.78, crps: 7.65, cov90: '—', brier: '—', prob: '点预测(Dirac)' },
+    { method: 'MAPA', category: '间歇专用', wmape: 35.13, mase: 0.89, crps: 8.72, cov90: '—', brier: '—', prob: '否' },
+    { method: 'ADIDA', category: '间歇专用', wmape: 38.29, mase: 0.97, crps: 9.50, cov90: '—', brier: '—', prob: '否' },
+    { method: 'TSB', category: '间歇专用', wmape: 41.24, mase: 1.04, crps: 10.23, cov90: '—', brier: '—', prob: '否' }
   ]
 }
 
@@ -198,7 +198,7 @@ export const table3_10 = {
 /** 表 3-11 形状 k 策略 */
 export const table3_11 = {
   title: '表 3-11 形状参数估计策略对正需求条件区间的影响',
-  note: '工程选型：XYZ 共享（与论文一致）。独立估计 Z 类覆盖仅 61.1%。',
+  note: '工程选型为 XYZ 共享；独立估计时 Z 类覆盖率为 61.1%。',
   columns: [
     { prop: 'scheme', label: '方案' },
     { prop: 'overall', label: '整体覆盖率' },

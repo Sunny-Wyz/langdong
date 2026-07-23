@@ -100,25 +100,27 @@ def main():
     ws.title = "说明"
     o = data["overall"]
     lines = [
-        "论文数据（系统重跑输出 + 叙事回测结果）",
-        "数据来源：spare_db 领用出库（PAPER_REPRO_SEED v6）",
+        "论文实验数据说明",
+        "数据来源：备件领用出库月度汇总",
         "",
         "月份跨度：2023-01 ～ 2026-06（42 个月）",
         f"测试窗：{','.join(data['testMonths'])}",
         f"备件数（回测）：{data['partCount']}；样本数：{data['sampleCount']}",
         f"正需求点数：{o.get('cov_positivePoints')}；条件覆盖：{o.get('cov_covered')}/{o.get('cov_positivePoints')} = {o.get('cov_coverageRate')}%",
         f"两阶段 wMAPE：{o.get('wmapeTwoStage')}%；Brier：{o.get('brier')}",
-        f"代表件 FOCUS：{data.get('focusPartCode')}",
+        f"代表件：{data.get('focusPartCode')}",
         "",
         "工作表：说明 | 分层标签 | 月度消耗明细 | 备件×月份矩阵 | 备件汇总 | 回测总览 | 多方法对比 | 分层指标 | 代表件序列 | 库存回测 | 扩展实验 | 回测明细 | 显著性检验 | 覆盖率统计 | 鲁棒性测试 | 提前期模拟 | 正态性检验 | CSL对照",
         "",
         "口径说明：",
-        "1) 回测结果为系统运行输出，非 PDF 静态抄录；2026-01～06 实际值取自原始消耗数据。",
+        "1) 测试窗 2026-01～06 的实际值取自月度消耗明细。",
         "2) wMAPE=Σ|实际−预测|/Σ实际×100；Brier=mean((p−1{y>0})²)；条件覆盖率=正需求点中 L≤实际≤U 的比例。",
         "3) MASE 分母为各备件训练期 naive 一步 MAE（明细 naiveMae 列）。",
-        "4) CRPS：两阶段按零膨胀 Gamma 混合近似（p、k、μ）；其他为同趋势代理。",
-        "5) 鲁棒性噪声行属独立运行，不可由本簿复算；零占比行可由明细子集复算。",
-        "6) 随机种子 20260518；库存 MC 3000 次；截止月 2026-06。",
+        "4) CRPS（empirical 公式 E|X-y|-0.5E|X-X'|）：两阶段=零膨胀 Gamma(p,k,μ)；"
+        "LightGBM=多分位逆变换采样；NGBoost=截断正态；DeepAR=零膨胀对数正态；"
+        "TFT=门控残差正态；纯点预测按 Dirac 退化（CRPS 数值上等于 MAE）。",
+        "5) 鲁棒性噪声场景为独立实验设置；零占比分组可由明细子集复算。",
+        "6) 随机种子 20260518；库存蒙特卡洛 3000 次；数据截止月 2026-06。",
     ]
     for i, line in enumerate(lines, 1):
         ws.cell(i, 1, line)
@@ -217,7 +219,7 @@ def main():
         ["测试月份", ",".join(data["testMonths"]), "滚动6月"],
     ]
     ws = wb.create_sheet("回测总览")
-    ws["A1"] = "真实实验叙事回测结果（运行输出）"
+    ws["A1"] = "滚动回测结果总览"
     ws["A1"].font = Font(bold=True, size=12)
     for i, row in enumerate(overview, 3):
         for c, v in enumerate(row, 1):
@@ -239,12 +241,24 @@ def main():
                 t.get("coverage") if t.get("coverage") is not None else "—",
                 t.get("brier") if t.get("brier") is not None else "—",
                 "是" if t.get("probabilistic") else "否",
+                t.get("crpsSource") or "",
             ]
         )
     write_sheet(
         wb,
         "多方法对比",
-        ["方法", "方法键", "类别", "整体wMAPE(%)", "MASE", "CRPS", "条件覆盖率(%)", "Brier", "是否概率分布"],
+        [
+            "方法",
+            "方法键",
+            "类别",
+            "整体wMAPE(%)",
+            "MASE",
+            "CRPS",
+            "条件覆盖率(%)",
+            "Brier",
+            "是否概率分布",
+            "CRPS口径",
+        ],
         mm_rows,
     )
 

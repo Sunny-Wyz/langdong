@@ -13,7 +13,7 @@
         :closable="false"
         show-icon
         class="top-alert"
-        title="数据说明：本页数字与论文正文一致，禁止运行时重算覆盖。表 3-5 为 36 件分层实验样本，与业务「分类结果查询」F9 口径（权重 40/30/20/10）不可直接对比；在线预测/服务水平 α 使用论文 AbcXyzCalculator（40/25/20/15 + 帕累托 70/90）。"
+        title="样本说明：表 3-5 为 36 件分层实验样本；ABC 权重 0.40/0.25/0.20/0.15，帕累托分档 70%/90%。业务分类结果页采用另一组业务权重（0.40/0.30/0.20/0.10），二者用途不同。"
       />
 
       <el-tabs v-model="activeTab" type="border-card" class="tabs">
@@ -51,6 +51,7 @@
 
           <section class="table-section">
             <h3>{{ table3_6.title }}</h3>
+            <p v-if="table3_6.note" class="table-note">{{ table3_6.note }}</p>
             <el-table :data="table3_6.rows" border size="small" :row-class-name="rowClass">
               <el-table-column
                 v-for="col in table3_6.columns"

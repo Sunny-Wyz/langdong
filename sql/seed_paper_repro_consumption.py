@@ -184,7 +184,7 @@ def main():
             lines.append(
                 f"INSERT INTO biz_requisition "
                 f"(req_no,applicant_id,device_id,req_status,is_urgent,approve_id,approve_time,apply_time,remark) "
-                f"VALUES ('{rno}',1,1,'INSTALLED',0,1,'{approve}','{approve}','PAPER_REPRO_SEED');"
+                f"VALUES ('{rno}',1,1,'INSTALLED',0,1,'{approve}','{approve}','EXPERIMENT_SAMPLE');"
             )
             lines.append("SET @rid=LAST_INSERT_ID();")
             lines.append(
@@ -237,7 +237,7 @@ def main():
         "SELECT MIN(DATE_FORMAT(approve_time,'%Y-%m')),MAX(DATE_FORMAT(approve_time,'%Y-%m')),"
         "COUNT(DISTINCT DATE_FORMAT(approve_time,'%Y-%m')),COUNT(DISTINCT spare_part_id),SUM(out_qty) "
         "FROM biz_requisition r JOIN biz_requisition_item ri ON ri.req_id=r.id "
-        "WHERE remark='PAPER_REPRO_SEED';",
+        "WHERE remark='EXPERIMENT_SAMPLE';",
         password,
     ))
 

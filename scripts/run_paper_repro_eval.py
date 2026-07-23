@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 离线滚动回测：直接读 spare_db 月度消耗 + 本地 HurdleGammaModel，
-输出与真实实验同口径的 wMAPE/MASE/Brier/覆盖率（不依赖 Java）。
+输出 wMAPE/MASE/Brier/覆盖率等评估指标（不依赖 Java）。
 """
 from __future__ import annotations
 

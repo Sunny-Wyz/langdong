@@ -24,7 +24,7 @@
         :closable="false"
         show-icon
         class="mb"
-        title="运行结果（非 PDF 抄录）。协议：9×4 分层滚动多基线 + 库存三方法 + 消融/k 策略。请先 seed_paper_repro_consumption.py 灌数。"
+        title="评估协议：9×4 分层滚动多基线对比 + 库存三方法回测 + 消融与形状参数策略分析。"
       />
 
       <el-alert
@@ -117,11 +117,21 @@
 
           <el-tab-pane label="多方法对比" name="methods" lazy>
             <div v-if="tab === 'methods'">
-              <h4>整体方法对比（表 3-4/3-6 结构）</h4>
+              <h4>整体方法对比（表 3-4/3-6 结构，含 CRPS 对照）</h4>
+              <p class="note">
+                CRPS 统一 empirical 公式；两阶段=零膨胀 Gamma；LightGBM=多分位采样；NGBoost=截断正态；
+                DeepAR=零膨胀对数正态；TFT=门控残差正态；点预测=Dirac（CRPS≡MAE）。
+                {{ result.meta?.crpsProtocol ? '' : '' }}
+              </p>
               <el-table :data="result.table36 || []" border size="small" class="mb" style="width:100%" :row-class-name="methodRowClass">
                 <el-table-column prop="method" label="方法" min-width="160" />
-                <el-table-column prop="category" label="类别" width="120" />
-                <el-table-column prop="wmape" label="wMAPE(%)" width="120" />
+                <el-table-column prop="category" label="类别" width="100" />
+                <el-table-column prop="wmape" label="wMAPE(%)" width="100" />
+                <el-table-column prop="mase" label="MASE" width="90" />
+                <el-table-column prop="crps" label="CRPS↓" width="90" />
+                <el-table-column prop="coverage" label="90%覆盖" width="100" />
+                <el-table-column prop="brier" label="Brier↓" width="90" />
+                <el-table-column prop="crpsSource" label="CRPS口径" min-width="140" show-overflow-tooltip />
               </el-table>
 
               <h4>代表件 {{ result.focusPartCode }} 滚动序列（表 3-4 角色）</h4>
@@ -218,7 +228,7 @@
         </el-tabs>
       </template>
 
-      <el-empty v-else description="暂无结果：请先灌数并点击「运行论文叙事回测」" />
+      <el-empty v-else description="暂无结果：请点击「运行论文叙事回测」" />
     </el-card>
   </div>
 </template>

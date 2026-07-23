@@ -76,6 +76,18 @@ def main():
     print("two_stage wMAPE:", o.get("wmapeTwoStage"), "sma3:", o.get("wmapeSma3"))
     print("brier:", o.get("brier"), "coverage:", o.get("cov_coverageRate"))
     print("methods:", result["overallMethods"])
+    print(
+        "CRPS对照:",
+        {
+            "two_stage": o.get("crpsTwoStage"),
+            "lgbm_q": o.get("crpsLgbm"),
+            "ngboost": o.get("crpsNgboost"),
+            "deepar": o.get("crpsDeepar"),
+            "tft": o.get("crpsTft"),
+        },
+    )
+    print("crps full:", result.get("crps"))
+    print("meta.crpsProtocol:", (result.get("meta") or {}).get("crpsProtocol"))
     inv = result["inventory"]["summary"]
     print("inventory:", inv)
     print("saved", out)
