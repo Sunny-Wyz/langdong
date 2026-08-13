@@ -8,8 +8,8 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-ROOT = Path(__file__).resolve().parents[1]
-CARD = json.loads((ROOT / "scripts" / "paper_target_card.json").read_text(encoding="utf-8"))
+ROOT = Path(__file__).resolve().parents[2]
+CARD = json.loads((Path(__file__).resolve().parent / "paper_target_card.json").read_text(encoding="utf-8"))
 XLSX = Path("/Users/weiyaozhou/Desktop/rer/论文数据.xlsx")
 
 

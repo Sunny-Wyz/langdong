@@ -1,5 +1,7 @@
 # FIFO 出库批次处理核心代码示例
 
+> **已归档。** 伪代码示意，类名与现网不完全一致。现行实现见 [FIFO出库指南](../../IMPLEMENTATION/FIFO出库指南.md) 与 `FifoOutboundService`。
+
 这个设计模式用于在有真实的 `stock_in_item` (入库批次明细) 表支撑的场景下执行先进先出(FIFO)的库存扣减算法。
 
 ## 场景前提

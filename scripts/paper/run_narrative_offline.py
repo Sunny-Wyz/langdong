@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pymysql
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "python-ai-service"))
 
 from app.models.narrative_eval import run_narrative_experiment  # noqa: E402
@@ -67,7 +67,7 @@ def main():
         focus_code=focus,
         part_meta=part_meta,
     )
-    out = ROOT / "scripts" / "paper_narrative_result.json"
+    out = Path(__file__).resolve().parent / "paper_narrative_result.json"
     # detail 可能较大，完整写出
     out.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     o = result["overall"]

@@ -11,17 +11,19 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_LEGACY_DIR = _PROJECT_ROOT / "docs" / "archive" / "旧原型"
 
-# Make root-level legacy modules importable when executed from python-ai-service.
-if str(_PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))
+# Make archived root-level legacy modules importable when executed from python-ai-service.
+for _p in (_LEGACY_DIR, _PROJECT_ROOT):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 # 数据源模式：USE_JAVA_API=true 时通过 Java 内部 API 获取数据，否则直连 DB
 _USE_JAVA_API = os.getenv("USE_JAVA_API", "false").lower() in ("true", "1", "yes")
 
 
 def _load_module(module_name: str, file_name: str) -> ModuleType:
-    module_path = _PROJECT_ROOT / file_name
+    module_path = _LEGACY_DIR / file_name
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Failed to load module from {module_path}")

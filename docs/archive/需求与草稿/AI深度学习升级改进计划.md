@@ -1,5 +1,7 @@
 # 备件管理系统 — AI 深度学习升级与 Python 外联服务改进计划
 
+> **历史方案，非现行说明。** 文中「SBA + Random Forest 生产就绪」「Vue 2」等已过时。现行预测见 [两阶段Hurdle-Gamma与蒙特卡洛](AI_ALGORITHMS/两阶段Hurdle-Gamma与蒙特卡洛.md)。
+>
 > 编写日期：2026-03-30
 
 ---

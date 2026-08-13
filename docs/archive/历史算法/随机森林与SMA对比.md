@@ -1,4 +1,6 @@
-# RF 与 SMA(3) 预测对比实验报告
+# 随机森林与 SMA 对比实验（历史）
+
+> **历史实验**，不代表当前生产模型。现行算法见 [两阶段Hurdle-Gamma与蒙特卡洛](../../AI_ALGORITHMS/两阶段Hurdle-Gamma与蒙特卡洛.md)。
 
 最后更新: 2026-03-26
 实验来源: ../../archive/legacy_sources/ai8.md, ../../archive/legacy_sources/ai9.md, ../../archive/legacy_sources/随机森林.md
@@ -112,8 +114,8 @@ xychart-beta
 ## 8. 关联文档
 
 - 算法总览: [../SUMMARY.md](../SUMMARY.md)
-- 预测实现: [../FORECASTING.md](../FORECASTING.md)
-- 安全库存: [../SAFETY_STOCK.md](../SAFETY_STOCK.md)
+- 预测实现: [旧版需求预测链路](旧版需求预测链路.md)
+- 安全库存: [旧版安全库存计算](旧版安全库存计算.md)
 
 ---
 

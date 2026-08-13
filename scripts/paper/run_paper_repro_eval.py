@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pymysql
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "python-ai-service"))
 
 from app.models.demand_forecast import HurdleGammaModel  # noqa: E402
@@ -295,7 +295,7 @@ def main():
         yhs = [d["yhat"] for d in detail if d["month"] == tm]
         if ys:
             print(f"  {tm} n={len(ys)} wmape={wmape(ys, yhs):.2f}")
-    out = ROOT / "scripts" / "paper_repro_eval_result.json"
+    out = Path(__file__).resolve().parent / "paper_repro_eval_result.json"
     out.write_text(json.dumps({"summary": result, "detail_head": detail[:20]}, ensure_ascii=False, indent=2), encoding="utf-8")
     print("wrote", out)
 

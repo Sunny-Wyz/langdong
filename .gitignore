@@ -23,8 +23,10 @@ __pycache__/
 # Local runtime files
 .run/
 
-# Local env
+# Local env（含密钥，勿提交）
 .env.local
+.env
+python-ai-service/.env
 
 # Logs & MLflow & Cache
 python-ai-service/logs/
@@ -33,3 +35,14 @@ python-ai-service/lightning_logs/
 python-ai-service/.pytest_cache/
 *.log
 supervisord.pid
+
+# JMeter 运行结果（脚本与报告目录仍入库）
+*.jtl
+
+# pip 误重定向产生的文件（如 =0.3.9）
+python-ai-service/=*
+=*
+
+# 论文脚本备份
+scripts/paper/*.bak*
+*.bak.*

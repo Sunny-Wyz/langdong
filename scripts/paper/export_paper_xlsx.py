@@ -12,8 +12,8 @@ import pymysql
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-ROOT = Path(__file__).resolve().parents[1]
-JSON_PATH = ROOT / "scripts" / "paper_narrative_result.json"
+ROOT = Path(__file__).resolve().parents[2]
+JSON_PATH = Path(__file__).resolve().parent / "paper_narrative_result.json"
 OUT = Path("/Users/weiyaozhou/Desktop/rer/论文数据.xlsx")
 LABELS = ROOT / "sql" / ".paper_part_labels.json"
 

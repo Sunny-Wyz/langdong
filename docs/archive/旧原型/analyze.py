@@ -1,8 +1,15 @@
 import os
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+
+_REPO = Path(__file__).resolve().parents[3]
+_FIGURES = _REPO / "docs" / "figures"
+_DRAFTS = _REPO / "docs" / "archive" / "需求与草稿"
+_JMETER = _REPO / "jmeter"
 
 # 设置中文字体支持
 matplotlib.rcParams['font.sans-serif'] = ['Heiti TC', 'STHeiti', 'PingFang SC', 'Arial Unicode MS', 'SimHei']
@@ -58,11 +65,12 @@ def analyze_jtl(file_path):
 
     # 生成 markdown 表格
     markdown_table = df_stats_formatted.to_markdown(index=False)
-    with open('table_4_5.md', 'w', encoding='utf-8') as f:
+    table_path = _DRAFTS / "table_4_5.md"
+    with open(table_path, 'w', encoding='utf-8') as f:
         f.write("# 表 4-5 备件管理系统性能测试复测结果\n\n")
         f.write(markdown_table)
         f.write("\n")
-    print("Generated table_4_5.md.")
+    print(f"Generated {table_path}")
 
     # 打印论文正文引用指标
     total_count = len(df_filtered)
@@ -130,8 +138,8 @@ def generate_charts(df, df_stats, duration):
     ax.legend(fontsize=10)
     ax.grid(axis='y', linestyle='--', alpha=0.5)
     plt.tight_layout()
-    plt.savefig('图_4-25.png', dpi=200)
-    plt.savefig('图_4-25.svg')
+    plt.savefig(_FIGURES / '图_4-25.png', dpi=200)
+    plt.savefig(_FIGURES / '图_4-25.svg')
     plt.close()
     print("Generated 图_4-25.png and 图_4-25.svg")
 
@@ -160,8 +168,8 @@ def generate_charts(df, df_stats, duration):
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.xlim(0, max_offset)
     plt.tight_layout()
-    plt.savefig('图_4-26.png', dpi=200)
-    plt.savefig('图_4-26.svg')
+    plt.savefig(_FIGURES / '图_4-26.png', dpi=200)
+    plt.savefig(_FIGURES / '图_4-26.svg')
     plt.close()
     print("Generated 图_4-26.png and 图_4-26.svg")
 
@@ -189,8 +197,8 @@ def generate_charts(df, df_stats, duration):
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.xlim(0, max_offset)
     plt.tight_layout()
-    plt.savefig('图_4-27.png', dpi=200)
-    plt.savefig('图_4-27.svg')
+    plt.savefig(_FIGURES / '图_4-27.png', dpi=200)
+    plt.savefig(_FIGURES / '图_4-27.svg')
     plt.close()
     print("Generated 图_4-27.png and 图_4-27.svg")
 
@@ -242,10 +250,10 @@ def generate_charts(df, df_stats, duration):
     
     plt.xlim(0, max(p99 * 1.5, 10)) # 合理范围
     plt.tight_layout()
-    plt.savefig('图_4-28.png', dpi=200)
-    plt.savefig('图_4-28.svg')
+    plt.savefig(_FIGURES / '图_4-28.png', dpi=200)
+    plt.savefig(_FIGURES / '图_4-28.svg')
     plt.close()
     print("Generated 图_4-28.png and 图_4-28.svg")
 
 if __name__ == '__main__':
-    analyze_jtl('result.jtl')
+    analyze_jtl(str(_JMETER / 'result.jtl'))

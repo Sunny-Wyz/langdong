@@ -1,6 +1,6 @@
 # API 参考手册（v1）
 
-最后更新: 2026-03-26
+最后更新: 2026-08-13
 适用范围: 备件管理系统后端 REST API
 
 ---
@@ -156,6 +156,7 @@ Base URL:
 - 方法: POST
 - 路径: /api/ai/forecast/trigger
 - 权限: ai:forecast:trigger
+- 说明: 异步启动两阶段 Hurdle-Gamma 全量重算（目标月默认下月），随后用蒙特卡洛更新 SS/ROP
 
 请求字段:
 
@@ -195,7 +196,10 @@ Base URL:
 | list[].predictQty | number | 预测需求量 |
 | list[].lowerBound | number | 区间下界 |
 | list[].upperBound | number | 区间上界 |
-| list[].algoType | string | 算法类型（RF/SBA/FALLBACK） |
+| list[].algoType | string | `TWO_STAGE`（两阶段 Hurdle-Gamma）或 `FALLBACK` |
+| list[].occurrenceProb | number | 需求发生概率 \(p_t\) |
+| list[].positiveQty | number | 正需求条件均值 \(\mu_t\) |
+| list[].leadTimeQuantile | number | 提前期需求分位数（诊断） |
 | list[].mase | number | 精度指标（可空） |
 
 ---

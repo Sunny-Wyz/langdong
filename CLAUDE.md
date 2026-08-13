@@ -8,21 +8,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A full-scale enterprise spare parts lifecycle management platform with integrated AI/ML for predictive maintenance and demand forecasting.
 
-- **Backend**: Spring Boot 3.2.0 + MyBatis 3.0.3 + Spring Security + JWT | Java 17 | MySQL 5.7+
-- **Frontend**: Vue 2.7.14 + Element UI 2.15.14 + Vuex 3.6.2 + Vue Router 3.6.5 | Node/npm
-- **AI Service**: Python FastAPI + PyTorch + scikit-learn + XGBoost + MLflow
+- **Backend**: Spring Boot 3.2.0 + MyBatis 3.0.3 + Spring Security + JWT | Java 21 | MySQL 5.7+
+- **Frontend**: Vue 3.4 + TypeScript + Vite + Element Plus + Pinia + Vue Router 4 | Node/npm
+- **AI Service**: Python FastAPI + XGBoost（两阶段 Hurdle-Gamma）+ PyTorch + MLflow
 
 ## Repository Structure
 
 ```
-backend/              # Spring Boot REST API (163 Java files, ~10,492 LOC)
-frontend/             # Vue 2 SPA (19 main views)
-python-ai-service/    # FastAPI AI prediction microservice
-sql/                  # Database schemas & migrations (27 SQL files)
-docs/                 # Technical documentation (13 subdirectories)
-jmeter/               # Performance test reports
-scripts/              # Utility scripts
-plan/                 # Project planning documents
+backend/              # Spring Boot REST API（约 198 个 Java 文件）
+frontend/             # Vue 3 SPA（约 44 个视图）
+python-ai-service/    # FastAPI AI 预测微服务
+sql/                  # 建表、迁移、种子 SQL
+docs/                 # 现行文档见 docs/文档导航.md；草稿与旧原型在 docs/archive/
+jmeter/               # 压测计划与报告
+scripts/              # start_all.sh 等；论文脚本在 scripts/paper/
 ```
 
 ## Development Setup
@@ -59,7 +58,7 @@ mvn spring-boot:run
 ```bash
 cd frontend
 npm install
-npm run serve
+npm run dev
 # Runs on http://localhost:3000 (proxies /api to localhost:8080)
 ```
 
@@ -67,10 +66,11 @@ npm run serve
 ```bash
 cd python-ai-service
 pip install -r requirements.txt
-cp .env.example .env  # configure DB + API tokens
-uvicorn main:app --port 8001
-# Runs on http://localhost:8001
+# 端口必须与 Java ai.python.base-url 一致；一键脚本打 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+推荐本地：配置根目录 `.env.local` 后执行 `./scripts/start_all.sh`。
 
 Default credentials: `admin` / `123456`
 
@@ -84,60 +84,59 @@ Default credentials: `admin` / `123456`
 
 | Layer | Location | Count |
 |---|---|---|
-| Controllers | `controller/` | 23 classes |
-| Services | `service/` + `service/ai/` | 14 + 8 classes |
-| Entities | `entity/` | 28 classes |
-| DTOs | `dto/` | 35+ classes |
-| Mappers | `mapper/` | 31 interfaces + 38 XML files |
+| Controllers | `controller/` | 29 classes |
+| Services | `service/` + `service/ai/` + `forecast/` | 业务编排 + 月度预测管线 |
+| Entities | `entity/` | 36 classes |
+| DTOs | `dto/` | 31 classes |
+| Mappers | `mapper/` | 39 interfaces + 39 XML |
 | Config | `config/` | SecurityConfig, AsyncScheduleConfig, PythonClientConfig |
 | Utils | `util/` | JwtUtil, DeviceHealthCalculator, FaultPredictionEngine, etc. |
 
-### Controllers (23 total)
+### Controllers（29 个，前缀以代码为准）
 
 | Controller | Endpoints | Purpose |
 |---|---|---|
-| `AuthController` | `/api/auth/**` | Login / logout |
-| `HealthController` | `/api/phm/health/**` | PHM health monitoring (6 endpoints) |
-| `PredictionController` | `/api/phm/prediction/**` | Device fault prediction (6 endpoints) |
-| `SuggestionController` | `/api/phm/suggestion/**` | Maintenance suggestions (7 endpoints) |
-| `AiForecastController` | `/api/ai/forecast/**` | AI forecast results |
-| `AiForecastJobController` | `/api/ai/job/**` | AI job scheduling |
-| `AiTrainDataController` | `/api/ai/train-data/**` | Training data management |
-| `ClassifyController` | `/api/classify/**` | ABC/XYZ classification |
-| `EquipmentController` | `/api/equipment/**` | Equipment profiles |
-| `SparePartController` | `/api/spare-part/**` | Spare part catalog |
-| `LocationController` | `/api/location/**` | Warehouse locations |
-| `StockInController` | `/api/stock-in/**` | Receiving / inventory |
-| `StockLedgerController` | `/api/stock-ledger/**` | Stock ledger |
-| `ShelvingController` | `/api/shelving/**` | Location shelving |
-| `RequisitionController` | `/api/requisition/**` | Requisition workflow |
-| `WorkOrderController` | `/api/work-order/**` | Maintenance work orders |
-| `PurchaseOrderController` | `/api/purchase/**` | Purchase orders |
-| `ReorderSuggestController` | `/api/reorder/**` | Reorder suggestions |
-| `MenuController` | `/api/menu/**` | Menu & permissions |
-| `ReportController` | `/api/report/**` | Reports & dashboards |
-| `WarningController` | `/api/warning/**` | Alerts & warnings |
-| `PythonCallbackController` | `/api/python/callback/**` | AI service callbacks |
-| `OutboundBatchTraceController` | `/api/outbound-trace/**` | FIFO tracing |
+| `AuthController` | `/api/auth/**` | 登录 |
+| `HealthController` | `/api/phm/health/**` | PHM 健康 |
+| `PredictionController` | `/api/phm/prediction/**` | 故障预测 |
+| `SuggestionController` | `/api/phm/suggestion/**` | 维护建议 |
+| `AiForecastController` | `/api/ai/forecast/**` | 月度预测触发 / 查询 |
+| `AiForecastJobController` | `/api/ai/forecast/jobs/**` | 任务中心 |
+| `RealExperimentController` | `/api/ai/experiment/**` | 真实滚动回测 |
+| `ClassifyController` | `/api/classify/**` | ABC/XYZ |
+| `EquipmentController` | `/api/equipments/**` | 设备档案 |
+| `SparePartController` | `/api/spare-parts/**` | 备件档案 |
+| `LocationController` | `/api/locations/**` | 货位 |
+| `StockInController` | `/api/stock-in/**` | 入库 |
+| `StockLedgerController` | `/api/stock-ledger/**` | 台账 |
+| `ShelvingController` | `/api/shelving/**` | 上架 |
+| `RequisitionController` | `/api/requisitions/**` | 领用 |
+| `WorkOrderController` | `/api/work-orders/**` | 工单 |
+| `PurchaseOrderController` | `/api/purchase-orders/**` | 采购 |
+| `ReorderSuggestController` | `/api/reorder-suggests/**` | 补货建议 |
+| `MenuController` | `/api/menus/**` | 菜单 |
+| `ReportController` | `/api/report/**` | 报表 |
+| `WarningController` | `/api/warnings/**` | 预警 |
+| `PythonCallbackController` | `/api/ai/forecast/callback/python/**` | Python 回调 |
+| `InternalAiDataController` | `/internal/ai/**` | 给 Python 拉数 |
+| `OutboundBatchTraceController` | `/api/outbound-trace/**` | FIFO 追溯 |
 
-### AI Services (`service/ai/`)
+### 预测主链路（`forecast/`，不是旧 RF/SBA）
 
-| Service | Algorithm |
+| 类 | 职责 |
 |---|---|
-| `AiForecastService` | Orchestrates demand forecasting pipeline |
-| `AiFeatureService` | Feature engineering (12-month rolling demand) |
-| `SbaForecastServiceImpl` | SBA algorithm for intermittent demand |
-| `RandomForestServiceImpl` | Random Forest regression (Smile ML 3.1.0) |
-| `AbstractForecastAlgorithm` | MASE scoring + fallback strategy |
-| `StockThresholdService` | Safety stock / reorder point calculation |
-| `PythonModelClient` | HTTP client calling Python AI service |
-| `PythonCallbackStoreService` | Stores async Python predictions |
+| `MonthlyForecastScheduler` | 月初重算下月 |
+| `HurdleGammaJobService` | 任务中心异步任务 |
+| `StockThresholdService` | 调 Python 训练/推理 + 落库 SS/ROP |
+| `LeadTimeDemandSimulator` | 调 `/api/algorithm/inventory-calc` |
+| `AiForecastService` | 仅查询结果 + 回调落库 |
+| `PythonModelClient` | Java → Python HTTP |
 
-**Algorithm types** (stored in `algo_type` column):
-- `TWO_STAGE` — 两阶段 Hurdle-Gamma（Python XGBoost 分类 + `reg:gamma` 回归，前端展示「两阶段 Hurdle-Gamma」）
-- `RF` — Random Forest (data-rich parts)
-- `SBA` — Syntetos-Boylan Approximation (intermittent demand)
-- `FALLBACK` — 数据不足回退（前端展示「两阶段概率预测模型」）
+**`algo_type`**：
+- `TWO_STAGE` — 两阶段 Hurdle-Gamma（生产主算法）
+- `FALLBACK` — 数据不足回退
+
+旧 `AiFeatureService` / `RandomForestServiceImpl` / `SbaForecastServiceImpl` 已删除。算法说明见 `docs/AI_ALGORITHMS/两阶段Hurdle-Gamma与蒙特卡洛.md`。
 
 ### Key Config (`application.yml`)
 
@@ -149,7 +148,7 @@ spring.datasource: jdbc:mysql://localhost:3306/spare_db
 mybatis.mapper-locations: classpath:mapper/*.xml
 jwt.secret: ${JWT_SECRET:spare-management-system-secret-key-2024-langdong}
 jwt.expiration: 86400000  # 24 hours
-ai.python.base-url: http://localhost:8001
+ai.python.base-url: http://localhost:8000
 ai.python.callback-token: ${PYTHON_CALLBACK_TOKEN}
 ```
 
@@ -180,25 +179,25 @@ ai.python.callback-token: ${PYTHON_CALLBACK_TOKEN}
 - **ML Stack**: PyTorch (TFT/deep learning), scikit-learn (classical ML), XGBoost (gradient boosting)
 - **MLflow**: Experiment tracking at `mlruns/`, logs metrics/params/artifacts
 - **Async**: Celery + Redis for long-running training jobs, results stored via `task_registry`
-- **Data flow**: Java backend calls Python via `PythonModelClient` → Python processes → callback to `/api/python/callback/**`
+- **Data flow**: Java `StockThresholdService` 批量调用 `/api/algorithm/train` 与 `/predict`，库存走 `/api/algorithm/inventory-calc`；异步回调走 `/api/ai/forecast/callback/python`
 
 ---
 
 ## Frontend Architecture
 
-**Stack**: Vue 2.7.14, Element UI, Vuex, Vue Router, Axios, ECharts 5.4.3
+**Stack**: Vue 3.4 + TypeScript + Vite + Element Plus + Pinia + Vue Router 4 + Axios + ECharts 5.4.3
 
 ### Key Files
 
 | File | Purpose |
 |---|---|
-| `src/main.js` | Entry point — Vue + ElementUI + axios init |
+| `src/main.ts` | Vue 3 + Pinia + Element Plus |
 | `src/App.vue` | Root component |
-| `src/router/index.js` | Route definitions with auth guard + permission checks |
-| `src/store/index.js` | Vuex: token, username, menus[], permissions[] |
-| `src/utils/request.js` | Axios wrapper — auto-injects `Authorization: Bearer <token>` |
-| `src/styles/reference-theme.css` | Custom Element UI theme overrides |
-| `vue.config.js` | Dev server (port 3000), proxy `/api` → `http://localhost:8080` |
+| `src/router/index.ts` | Hash 路由 + 登录守卫 |
+| `src/store/auth.ts` | Pinia：token、菜单、权限 |
+| `src/utils/request.ts` | Axios，注入 Bearer，401 刷新 |
+| `src/styles/reference-theme.css` | Element Plus 主题覆盖 |
+| `vite.config.ts` | 开发端口 3000，代理 `/api` → `8080` |
 
 ### Views Directory
 
@@ -257,8 +256,8 @@ src/views/
 ├── ai/                          # AI analysis
 │   ├── AiForecastResult.vue
 │   ├── AiJobCenter.vue
-│   ├── AiTrainDataDashboard.vue
-│   └── WeeklyForecastResult.vue
+│   ├── PaperExperimentReport.vue
+│   └── RealExperimentReport.vue
 │
 └── sys/                         # System management
     ├── UserManage.vue
@@ -267,12 +266,12 @@ src/views/
 
 ### Frontend Patterns & Conventions
 
-- **Auth**: Token stored in `localStorage`, auto-injected into every request
-- **Permissions**: Dynamic menu routes generated from Vuex `permissions[]`
-- **Route guards**: Check auth + permission on every navigation
-- **Charts**: ECharts 5 with graceful degradation if no data
-- **Forms**: Element UI form components with validation rules
-- **Actions**: Modal dialogs (`el-dialog`) for create/edit/delete
+- **Auth**: Token stored in `localStorage` / Pinia，请求自动带 Bearer
+- **Permissions**: 动态菜单来自 `authStore.permissions[]`
+- **Route guards**: `router/index.ts` 检查登录；任务中心额外校验权限
+- **Charts**: ECharts 5
+- **Forms**: Element Plus
+- **Actions**: `el-dialog` 弹窗
 
 ---
 
@@ -321,11 +320,11 @@ cd backend && mvn test -Dtest=ClassifyCalculatorTest  # Run single test class
 cd backend && mvn test -Dtest=ClassifyCalculatorTest#testMethod  # Run single method
 
 # Frontend
-cd frontend && npm run serve             # Start dev server (port 3000)
-cd frontend && npm run build             # Production build
+cd frontend && npm run dev               # Vite 开发服务器（端口 3000）
+cd frontend && npm run build             # vue-tsc + vite build
 
 # Python AI service
-cd python-ai-service && uvicorn main:app --port 8001 --reload
+cd python-ai-service && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ---
@@ -335,10 +334,20 @@ cd python-ai-service && uvicorn main:app --port 8001 --reload
 - JWT tokens stored client-side, sent as `Authorization: Bearer <token>`
 - All API routes (except `/api/auth/**`) require authentication
 - Frontend dev server proxies `/api` → `http://localhost:8080`
-- Python AI service at `http://localhost:8001`, called via `PythonModelClient`
+- Python AI service 本地默认 `http://localhost:8000`（与 `AI_PYTHON_BASE_URL` 对齐）
 - Do not commit real DB passwords, JWT secrets, or callback tokens
 - PHM scheduled evaluations run nightly via `@Scheduled` in `PhmOrchestrationService`
 - FIFO outbound tracing handled by `FifoOutboundService` + `OutboundBatchTraceController`
+
+---
+
+## Project Skills（`.grok/skills/`）
+
+| Skill | 何时加载 |
+|---|---|
+| `langdong-conventions` | 任何本仓库改动 |
+| `langdong-forecast` | 预测 / SS / ROP / 蒙特卡洛 |
+| `langdong-docs` | 写或改 markdown 正式文档 |
 
 ---
 
