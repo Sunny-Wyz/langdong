@@ -95,7 +95,7 @@ app.include_router(algorithm_router)
 if __name__ == "__main__":
     import uvicorn
     
-    port = int(os.getenv("API_PORT", 8001))
+    port = int(os.getenv("API_PORT", 8000))
     host = os.getenv("API_HOST", "0.0.0.0")
     
     print(f"🚀 启动 FastAPI 服务: {host}:{port}")

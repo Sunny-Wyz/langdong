@@ -23,7 +23,7 @@ public class PythonModelClient {
 
     private final RestTemplate pythonRestTemplate;
 
-    @Value("${ai.python.base-url:http://localhost:8001}")
+    @Value("${ai.python.base-url:http://localhost:8000}")
     private String pythonBaseUrl;
 
     public PythonModelClient(RestTemplate pythonRestTemplate) {

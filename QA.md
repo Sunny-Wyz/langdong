@@ -112,6 +112,10 @@ Q - 真实实验与论文实验回测的区别 - 论文实验回测为 PDF 静�
 
 Q - 真实实验 wMAPE 从 83% 降到约 17% 做了什么 - 补齐 2023-01 起 44 月领用出库种子（可学习滞后+季节过程，非伪造指标）；表3-3超参；k 上限裁剪；分层 36 件。运行：python sql/seed_paper_repro_consumption.py 后重启服务，在「真实实验」点运行。
 
-Q - 真实实验如何对齐论文叙事 - 灌数 python sql/seed_paper_repro_consumption.py；重启 Python:8000 与后端；真实实验页点「运行论文叙事回测」。指标为运行结果非 PDF 抄录。分层标签见 sql/.paper_part_labels.json。
+Q - 真实实验如何对齐论文叙事 - 已废弃。真实实验不再灌 seed、不再读 .paper_part_labels.json、不再把指标校准到 13.68/0.15/90.9。要对齐论文数字请看「论文实验回测」静态页。真实实验只读 biz_requisition 已出库/已安装月度消耗，滚动训练后直接算 wMAPE/Brier/覆盖/库存模拟。
+
+Q - 真实实验以前是不是造出来的 - 是。旧链路会 seed 36 件、锁 C0070003、裁到 2026-06，再改 p/区间/方法序/库存满足率以保论文结论。现已删除这些后处理；库中无真实出库则实验失败，提示先产生领用出库，不再指向造数脚本。
+
+Q - 为什么真实实验 21.74 和论文 21.95 差 0.21 - 不是公式或造数问题。最新一次已是 216 点/36 件/2026-01～06，但 CZ 组被库内未入选件挤掉 3 席：论文用 C0070007、C0040004、C0090002，网站用了消耗更高的 C0080004、C0080002、C0010003。根因是 thesis_36.json 给全库 50 件都写了标签，按组合取前 4 名时 CZ 被加塞。已锁死 36 件编码。重启 Python（及重编译 Java）后再跑，应回到约 21.95；XGBoost n_jobs=2 仍可能有约 0.1 个百分点抖动。
 
 Q - CRPS 只有自家 5.52、DeepAR/NGBoost/LightGBM 无对照，分布质量结论站不住 - 根因：narrative_eval 仅对 two_stage 用零膨胀 Gamma 算真实 CRPS，其余方法（含本可输出分布的 DeepAR/NGBoost/LGBM）被写成 Dirac≡MAE 或“同趋势代理”，并用“未导出完整分布”回避。解决方案：(1) baselines 为 LGBM 多分位逆变换、NGBoost 截断正态、DeepAR 零膨胀对数正态、TFT 门控残差正态导出完整预测分布样本；(2) 统一 empirical CRPS 公式重算；(3) 点预测明确 Dirac≡MAE（严格定义，非代理糊弄）；(4) 重跑 narrative 并更新 paper_narrative_result.json / 论文数据.xlsx / 前端表。实测对照（216 点）：两阶段 CRPS=5.59、LGBM=5.05、NGBoost=4.96、TFT=4.94、DeepAR=5.65；两阶段仍在 wMAPE(15.46) 与 Brier(0.103) 上明显最优，区间更窄(avgW≈26 vs 基线≈33–35)。结论应写“点预测+发生校准+库存最优，CRPS 与概率基线同量级可对照”，不再写无对照的“分布质量更优”。

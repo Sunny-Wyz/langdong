@@ -10,18 +10,17 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.client.RestTemplate;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
- * 真实实验：拉取库内月度消耗，调用 Python narrative_eval 产出论文叙事结果。
+ * 真实实验按论文 3.2.3 / 3.3.3：36 件九组合、E01、2026-01～06。
  */
 @Service
 public class RealExperimentService {
@@ -64,19 +63,18 @@ public class RealExperimentService {
             resp.put("status", cur);
             return resp;
         }
-        int tm = Math.max(1, Math.min(testMonths, 12));
-        // maxParts 保留兼容；叙事评估内部固定 9×4=36
-        forecastExecutor.execute(() -> runInternal(tm));
+        forecastExecutor.execute(this::runInternal);
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("accepted", true);
-        resp.put("message", "真实实验已启动（论文叙事：多基线+分层+库存+消融）");
-        resp.put("testMonths", tm);
+        resp.put("message", "真实实验已启动：论文口径 36 件滚动回测");
+        resp.put("testMonths", 6);
         resp.put("maxParts", 36);
+        resp.put("protocol", "thesis");
         return resp;
     }
 
     @SuppressWarnings("unchecked")
-    private void runInternal(int testMonths) {
+    private void runInternal() {
         long t0 = System.currentTimeMillis();
         updateStatus("RUNNING", 5, "加载月度消耗", null);
         try {
@@ -93,7 +91,7 @@ public class RealExperimentService {
                 }
             }
             if (demand.isEmpty()) {
-                fail("库中无领用月度消耗，请先执行 sql/seed_paper_repro_consumption.py");
+                fail("库中无已出库/已安装领用月度消耗，请先产生真实出库记录");
                 return;
             }
 
@@ -110,16 +108,16 @@ public class RealExperimentService {
                 }
             }
 
-            String focus = readFocusCode();
-            mergeSeedLabels(partMeta, focus);
-            updateStatus("RUNNING", 20, "调用 Python 多基线叙事回测（可能数分钟）", null);
+            updateStatus("RUNNING", 20, "调用 Python 滚动回测（可能数分钟）", null);
 
+            mergeThesisLabels(partMeta);
+            retainThesisCodes(demand, partMeta);
             Map<String, Object> body = new HashMap<>();
             body.put("demand", demand);
-            body.put("test_months", testMonths);
-            if (focus != null && !focus.isBlank()) {
-                body.put("focus_code", focus.trim());
-            }
+            body.put("test_months", 6);
+            body.put("max_parts", 36);
+            body.put("focus_code", "C0070003");
+            body.put("protocol", "thesis");
             body.put("part_meta", partMeta);
 
             String url = pythonBaseUrl + "/api/algorithm/narrative_eval";
@@ -162,62 +160,68 @@ public class RealExperimentService {
         }
     }
 
-    private String readFocusCode() {
-        try {
-            Path p = resolveSeedPath(".paper_focus_part");
-            if (p != null && Files.exists(p)) {
-                return Files.readString(p).trim();
-            }
-        } catch (Exception ignored) {
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> loadThesisRoot() {
+        try (InputStream in = new ClassPathResource("thesis/thesis_36.json").getInputStream()) {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            return om.readValue(in, Map.class);
+        } catch (Exception ex) {
+            log.warn("[真实实验] 加载 thesis_36.json 失败: {}", ex.getMessage());
+            return Map.of();
         }
-        return null;
     }
 
     @SuppressWarnings("unchecked")
-    private void mergeSeedLabels(Map<String, Map<String, Object>> partMeta, String focus) {
-        try {
-            Path p = resolveSeedPath(".paper_part_labels.json");
-            if (p == null || !Files.exists(p)) {
-                return;
-            }
-            String json = Files.readString(p);
-            // 轻量解析：用 Jackson 若可用；否则跳过
-            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-            Map<String, Object> root = om.readValue(json, Map.class);
-            Object labels = root.get("labels");
-            if (!(labels instanceof Map)) {
-                return;
-            }
-            for (Map.Entry<?, ?> e : ((Map<?, ?>) labels).entrySet()) {
-                String code = String.valueOf(e.getKey());
-                if (!(e.getValue() instanceof Map)) {
-                    continue;
-                }
-                Map<?, ?> lab = (Map<?, ?>) e.getValue();
-                Map<String, Object> m = partMeta.computeIfAbsent(code, k -> new HashMap<>());
-                if (lab.get("abc") != null) {
-                    m.put("abc", String.valueOf(lab.get("abc")));
-                }
-                if (lab.get("xyz") != null) {
-                    m.put("xyz", String.valueOf(lab.get("xyz")));
-                }
-            }
-            if (focus != null) {
-                partMeta.computeIfAbsent(focus, k -> new HashMap<>());
-            }
-            log.info("[真实实验] 已加载种子分层标签 {} 个", ((Map<?, ?>) labels).size());
-        } catch (Exception ex) {
-            log.warn("[真实实验] 读取分层标签失败: {}", ex.getMessage());
+    private void mergeThesisLabels(Map<String, Map<String, Object>> partMeta) {
+        Map<String, Object> root = loadThesisRoot();
+        Object labels = root.get("labels");
+        if (!(labels instanceof Map)) {
+            return;
         }
+        Set<String> allow = thesisCodes(root);
+        for (Map.Entry<?, ?> e : ((Map<?, ?>) labels).entrySet()) {
+            if (!(e.getValue() instanceof Map)) {
+                continue;
+            }
+            String code = String.valueOf(e.getKey());
+            if (!allow.isEmpty() && !allow.contains(code)) {
+                continue;
+            }
+            Map<?, ?> lab = (Map<?, ?>) e.getValue();
+            Map<String, Object> m = partMeta.computeIfAbsent(code, k -> new HashMap<>());
+            if (lab.get("abc") != null) {
+                m.put("abc", String.valueOf(lab.get("abc")));
+            }
+            if (lab.get("xyz") != null) {
+                m.put("xyz", String.valueOf(lab.get("xyz")));
+            }
+        }
+        log.info("[真实实验] 已加载论文分层标签 allow={}", allow.size());
     }
 
-    private Path resolveSeedPath(String name) {
-        Path p = Path.of("sql", name);
-        if (Files.exists(p)) {
-            return p;
+    private void retainThesisCodes(Map<String, Map<String, Double>> demand,
+                                   Map<String, Map<String, Object>> partMeta) {
+        Set<String> allow = thesisCodes(loadThesisRoot());
+        if (allow.isEmpty()) {
+            return;
         }
-        p = Path.of("/Users/weiyaozhou/Documents/langdong/sql", name);
-        return Files.exists(p) ? p : null;
+        demand.keySet().retainAll(allow);
+        partMeta.keySet().retainAll(allow);
+        log.info("[真实实验] 消耗已限制为论文 36 件，实际 {} 件", demand.size());
+    }
+
+    private static Set<String> thesisCodes(Map<String, Object> root) {
+        Object codes = root.get("codes");
+        if (!(codes instanceof List<?> list)) {
+            return Set.of();
+        }
+        Set<String> allow = new LinkedHashSet<>();
+        for (Object c : list) {
+            if (c != null) {
+                allow.add(String.valueOf(c));
+            }
+        }
+        return allow;
     }
 
     private void updateStatus(String st, int percent, String message, String extra) {

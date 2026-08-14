@@ -5,10 +5,10 @@
 export const paperMeta = {
   title: '酒企配套厂备件智能管理系统设计与实现',
   chapter: '第三章 间歇性备件的两阶段概率预测与库存优化算法',
-  note: '样本：36 种分层备件；单备件滚动示例 D01；9 组合库存回测。',
-  sampleNote36: '从 420 种备件按 ABC×XYZ 与品类分层抽样 36 种（9 组合各 4 件），前 30 月训练、后 6 月滚动。',
+  note: '样本：36 种分层备件；代表件 E01=C0070003；九组合库存回测。指标无事后校准。',
+  sampleNote36: '九组合各 4 件共 36 种；2023-01～2026-06 共 42 月，前 36 月训练、后 6 月（2026-01～06）滚动。',
   cslRule: '目标周期服务水平 CSL：A 类 0.99 / B 类 0.95 / C 类 0.90',
-  mcParams: '蒙特卡洛 M=10000，月工作日 W=22（默认），提前期 L 按备件'
+  mcParams: '算法 3-2：M=3000，W=22，提前期 L 按备件；库存为 (R,Q) 连续盘点'
 }
 
 /** 表 3-3 超参数 */
@@ -32,36 +32,36 @@ export const table3_3 = {
   ]
 }
 
-/** 表 3-4 D01 滚动预测 */
+/** 表 3-4 E01 滚动预测 */
 export const table3_4 = {
-  title: '表 3-4 D01 滚动预测：本文方法与基准方法对比',
-  months: ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12'],
+  title: '表 3-4 E01（C0070003）滚动预测：本文方法与基准方法对比',
+  months: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
   columns: [
     { prop: 'method', label: '方法', width: 180 },
-    { prop: 'm07', label: '2025-07' },
-    { prop: 'm08', label: '2025-08' },
-    { prop: 'm09', label: '2025-09' },
-    { prop: 'm10', label: '2025-10' },
-    { prop: 'm11', label: '2025-11' },
-    { prop: 'm12', label: '2025-12' },
+    { prop: 'm01', label: '2026-01' },
+    { prop: 'm02', label: '2026-02' },
+    { prop: 'm03', label: '2026-03' },
+    { prop: 'm04', label: '2026-04' },
+    { prop: 'm05', label: '2026-05' },
+    { prop: 'm06', label: '2026-06' },
     { prop: 'wmape', label: 'wMAPE(%)' }
   ],
   rows: [
-    { method: '实际需求', m07: 111, m08: 140, m09: 0, m10: 0, m11: 133, m12: 145, wmape: '—' },
-    { method: '两阶段模型（本文）', m07: 124.6, m08: 121.8, m09: 14.5, m10: 12.2, m11: 115.3, m12: 158.7, wmape: '16.99', highlight: true },
-    { method: '单阶段 XGBoost 回归', m07: 88.6, m08: 105.4, m09: 56.8, m10: 48.5, m11: 96.2, m12: 110.4, wmape: '44.18' },
-    { method: 'Standard RF', m07: 85.2, m08: 102.8, m09: 62.5, m10: 56.8, m11: 95.4, m12: 105.6, wmape: '49.02' },
-    { method: 'SBA', m07: 79.4, m08: 81.3, m09: 85.1, m10: 85.1, m11: 85.1, m12: 76.6, wmape: '71.22' },
-    { method: 'Croston', m07: 83.6, m08: 85.5, m09: 89.5, m10: 89.5, m11: 89.5, m12: 80.7, wmape: '69.70' },
-    { method: '指数平滑(α=0.3)', m07: 76.4, m08: 85.3, m09: 121.2, m10: 89.5, m11: 65.7, m12: 78.4, wmape: '82.02' },
-    { method: '简单移动平均(W=3)', m07: 42.3, m08: 88.6, m09: 109.7, m10: 80.5, m11: 41.8, m12: 57.6, wmape: '92.42' }
+    { method: '实际需求', m01: 85, m02: 105, m03: 126, m04: 115, m05: 0, m06: 0, wmape: '—' },
+    { method: '两阶段模型（本文）', m01: 97.49, m02: 76.87, m03: 103.25, m04: 108.84, m05: 17.44, m06: 3.44, wmape: '20.98', highlight: true },
+    { method: '单阶段 XGBoost 回归', m01: 76.48, m02: 75.67, m03: 105.08, m04: 93.38, m05: 17.49, m06: 0.0, wmape: '22.71' },
+    { method: 'Standard RF', m01: 93.1, m02: 90.24, m03: 103.6, m04: 82.3, m05: 28.15, m06: 0.2, wmape: '24.67' },
+    { method: 'SBA', m01: 84.17, m02: 83.88, m03: 85.27, m04: 88.33, m05: 90.2, m06: 90.2, wmape: '62.59' },
+    { method: 'Croston', m01: 88.6, m02: 88.29, m03: 89.76, m04: 92.97, m05: 94.95, m06: 94.95, wmape: '62.29' },
+    { method: '指数平滑(α=0.3)', m01: 89.85, m02: 88.39, m03: 93.38, m04: 103.16, m05: 106.71, m06: 74.7, wmape: '57.39' },
+    { method: '简单移动平均(W=3)', m01: 93.33, m02: 89.0, m03: 93.0, m04: 105.33, m05: 115.33, m06: 80.33, wmape: '60.94' }
   ]
 }
 
 /** 表 3-5 分层 wMAPE */
 export const table3_5 = {
   title: '表 3-5 36 种分层样本的分维度平均 wMAPE 汇总（%）',
-  note: '36 件分层样本；ABC 权重 0.40/0.25/0.20/0.15，帕累托分档 70%/90%。',
+  note: '36 件分层样本（九组合各 4 件）；n 为备件数。'
   columns: [
     { prop: 'dim', label: '分维度' },
     { prop: 'group', label: '分组' },
@@ -72,13 +72,13 @@ export const table3_5 = {
     { prop: 'sma', label: 'SMA' }
   ],
   rows: [
-    { dim: 'ABC', group: 'A', n: 12, twoStage: 12.89, xgb: 25.21, rf: 31.18, sma: 49.5 },
-    { dim: 'ABC', group: 'B', n: 12, twoStage: 14.27, xgb: 28.07, rf: 33.81, sma: 49.41 },
-    { dim: 'ABC', group: 'C', n: 12, twoStage: 13.87, xgb: 29.5, rf: 36.25, sma: 47.59 },
-    { dim: 'XYZ', group: 'X', n: 12, twoStage: 4.53, xgb: 7.61, rf: 9.32, sma: 29.5 },
-    { dim: 'XYZ', group: 'Y', n: 12, twoStage: 12.78, xgb: 24.85, rf: 30.2, sma: 50.0 },
-    { dim: 'XYZ', group: 'Z', n: 12, twoStage: 23.72, xgb: 50.32, rf: 61.73, sma: 66.99 },
-    { dim: '整体', group: '36 种', n: 36, twoStage: 13.68, xgb: 27.59, rf: 33.75, sma: 48.83, highlight: true }
+    { dim: 'ABC', group: 'A', n: 12, twoStage: 18.25, xgb: 22.98, rf: 25.24, sma: 46.16 },
+    { dim: 'ABC', group: 'B', n: 12, twoStage: 34.15, xgb: 50.34, rf: 53.15, sma: 54.91 },
+    { dim: 'ABC', group: 'C', n: 12, twoStage: 21.19, xgb: 30.17, rf: 33.97, sma: 35.94 },
+    { dim: 'XYZ', group: 'X', n: 12, twoStage: 11.54, xgb: 13.42, rf: 13.64, sma: 12.55 },
+    { dim: 'XYZ', group: 'Y', n: 12, twoStage: 19.65, xgb: 30.84, rf: 36.51, sma: 64.77 },
+    { dim: 'XYZ', group: 'Z', n: 12, twoStage: 64.87, xgb: 79.1, rf: 78.41, sma: 95.43 },
+    { dim: '整体', group: '36 种', n: 36, twoStage: 21.95, xgb: 29.61, rf: 32.19, sma: 46.68, highlight: true }
   ]
 }
 
@@ -98,22 +98,22 @@ export const table3_6 = {
   // CRPS：两阶段 ZIG；LightGBM 多分位；NGBoost 截断正态；DeepAR 零膨胀对数正态；TFT 门控残差；点预测 Dirac≡MAE
   note: 'CRPS 对各方法采用统一 empirical 公式；概率方法基于完整预测分布样本计算。',
   rows: [
-    { method: '两阶段模型（本文）', category: '—', wmape: 15.46, mase: 0.39, crps: 5.59, cov90: 90.79, brier: 0.1033, prob: '是', highlight: true },
-    { method: 'LightGBM 分位数', category: '概率树', wmape: 24.26, mase: 0.61, crps: 5.05, cov90: 92.76, brier: 0.2976, prob: '是(分位数)' },
-    { method: 'NGBoost', category: '概率树', wmape: 25.24, mase: 0.64, crps: 4.96, cov90: 94.74, brier: 0.1898, prob: '是' },
-    { method: 'TFT', category: '深度概率', wmape: 27.97, mase: 0.71, crps: 4.94, cov90: 96.05, brier: 0.1096, prob: '是(分位数)' },
-    { method: 'DeepAR', category: '深度概率', wmape: 28.99, mase: 0.73, crps: 5.65, cov90: 93.42, brier: 0.2963, prob: '是' },
-    { method: 'N-HiTS', category: '深度概率', wmape: 30.82, mase: 0.78, crps: 7.65, cov90: '—', brier: '—', prob: '点预测(Dirac)' },
-    { method: 'MAPA', category: '间歇专用', wmape: 35.13, mase: 0.89, crps: 8.72, cov90: '—', brier: '—', prob: '否' },
-    { method: 'ADIDA', category: '间歇专用', wmape: 38.29, mase: 0.97, crps: 9.50, cov90: '—', brier: '—', prob: '否' },
-    { method: 'TSB', category: '间歇专用', wmape: 41.24, mase: 1.04, crps: 10.23, cov90: '—', brier: '—', prob: '否' }
+    { method: '两阶段模型（本文）', category: '—', wmape: 21.95, mase: 0.55, crps: 3.87, cov90: 99.3, brier: 0.077, prob: '是', highlight: true },
+    { method: 'LightGBM 分位数', category: '概率树', wmape: 33.33, mase: 0.84, crps: 6.02, cov90: 87.7, brier: 0.211, prob: '是(分位数)' },
+    { method: 'NGBoost', category: '概率树', wmape: 36.98, mase: 0.93, crps: 6.83, cov90: 88.4, brier: 0.234, prob: '是' },
+    { method: 'TFT', category: '深度概率', wmape: 44.13, mase: 1.11, crps: 7.16, cov90: 85.6, brier: 0.172, prob: '是(分位数)' },
+    { method: 'DeepAR', category: '深度概率', wmape: 48.07, mase: 1.20, crps: 7.83, cov90: 87.7, brier: 0.172, prob: '是' },
+    { method: 'MAPA', category: '间歇专用', wmape: 48.04, mase: 1.20, crps: 11.79, cov90: '—', brier: '—', prob: '否' },
+    { method: 'TSB', category: '间歇专用', wmape: 48.50, mase: 1.22, crps: 11.90, cov90: '—', brier: '—', prob: '否' },
+    { method: 'ADIDA', category: '间歇专用', wmape: 48.52, mase: 1.22, crps: 11.91, cov90: '—', brier: '—', prob: '否' },
+    { method: 'N-HiTS', category: '深度概率', wmape: 60.86, mase: 1.53, crps: 14.94, cov90: '—', brier: '—', prob: '是(分位数)' }
   ]
 }
 
 /** 表 3-7 条件 90% 覆盖率 */
 export const table3_7 = {
   title: '表 3-7 正需求条件 Gamma 分布 90% 预测区间覆盖率统计',
-  note: '仅对正需求测试点统计；零月由 Brier 评价，总需求由 CRPS 评价。Wilson 95% 整体 [85.3%,94.5%]。',
+  note: '仅对正需求测试点统计；零月由 Brier 评价，总需求由 CRPS 评价。'
   columns: [
     { prop: 'scope', label: '样本范围' },
     { prop: 'n', label: '预测点数' },
@@ -123,10 +123,10 @@ export const table3_7 = {
     { prop: 'width', label: '平均条件区间宽度(件)' }
   ],
   rows: [
-    { scope: '36 种分层备件', n: 154, covered: 140, miss: 14, rate: '90.9%', width: 32.4, highlight: true },
-    { scope: 'X 类稳定型', n: 66, covered: 62, miss: 4, rate: '93.9%', width: 18.6 },
-    { scope: 'Y 类中等波动', n: 52, covered: 48, miss: 4, rate: '92.3%', width: 35.2 },
-    { scope: 'Z 类高波动', n: 36, covered: 30, miss: 6, rate: '83.3%', width: 48.6 }
+    { scope: '36 种分层备件', n: 146, covered: 145, miss: 1, rate: '99.3%', width: 33.3, highlight: true },
+    { scope: 'X 类稳定型', n: 69, covered: 69, miss: 0, rate: '100.0%', width: 29.8 },
+    { scope: 'Y 类中等波动', n: 46, covered: 45, miss: 1, rate: '97.8%', width: 46.7 },
+    { scope: 'Z 类高波动', n: 31, covered: 31, miss: 0, rate: '100.0%', width: 21.0 }
   ]
 }
 
@@ -142,20 +142,20 @@ export const table3_8 = {
     { prop: 'sig', label: '是否显著(α=0.05)' }
   ],
   rows: [
-    { vs: 'vs 单阶段 XGBoost 回归', category: '点预测', p: '0.001', holm: '≤0.014', r: 0.71, sig: '是' },
-    { vs: 'vs Standard RF', category: '点预测', p: '<0.001', holm: '<0.014', r: 0.76, sig: '是' },
-    { vs: 'vs SMA', category: '点预测', p: '<0.001', holm: '<0.014', r: 0.83, sig: '是' },
-    { vs: 'vs SBA', category: '点预测', p: '<0.001', holm: '<0.014', r: 0.79, sig: '是' },
-    { vs: 'vs Croston', category: '点预测', p: '<0.001', holm: '<0.014', r: 0.78, sig: '是' },
-    { vs: 'vs 指数平滑(α=0.3)', category: '点预测', p: '<0.001', holm: '<0.014', r: 0.81, sig: '是' },
-    { vs: 'vs DeepAR', category: '深度概率', p: '0.031', holm: '0.031', r: 0.52, sig: '是' },
-    { vs: 'vs TFT', category: '深度概率', p: '0.004', holm: '0.016', r: 0.61, sig: '是' },
-    { vs: 'vs N-HiTS', category: '深度概率', p: '0.001', holm: '≤0.014', r: 0.69, sig: '是' },
-    { vs: 'vs TSB', category: '间歇专用', p: '0.002', holm: '≤0.014', r: 0.65, sig: '是' },
-    { vs: 'vs ADIDA', category: '间歇专用', p: '<0.001', holm: '<0.014', r: 0.79, sig: '是' },
-    { vs: 'vs MAPA', category: '间歇专用', p: '<0.001', holm: '<0.014', r: 0.77, sig: '是' },
-    { vs: 'vs NGBoost', category: '概率树', p: '0.006', holm: '0.018', r: 0.58, sig: '是' },
-    { vs: 'vs LightGBM 分位数', category: '概率树', p: '0.013', holm: '0.026', r: 0.46, sig: '是' }
+    { vs: 'vs 单阶段 XGBoost 回归', category: '点预测', p: '<0.001', holm: '<0.001', r: 0.80, sig: '是' },
+    { vs: 'vs Standard RF', category: '点预测', p: '<0.001', holm: '<0.001', r: 0.81, sig: '是' },
+    { vs: 'vs SMA', category: '点预测', p: '0.0001', holm: '0.0002', r: 0.67, sig: '是' },
+    { vs: 'vs SBA', category: '间歇专用', p: '<0.001', holm: '<0.001', r: 0.80, sig: '是' },
+    { vs: 'vs Croston', category: '间歇专用', p: '<0.001', holm: '<0.001', r: 0.79, sig: '是' },
+    { vs: 'vs 指数平滑(α=0.3)', category: '点预测', p: '0.0001', holm: '0.0002', r: 0.67, sig: '是' },
+    { vs: 'vs DeepAR', category: '深度概率', p: '<0.001', holm: '<0.001', r: 0.79, sig: '是' },
+    { vs: 'vs TFT', category: '深度概率', p: '<0.001', holm: '0.0001', r: 0.73, sig: '是' },
+    { vs: 'vs N-HiTS', category: '深度概率', p: '<0.001', holm: '0.0001', r: 0.74, sig: '是' },
+    { vs: 'vs TSB', category: '间歇专用', p: '<0.001', holm: '<0.001', r: 0.75, sig: '是' },
+    { vs: 'vs ADIDA', category: '间歇专用', p: '<0.001', holm: '<0.001', r: 0.76, sig: '是' },
+    { vs: 'vs MAPA', category: '间歇专用', p: '<0.001', holm: '0.0001', r: 0.74, sig: '是' },
+    { vs: 'vs NGBoost', category: '概率树', p: '<0.001', holm: '<0.001', r: 0.83, sig: '是' },
+    { vs: 'vs LightGBM 分位数', category: '概率树', p: '0.0001', holm: '0.0002', r: 0.64, sig: '是' }
   ]
 }
 
@@ -169,18 +169,18 @@ export const table3_9 = {
     { prop: 'single', label: '单阶段 wMAPE(%)' }
   ],
   rows: [
-    { scene: '基线（无扰动）', setting: '原始 36 种样本', twoStage: 13.68, single: 27.59 },
-    { scene: '噪声注入', setting: '5% 需求峰值噪声', twoStage: 14.7, single: 27.9 },
-    { scene: '噪声注入', setting: '10% 需求峰值噪声', twoStage: 15.2, single: 31.5 },
-    { scene: '低零膨胀', setting: '零值占比 <20%', twoStage: 9.8, single: 18.4 },
-    { scene: '中零膨胀', setting: '零值占比 20%～50%', twoStage: 13.5, single: 27.0 },
-    { scene: '高零膨胀', setting: '零值占比 >50%', twoStage: 22.6, single: 49.8 }
+    { scene: '基线（无扰动）', setting: '原始 36 种样本', twoStage: 21.95, single: 29.61 },
+    { scene: '噪声注入', setting: '5% 需求峰值噪声', twoStage: 22.45, single: 29.99 },
+    { scene: '噪声注入', setting: '10% 需求峰值噪声', twoStage: 23.53, single: 30.38 },
+    { scene: '低零膨胀', setting: '零值占比 <20%（15 件）', twoStage: 12.56, single: 15.32 },
+    { scene: '中零膨胀', setting: '零值占比 20%～50%（15 件）', twoStage: 31.28, single: 44.62 },
+    { scene: '高零膨胀', setting: '零值占比 >50%（6 件）', twoStage: 118.82, single: 162.54 }
   ]
 }
 
 /** 表 3-10 消融 */
 export const table3_10 = {
-  title: '表 3-10 两阶段概率预测模型消融实验结果（基于定制件 D01）',
+  title: '表 3-10 两阶段概率预测模型消融实验（36 种分层样本）',
   columns: [
     { prop: 'config', label: '模型配置' },
     { prop: 'wmape', label: 'wMAPE(%)' },
@@ -188,55 +188,55 @@ export const table3_10 = {
     { prop: 'note', label: '说明' }
   ],
   rows: [
-    { config: '单阶段 XGBoost 回归（基准）', wmape: 44.18, delta: '—', note: '直接回归正需求量' },
-    { config: '仅第一阶段（概率×历史均值）', wmape: 32.65, delta: '降 11.53 个百分点', note: '概率过滤消除零月偏差' },
-    { config: '仅第二阶段（正样本回归）', wmape: 28.43, delta: '降 15.75 个百分点', note: '正样本纯净建模' },
-    { config: '两阶段完整模型', wmape: 16.99, delta: '降 27.19 个百分点', note: '联合降幅接近两部分之和', highlight: true }
+    { config: '单阶段 XGBoost 回归（基准）', wmape: 29.61, delta: '—', note: '直接回归需求量' },
+    { config: '仅第一阶段（概率×历史均值）', wmape: 33.05, delta: '升 3.44 个百分点', note: '缺少第二阶段回归' },
+    { config: '仅第二阶段（正样本回归）', wmape: 50.33, delta: '升 20.72 个百分点', note: '不区分零需求月' },
+    { config: '两阶段完整模型', wmape: 21.95, delta: '降 7.66 个百分点', note: 'p×μ', highlight: true }
   ]
 }
 
-/** 表 3-11 形状 k 策略 */
+/** 表 3-11 C0050002 提前期 MC */
 export const table3_11 = {
-  title: '表 3-11 形状参数估计策略对正需求条件区间的影响',
-  note: '工程选型为 XYZ 共享；独立估计时 Z 类覆盖率为 61.1%。',
-  columns: [
-    { prop: 'scheme', label: '方案' },
-    { prop: 'overall', label: '整体覆盖率' },
-    { prop: 'x', label: 'X 类' },
-    { prop: 'y', label: 'Y 类' },
-    { prop: 'z', label: 'Z 类' },
-    { prop: 'brier', label: '第一阶段 Brier' }
-  ],
-  rows: [
-    { scheme: '(a) 独立估计（不共享）', overall: '78.6%', x: '91.8%', y: '86.5%', z: '61.1%', brier: 0.15 },
-    { scheme: '(b) XYZ 共享（本文）', overall: '90.9%', x: '93.9%', y: '92.3%', z: '83.3%', brier: 0.15, highlight: true },
-    { scheme: '(c) 数据驱动聚类共享', overall: '90.2%', x: '93.1%', y: '91.0%', z: '81.9%', brier: 0.15 }
-  ]
-}
-
-/** 表 3-12 D01 MC */
-export const table3_12 = {
-  title: '表 3-12 D01 提前期需求蒙特卡洛模拟结果',
-  note: 'D01（AY，L=14 天，α=99%），M=10000。回测：经验法缺货 272 / 本文 65 / 满足率 94.0%；月末库存 16.6→85.9。',
+  title: '表 3-11 BY 类备件 C0050002 提前期需求蒙特卡洛模拟结果',
+  note: 'B 类，L=30 天，α=0.95，M=3000。ROP=⌈Q0.95⌉。',
   columns: [
     { prop: 'stat', label: '统计量' },
     { prop: 'value', label: '数值' },
     { prop: 'use', label: '用途' }
   ],
   rows: [
-    { stat: '提前期需求均值 E[DL]', value: '52.31 件', use: '用于计算安全库存' },
-    { stat: '提前期需求标准差 σL', value: '31.69 件', use: '反映分布波动' },
-    { stat: '95%分位数 Q0.95(DL)', value: '94.85 件', use: '对应 B 类补货点' },
-    { stat: '99%分位数 Q0.99(DL)', value: '106.09 件', use: '对应 A 类补货点' },
-    { stat: '补货点 ROP=⌈Q0.99⌉', value: '107 件', use: '本文方法回测取值', highlight: true },
-    { stat: '安全库存 SS=ROP−⌈E[DL]⌉', value: '54 件', use: '波动缓冲量', highlight: true }
+    { stat: '提前期需求均值 E[DL]', value: '28.73 件', use: '用于计算安全库存' },
+    { stat: '提前期需求标准差 σL', value: '10.77 件', use: '反映分布波动' },
+    { stat: '95%分位数 Q0.95(DL)', value: '44.59 件', use: 'B 类对应补货点' },
+    { stat: '99%分位数 Q0.99(DL)', value: '51.31 件', use: '供对比参考' },
+    { stat: '补货点 ROP=⌈Q0.95⌉', value: '45 件', use: '本文方法该月取值', highlight: true },
+    { stat: '安全库存 SS=ROP−⌈E[DL]⌉', value: '16 件', use: '波动缓冲量', highlight: true }
+  ]
+}
+
+/** 表 3-12 C0050002 三法回测 */
+export const table3_12 = {
+  title: '表 3-12 备件 C0050002 三种补货方法回测对比',
+  note: 'BY，L=30 天，α=95%；2026-01～06。',
+  columns: [
+    { prop: 'method', label: '方法' },
+    { prop: 'src', label: '补货点来源' },
+    { prop: 'stockoutMonths', label: '缺货月数' },
+    { prop: 'stockoutQty', label: '缺货量(件)' },
+    { prop: 'fillRate', label: '需求满足率' },
+    { prop: 'avgInv', label: '平均月末库存' }
+  ],
+  rows: [
+    { method: '经验法', src: '历史月均×提前期+分级余量', stockoutMonths: 3, stockoutQty: 36.22, fillRate: '67.1%', avgInv: 15.92 },
+    { method: '本文方法', src: '算法3-2 MC Qα', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 33.4, highlight: true },
+    { method: '正态解析法', src: 'E[DL]+zα×σL', stockoutMonths: 2, stockoutQty: 2.85, fillRate: '97.4%', avgInv: 22.77 }
   ]
 }
 
 /** 表 3-13 组合回测 */
 export const table3_13 = {
   title: '表 3-13 ABC×XYZ 组合安全库存回测结果汇总',
-  note: '2023 训练 / 2024 回测。汇总：缺货月 30→6，缺货量 683→98，满足率 85.0%→98.1%，平均月末库存 15.9→38.8。',
+  note: '训练 2023-01～2025-12，回测 2026-01～06。汇总：缺货月 8→0，缺货量 75.91→0，满足率 89.2%→100%，平均月末库存 30.58→31.59。',
   columns: [
     { prop: 'combo', label: '组合' },
     { prop: 'part', label: '备件' },
@@ -247,43 +247,43 @@ export const table3_13 = {
     { prop: 'avgInv', label: '平均月末库存' }
   ],
   rows: [
-    { combo: 'AX', part: 'M01', method: '经验法', stockoutMonths: 5, stockoutQty: 30, fillRate: '89.2%', avgInv: 13.3 },
-    { combo: 'AX', part: 'M01', method: '本文方法', stockoutMonths: 1, stockoutQty: 6, fillRate: '97.8%', avgInv: 29.3 },
-    { combo: 'AX', part: 'M01', method: '正态解析法', stockoutMonths: 1, stockoutQty: 10, fillRate: '96.4%', avgInv: 33.1 },
-    { combo: 'AY', part: 'D01', method: '经验法', stockoutMonths: 4, stockoutQty: 272, fillRate: '74.9%', avgInv: 16.6 },
-    { combo: 'AY', part: 'D01', method: '本文方法', stockoutMonths: 1, stockoutQty: 65, fillRate: '94.0%', avgInv: 85.9 },
-    { combo: 'AY', part: 'D01', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 112.4 },
-    { combo: 'AZ', part: 'D02', method: '经验法', stockoutMonths: 2, stockoutQty: 29, fillRate: '79.3%', avgInv: 11.2 },
-    { combo: 'AZ', part: 'D02', method: '本文方法', stockoutMonths: 1, stockoutQty: 3, fillRate: '97.9%', avgInv: 19.4 },
-    { combo: 'AZ', part: 'D02', method: '正态解析法', stockoutMonths: 2, stockoutQty: 18, fillRate: '87.5%', avgInv: 16.8 },
-    { combo: 'BX', part: 'F01', method: '经验法', stockoutMonths: 4, stockoutQty: 65, fillRate: '85.8%', avgInv: 23.8 },
-    { combo: 'BX', part: 'F01', method: '本文方法', stockoutMonths: 1, stockoutQty: 14, fillRate: '96.9%', avgInv: 37.5 },
-    { combo: 'BX', part: 'F01', method: '正态解析法', stockoutMonths: 1, stockoutQty: 12, fillRate: '97.3%', avgInv: 43.9 },
-    { combo: 'BY', part: 'E04', method: '经验法', stockoutMonths: 2, stockoutQty: 20, fillRate: '88.9%', avgInv: 13.2 },
-    { combo: 'BY', part: 'E04', method: '本文方法', stockoutMonths: 1, stockoutQty: 5, fillRate: '97.2%', avgInv: 24.4 },
-    { combo: 'BY', part: 'E04', method: '正态解析法', stockoutMonths: 1, stockoutQty: 6, fillRate: '96.7%', avgInv: 27.2 },
-    { combo: 'BZ', part: 'E05', method: '经验法', stockoutMonths: 1, stockoutQty: 5, fillRate: '94.6%', avgInv: 4.2 },
-    { combo: 'BZ', part: 'E05', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 11.8 },
-    { combo: 'BZ', part: 'E05', method: '正态解析法', stockoutMonths: 1, stockoutQty: 9, fillRate: '90.3%', avgInv: 9.6 },
-    { combo: 'CX', part: 'F03', method: '经验法', stockoutMonths: 4, stockoutQty: 88, fillRate: '85.5%', avgInv: 29.5 },
-    { combo: 'CX', part: 'F03', method: '本文方法', stockoutMonths: 1, stockoutQty: 5, fillRate: '99.2%', avgInv: 58.9 },
-    { combo: 'CX', part: 'F03', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 66.3 },
-    { combo: 'CY', part: 'F04', method: '经验法', stockoutMonths: 3, stockoutQty: 36, fillRate: '90.0%', avgInv: 18.3 },
-    { combo: 'CY', part: 'F04', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 46.6 },
-    { combo: 'CY', part: 'F04', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 52.1 },
-    { combo: 'CZ', part: 'H05', method: '经验法', stockoutMonths: 5, stockoutQty: 138, fillRate: '76.9%', avgInv: 13.3 },
-    { combo: 'CZ', part: 'H05', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 34.9 },
-    { combo: 'CZ', part: 'H05', method: '正态解析法', stockoutMonths: 3, stockoutQty: 52, fillRate: '91.3%', avgInv: 27.4 },
-    { combo: '汇总', part: '9 种', method: '经验法', stockoutMonths: 30, stockoutQty: 683, fillRate: '85.0%', avgInv: 15.9, highlight: true },
-    { combo: '汇总', part: '9 种', method: '本文方法', stockoutMonths: 6, stockoutQty: 98, fillRate: '98.1%', avgInv: 38.8, highlight: true },
-    { combo: '汇总', part: '9 种', method: '正态解析法', stockoutMonths: 9, stockoutQty: 107, fillRate: '95.5%', avgInv: 43.2, highlight: true }
+    { combo: 'AX', part: 'M01', method: '经验法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 60.06 },
+    { combo: 'AX', part: 'M01', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 43.76 },
+    { combo: 'AX', part: 'M01', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 69.68 },
+    { combo: 'AY', part: 'E02', method: '经验法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 103.18 },
+    { combo: 'AY', part: 'E02', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 101.1 },
+    { combo: 'AY', part: 'E02', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 199.64 },
+    { combo: 'AZ', part: 'E03', method: '经验法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 26.46 },
+    { combo: 'AZ', part: 'E03', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 22.7 },
+    { combo: 'AZ', part: 'E03', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 65.87 },
+    { combo: 'BX', part: 'H01', method: '经验法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 37.09 },
+    { combo: 'BX', part: 'H01', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 16.52 },
+    { combo: 'BX', part: 'H01', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 44.98 },
+    { combo: 'BY', part: 'M02', method: '经验法', stockoutMonths: 3, stockoutQty: 36.22, fillRate: '67.1%', avgInv: 15.92 },
+    { combo: 'BY', part: 'M02', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 33.4 },
+    { combo: 'BY', part: 'M02', method: '正态解析法', stockoutMonths: 2, stockoutQty: 2.85, fillRate: '97.4%', avgInv: 22.77 },
+    { combo: 'BZ', part: 'E04', method: '经验法', stockoutMonths: 2, stockoutQty: 9.44, fillRate: '71.4%', avgInv: 5.69 },
+    { combo: 'BZ', part: 'E04', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 23.84 },
+    { combo: 'BZ', part: 'E04', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 14.47 },
+    { combo: 'CX', part: 'M03', method: '经验法', stockoutMonths: 2, stockoutQty: 29.0, fillRate: '68.1%', avgInv: 7.71 },
+    { combo: 'CX', part: 'M03', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 24.96 },
+    { combo: 'CX', part: 'M03', method: '正态解析法', stockoutMonths: 2, stockoutQty: 27.03, fillRate: '70.3%', avgInv: 8.27 },
+    { combo: 'CY', part: 'E05', method: '经验法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 10.84 },
+    { combo: 'CY', part: 'E05', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 8.65 },
+    { combo: 'CY', part: 'E05', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 16.83 },
+    { combo: 'CZ', part: 'H02', method: '经验法', stockoutMonths: 1, stockoutQty: 1.25, fillRate: '95.8%', avgInv: 8.23 },
+    { combo: 'CZ', part: 'H02', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 9.34 },
+    { combo: 'CZ', part: 'H02', method: '正态解析法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 12.62 },
+    { combo: '汇总', part: '9 种', method: '经验法', stockoutMonths: 8, stockoutQty: 75.91, fillRate: '89.2%', avgInv: 30.58, highlight: true },
+    { combo: '汇总', part: '9 种', method: '本文方法', stockoutMonths: 0, stockoutQty: 0, fillRate: '100.0%', avgInv: 31.59, highlight: true },
+    { combo: '汇总', part: '9 种', method: '正态解析法', stockoutMonths: 4, stockoutQty: 29.88, fillRate: '96.4%', avgInv: 50.57, highlight: true }
   ]
 }
 
 /** 表 3-14 正态性检验 */
 export const table3_14 = {
   title: '表 3-14 历史月度消耗数据的正态性拟合优度检验',
-  note: '9 种回测备件全部拒绝正态假设（9/9）；表中列代表性 3 件。',
+  note: '9 种回测备件中 8 种拒绝正态；仅 AX 件 M01（C0100002）未拒绝。'
   columns: [
     { prop: 'part', label: '备件（组合）' },
     { prop: 'sw', label: 'Shapiro-Wilk p' },
@@ -292,16 +292,16 @@ export const table3_14 = {
     { prop: 'reject', label: '是否拒绝正态' }
   ],
   rows: [
-    { part: '定制件 D01(AY)', sw: '0.002', ks: '0.009', ad: 1.58, reject: '是' },
-    { part: '机械件 M01(AX)', sw: '0.036', ks: '0.041', ad: 0.87, reject: '是' },
-    { part: '五金件 H05(CZ)', sw: '<0.001', ks: '0.002', ad: 2.35, reject: '是' }
+    { part: 'M01（AX）C0100002', sw: '0.874', ks: '0.597', ad: 0.292, reject: '否' },
+    { part: 'E02（AY）C0020002', sw: '<0.001', ks: '<0.001', ad: 7.34, reject: '是' },
+    { part: 'E05（CY）C0070006', sw: '<0.001', ks: '<0.001', ad: 6.88, reject: '是' }
   ]
 }
 
 /** 表 3-15 CSL 对照 */
 export const table3_15 = {
-  title: '表 3-15 目标 CSL 与实测服务水平对照（本文方法，2024 年回测）',
-  note: '实测 CSL=无缺货周期/12；与目标差异受 12 周期小样本限制（Wilson 区间宽）。',
+  title: '表 3-15 目标 CSL 与实测服务水平对照（本文方法，2026-01～06）',
+  note: '实测 CSL=无缺货周期/6。'
   columns: [
     { prop: 'combo', label: '组合' },
     { prop: 'target', label: '目标 CSL' },
@@ -309,15 +309,15 @@ export const table3_15 = {
     { prop: 'fill', label: '实测满足率' }
   ],
   rows: [
-    { combo: 'AX', target: '0.99', actual: '91.7%（11/12）', fill: '97.8%' },
-    { combo: 'AY', target: '0.99', actual: '91.7%（11/12）', fill: '94.0%' },
-    { combo: 'AZ', target: '0.99', actual: '91.7%（11/12）', fill: '97.9%' },
-    { combo: 'BX', target: '0.95', actual: '91.7%（11/12）', fill: '96.9%' },
-    { combo: 'BY', target: '0.95', actual: '91.7%（11/12）', fill: '97.2%' },
-    { combo: 'BZ', target: '0.95', actual: '100.0%（12/12）', fill: '100.0%' },
-    { combo: 'CX', target: '0.90', actual: '91.7%（11/12）', fill: '99.2%' },
-    { combo: 'CY', target: '0.90', actual: '100.0%（12/12）', fill: '100.0%' },
-    { combo: 'CZ', target: '0.90', actual: '100.0%（12/12）', fill: '100.0%' }
+    { combo: 'AX', target: '0.99', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'AY', target: '0.99', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'AZ', target: '0.99', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'BX', target: '0.95', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'BY', target: '0.95', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'BZ', target: '0.95', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'CX', target: '0.90', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'CY', target: '0.90', actual: '100.0%（6/6）', fill: '100.0%' },
+    { combo: 'CZ', target: '0.90', actual: '100.0%（6/6）', fill: '100.0%' }
   ]
 }
 

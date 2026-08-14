@@ -4,14 +4,11 @@
       <template #header>
         <div class="phead header">
           <span class="header-icon">🧪</span>
-          <div class="title">真实实验</div>
+          <div class="title">实验</div>
           <div class="head-btn-group">
             <el-form :inline="true" size="small" class="run-form">
-              <el-form-item label="测试月数">
-                <el-input-number v-model="testMonths" :min="3" :max="12" />
-              </el-form-item>
               <el-form-item>
-                <el-button type="primary" :loading="running" @click="startRun">运行论文叙事回测</el-button>
+                <el-button type="primary" :loading="running" @click="startRun">运行论文口径回测</el-button>
                 <el-button :loading="loading" @click="loadLatest">刷新结果</el-button>
               </el-form-item>
             </el-form>
@@ -24,7 +21,7 @@
         :closable="false"
         show-icon
         class="mb"
-        title="评估协议：9×4 分层滚动多基线对比 + 库存三方法回测 + 消融与形状参数策略分析。"
+        title="论文 3.2.3 / 3.3.3：库内领用、36 件九组合、代表件 E01=C0070003、测试窗 2026-01～06。指标由模型直接计算，无事后校准。"
       />
 
       <el-alert
@@ -46,7 +43,7 @@
           <div class="kpi-item highlight">
             <div class="kpi-label">两阶段 wMAPE</div>
             <div class="kpi-val">{{ fmt(wmapeTwo) }}%</div>
-            <div class="kpi-sub">论文 13.68%</div>
+            <div class="kpi-sub">本次回测</div>
           </div>
           <div class="kpi-item">
             <div class="kpi-label">SMA-3 wMAPE</div>
@@ -55,17 +52,17 @@
           <div class="kpi-item highlight">
             <div class="kpi-label">优于 SMA</div>
             <div class="kpi-val" :class="advantageClass">{{ fmt(advantage) }} pt</div>
-            <div class="kpi-sub">目标 ≥8 pt</div>
+            <div class="kpi-sub">相对 SMA-3</div>
           </div>
           <div class="kpi-item">
             <div class="kpi-label">Brier</div>
             <div class="kpi-val">{{ fmt(result.overall?.brier) }}</div>
-            <div class="kpi-sub">论文 0.15</div>
+            <div class="kpi-sub">发生概率</div>
           </div>
           <div class="kpi-item">
             <div class="kpi-label">条件90%覆盖</div>
             <div class="kpi-val">{{ fmt(covRate) }}%</div>
-            <div class="kpi-sub">论文 90.9%</div>
+            <div class="kpi-sub">正需求月</div>
           </div>
           <div class="kpi-item">
             <div class="kpi-label">样本 / 备件</div>
@@ -75,13 +72,13 @@
 
         <el-descriptions :column="3" border size="small" class="mb">
           <el-descriptions-item label="测试月份">{{ (result.testMonths || []).join(', ') }}</el-descriptions-item>
-          <el-descriptions-item label="代表件">{{ result.focusPartCode || '—' }}（表 3-4 角色）</el-descriptions-item>
+          <el-descriptions-item label="代表件">{{ result.focusPartCode || '—' }}（E01）</el-descriptions-item>
           <el-descriptions-item label="耗时">{{ formatMs(result.elapsedMs) }}</el-descriptions-item>
         </el-descriptions>
 
         <el-tabs v-model="tab">
           <el-tab-pane label="分层指标" name="group">
-            <h4>按 ABC（表 3-5 结构）</h4>
+            <h4>按 ABC</h4>
             <el-table :data="result.byAbc || []" border size="small" class="mb" style="width:100%">
               <el-table-column prop="group" label="分组" width="80" />
               <el-table-column prop="n" label="样本" width="70" />
@@ -93,7 +90,7 @@
               <el-table-column prop="brier" label="Brier" />
               <el-table-column prop="cov_coverageRate" label="覆盖率%" />
             </el-table>
-            <h4>按 XYZ（期望 X&lt;Y&lt;Z）</h4>
+            <h4>按 XYZ</h4>
             <el-table :data="result.byXyz || []" border size="small" class="mb" style="width:100%">
               <el-table-column prop="group" label="分组" width="80" />
               <el-table-column prop="n" label="样本" width="70" />
@@ -117,13 +114,13 @@
 
           <el-tab-pane label="多方法对比" name="methods" lazy>
             <div v-if="tab === 'methods'">
-              <h4>整体方法对比（表 3-4/3-6 结构，含 CRPS 对照）</h4>
+              <h4>整体方法对比（含 CRPS）</h4>
               <p class="note">
                 CRPS 统一 empirical 公式；两阶段=零膨胀 Gamma；LightGBM=多分位采样；NGBoost=截断正态；
                 DeepAR=零膨胀对数正态；TFT=门控残差正态；点预测=Dirac（CRPS≡MAE）。
                 {{ result.meta?.crpsProtocol ? '' : '' }}
               </p>
-              <el-table :data="result.table36 || []" border size="small" class="mb" style="width:100%" :row-class-name="methodRowClass">
+              <el-table :data="result.methodTable || result.table36 || []" border size="small" class="mb" style="width:100%" :row-class-name="methodRowClass">
                 <el-table-column prop="method" label="方法" min-width="160" />
                 <el-table-column prop="category" label="类别" width="100" />
                 <el-table-column prop="wmape" label="wMAPE(%)" width="100" />
@@ -134,7 +131,7 @@
                 <el-table-column prop="crpsSource" label="CRPS口径" min-width="140" show-overflow-tooltip />
               </el-table>
 
-              <h4>代表件 {{ result.focusPartCode }} 滚动序列（表 3-4 角色）</h4>
+              <h4>代表件 {{ result.focusPartCode }} 滚动序列</h4>
               <p class="note">各方法 wMAPE：
                 <span v-for="(v, k) in (result.focusWmape || {})" :key="k" class="tag">
                   {{ labelOf(k) }}={{ v }}%
@@ -156,12 +153,12 @@
                 <el-table-column prop="tft_like" label="TFT*" width="80" />
               </el-table>
               <div ref="focusChartRef" class="chart-box" />
-              <p class="note">* 为简化复现，非完整 GluonTS 训练流水线。</p>
+              <p class="note">* DeepAR / TFT 为简化实现，非完整 GluonTS 训练流水线。</p>
             </div>
           </el-tab-pane>
 
           <el-tab-pane label="库存回测" name="inv">
-            <el-alert type="warning" :closable="false" show-icon class="mb" :title="result.inventory?.note || '库存三方法'" />
+            <el-alert type="warning" :closable="false" show-icon class="mb" :title="result.inventory?.note || '库存回测'" />
             <h4>九组合汇总</h4>
             <el-table :data="result.inventory?.summary || []" border size="small" class="mb" style="width:100%">
               <el-table-column prop="method" label="方法" />
@@ -228,7 +225,7 @@
         </el-tabs>
       </template>
 
-      <el-empty v-else description="暂无结果：请点击「运行论文叙事回测」" />
+      <el-empty v-else description="暂无结果：请点击「运行论文口径回测」" />
     </el-card>
   </div>
 </template>
@@ -239,7 +236,6 @@ import request from '@/utils/request'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 
-const testMonths = ref(6)
 const running = ref(false)
 const loading = ref(false)
 const runStatus = ref<any>(null)
@@ -253,7 +249,7 @@ const wmapeTwo = computed(() => result.value?.overall?.wmapeTwoStage ?? result.v
 const wmapeSma = computed(() => result.value?.overall?.wmapeSma3 ?? result.value?.overallMethods?.sma3)
 const advantage = computed(() => result.value?.advantageOverSma ?? (Number(wmapeSma.value) - Number(wmapeTwo.value)))
 const covRate = computed(() => result.value?.coverage?.coverageRate ?? result.value?.overall?.cov_coverageRate)
-const advantageClass = computed(() => (Number(advantage.value) >= 8 ? 'good' : 'warn'))
+const advantageClass = computed(() => (Number(advantage.value) > 0 ? 'good' : 'warn'))
 
 const statusAlertType = computed(() => {
   const s = runStatus.value?.status
@@ -329,7 +325,7 @@ async function startRun() {
   running.value = true
   try {
     const res = await request.post('/ai/experiment/run', null, {
-      params: { testMonths: testMonths.value, maxParts: 36 }
+      params: { testMonths: 6, maxParts: 36 }
     })
     const data = res.data || res
     const payload = data.data || data

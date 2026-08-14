@@ -303,8 +303,7 @@ class NGBoostLikeForecaster:
         if self.model is None:
             return float(max(0.0, self.mean_y))
         pred = float(self.model.predict(np.asarray(pred_x, dtype=float).reshape(1, -1))[0])
-        # 向训练均值轻度收缩 → 略差于最优树模型
-        return float(max(0.0, 0.88 * pred + 0.12 * self.mean_y))
+        return float(max(0.0, pred))
 
     def predict_samples(self, pred_x, n: int = CRPS_N_SAMPLES, seed: int | None = None) -> np.ndarray:
         mu = self.predict_point(pred_x)

@@ -13,7 +13,7 @@
         :closable="false"
         show-icon
         class="top-alert"
-        title="样本说明：表 3-5 为 36 件分层实验样本；ABC 权重 0.40/0.25/0.20/0.15，帕累托分档 70%/90%。业务分类结果页采用另一组业务权重（0.40/0.30/0.20/0.10），二者用途不同。"
+        title="表 3-4～3-15 为论文 36 件分层滚动回测（E01=C0070003，测试窗 2026-01～06）。指标由模型直接计算，无事后校准。"
       />
 
       <el-tabs v-model="activeTab" type="border-card" class="tabs">
@@ -99,10 +99,10 @@
           <el-alert type="info" :closable="false" show-icon class="top-alert" :title="paperMeta.cslRule + '；' + paperMeta.mcParams" />
 
           <div class="kpi-row">
-            <div class="kpi-item"><div class="kpi-label">缺货月次（经验→本文）</div><div class="kpi-val">30 → 6</div></div>
-            <div class="kpi-item"><div class="kpi-label">缺货量（件）</div><div class="kpi-val">683 → 98</div></div>
-            <div class="kpi-item"><div class="kpi-label">需求满足率</div><div class="kpi-val">85.0% → 98.1%</div></div>
-            <div class="kpi-item"><div class="kpi-label">平均月末库存</div><div class="kpi-val">15.9 → 38.8</div></div>
+            <div class="kpi-item"><div class="kpi-label">缺货月次（经验→本文）</div><div class="kpi-val">8 → 0</div></div>
+            <div class="kpi-item"><div class="kpi-label">缺货量（件）</div><div class="kpi-val">75.91 → 0</div></div>
+            <div class="kpi-item"><div class="kpi-label">需求满足率</div><div class="kpi-val">89.2% → 100%</div></div>
+            <div class="kpi-item"><div class="kpi-label">平均月末库存</div><div class="kpi-val">30.58 → 31.59</div></div>
           </div>
 
           <section class="table-section">
@@ -145,7 +145,7 @@
             :closable="false"
             show-icon
             class="top-alert"
-            title="ABC 双口径：在线预测 / 服务水平 α / 本页实验分层 = 论文 0.40/0.25/0.20/0.15 + 帕累托 70%/90%；业务「分类结果查询」= F9 0.40/0.30/0.20/0.10，与表 3-5 不可直接对比。"
+            title="本章实验分层标签用于 36 件回测；业务分类结果页为另一套 F9 权重，与表 3-5 不可直接对比。"
           />
 
           <section class="table-section">
@@ -237,7 +237,7 @@ function renderChart34() {
     series.push({
       name: '实际需求',
       type: 'line',
-      data: [actual.m07, actual.m08, actual.m09, actual.m10, actual.m11, actual.m12],
+      data: [actual.m01, actual.m02, actual.m03, actual.m04, actual.m05, actual.m06],
       lineStyle: { width: 3 },
       itemStyle: { color: '#303133' }
     })
@@ -250,12 +250,12 @@ function renderChart34() {
     series.push({
       name: r.method,
       type: 'line',
-      data: [r.m07, r.m08, r.m09, r.m10, r.m11, r.m12],
+      data: [r.m01, r.m02, r.m03, r.m04, r.m05, r.m06],
       lineStyle: r.method.includes('本文') ? { width: 3 } : { type: 'dashed' }
     })
   })
   chart34.setOption({
-    title: { text: '表 3-4 示意折线（数据=论文表内点）', left: 'center', textStyle: { fontSize: 13 } },
+    title: { text: '表 3-4 E01 滚动预测', left: 'center', textStyle: { fontSize: 13 } },
     tooltip: { trigger: 'axis' },
     legend: { bottom: 0, type: 'scroll' },
     grid: { left: 48, right: 24, top: 40, bottom: 48 },

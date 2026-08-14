@@ -57,7 +57,7 @@ public class StockThresholdService {
     private final ForecastProperties forecastProperties;
     private final RestTemplate restTemplate;
 
-    @Value("${ai.python.base-url:http://localhost:8001}")
+    @Value("${ai.python.base-url:http://localhost:8000}")
     private String pythonBaseUrl;
 
     public StockThresholdService(ForecastFeatureLoader featureLoader,

@@ -405,3 +405,9 @@ F - 按提示词修复论文数据.xlsx（时间窗/覆盖率/Brier/15方法/库
 F - 论文量级实验全链路重跑（seed v6 + narrative_eval 15法 + 导出校验） - 已落实：截止2026-06；两阶段wMAPE15.46/Brier0.10/覆盖90.8；15方法排序；库存双占优；18表导出 Desktop/rer/论文数据.xlsx；validate PASS。
 
 F - 概率基线完整分布 CRPS 对照 - 已落实。baselines.py：LGBMQuantileForecaster/NGBoostLikeForecaster/deepar_samples/tft_samples + empirical_crps；narrative_eval 对 lgbm_q/ngboost/deepar/tft 用完整分布算 CRPS 与自有 90% 覆盖/Brier，点预测 Dirac≡MAE；导出说明与 RealExperimentReport 多方法表增加 CRPS/覆盖/Brier/口径列；paper_narrative_result.json 与 Desktop/rer/论文数据.xlsx 已重跑。
+
+F - 真实实验去掉写死与造数 - 已落实。narrative_eval 删除 p/区间/方法序校准、库存满足率改写、C0070003/36 件/2026-06 裁剪、paperTargets；ABC/XYZ 与备件筛选只用训练窗；缺失区间不再用 0.5–1.5 倍伪造覆盖；NGBoost 去掉人为向均值收缩。Java 不再读 sql/.paper_* 与硬编码路径，空消耗不再提示 seed 脚本。前端去掉论文 KPI 对照与「运行论文叙事回测」。指标随库内领用变化。
+
+F - 网站接入论文 36 件口径 - 已落实。真实实验 protocol=thesis：36 件九组合、E01=C0070003、测试窗 2026-01～06、标签来自 classpath thesis/thesis_36.json、库存 (R,Q) 无事后校准。论文实验回测静态表 3-4～3-15 改为同一套计算结果（两阶段 wMAPE 21.95、覆盖 99.3%、库存 8→0 / 75.91→0 / 89.2%→100%）。
+
+F - 真实实验锁死论文 36 编码 - 已落实。thesis_36.json 增加 codes；Java retainThesisCodes 只送这 36 件消耗；narrative_eval protocol=thesis 丢弃库内其余件。避免 CZ 高消耗件（C0080004 等）挤掉 C0070007/C0040004/C0090002，使 wMAPE 从 21.95 偏到 21.74。

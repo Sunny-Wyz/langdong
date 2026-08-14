@@ -25,7 +25,7 @@ SET @ai_parent_id := (
 );
 
 INSERT INTO menu (parent_id, name, path, component, permission, type, icon, sort)
-SELECT @ai_parent_id, '真实实验', '/ai/real-experiments', 'ai/RealExperimentReport', 'ai:forecast:list', 2, 'el-icon-data-board', 4
+SELECT @ai_parent_id, '实验', '/ai/real-experiments', 'ai/RealExperimentReport', 'ai:forecast:list', 2, 'el-icon-data-board', 4
 FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1 FROM menu WHERE path = '/ai/real-experiments' AND type = 2
@@ -42,7 +42,7 @@ SET @real_menu_id := (
 UPDATE menu
 SET
     parent_id = @ai_parent_id,
-    name = '真实实验',
+    name = '实验',
     component = 'ai/RealExperimentReport',
     permission = 'ai:forecast:list',
     type = 2,

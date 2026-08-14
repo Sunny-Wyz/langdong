@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""离线：读 spare_db 消耗 + labels → narrative_eval → JSON。"""
+"""离线：读 spare_db 真实领用消耗 → narrative_eval → JSON。不读种子标签。"""
 from __future__ import annotations
 
 import json
@@ -25,7 +25,6 @@ def load_demand(conn):
     INNER JOIN spare_part sp ON ri.spare_part_id = sp.id
     WHERE r.req_status IN ('OUTBOUND', 'INSTALLED')
       AND ri.out_qty IS NOT NULL AND ri.out_qty > 0
-      AND DATE_FORMAT(r.approve_time, '%Y-%m') <= '2026-06'
     GROUP BY sp.code, DATE_FORMAT(r.approve_time, '%Y-%m')
     """
     dem = defaultdict(dict)
@@ -37,17 +36,6 @@ def load_demand(conn):
 
 
 def main():
-    labels_path = ROOT / "sql" / ".paper_part_labels.json"
-    focus = None
-    part_meta = None
-    if labels_path.exists():
-        meta = json.loads(labels_path.read_text(encoding="utf-8"))
-        focus = meta.get("focus")
-        part_meta = {
-            c: {"abc": v["abc"], "xyz": v["xyz"]}
-            for c, v in meta.get("labels", {}).items()
-        }
-
     conn = pymysql.connect(
         host="127.0.0.1",
         user="admin",
@@ -64,8 +52,7 @@ def main():
     result = run_narrative_experiment(
         demand=demand,
         test_months=6,
-        focus_code=focus,
-        part_meta=part_meta,
+        max_parts=50,
     )
     out = Path(__file__).resolve().parent / "paper_narrative_result.json"
     # detail 可能较大，完整写出

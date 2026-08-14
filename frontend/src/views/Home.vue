@@ -118,8 +118,14 @@ function isHiddenMenu(menu: MenuNode | null | undefined): boolean {
   const name = String(menu.name || '')
   const path = String(menu.path || '').replace(/^#/, '')
   if (name.startsWith('[隐藏]')) return true
-  // 名称关键词：历史库中可能仍挂着周粒度/训练看板
-  if (name.includes('周粒度') || name.includes('训练数据看板') || name.includes('训练进度')) {
+  // 名称关键词：历史库中可能仍挂着周粒度/训练看板/论文实验
+  if (
+    name.includes('周粒度') ||
+    name.includes('训练数据看板') ||
+    name.includes('训练进度') ||
+    name.includes('论文实验回测') ||
+    name.includes('论文实验')
+  ) {
     return true
   }
   // 已下线的 AI 扩展入口，即使接口仍返回也不展示
@@ -127,9 +133,11 @@ function isHiddenMenu(menu: MenuNode | null | undefined): boolean {
     path === '/ai/weekly-forecast' ||
     path === '/ai/training-progress' ||
     path === '/ai/train-data-dashboard' ||
+    path === '/ai/paper-experiments' ||
     path.endsWith('/weekly-forecast') ||
     path.endsWith('/training-progress') ||
-    path.endsWith('/train-data-dashboard')
+    path.endsWith('/train-data-dashboard') ||
+    path.endsWith('/paper-experiments')
   ) {
     return true
   }

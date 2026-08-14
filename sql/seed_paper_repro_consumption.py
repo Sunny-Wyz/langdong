@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-v6 论文叙事造数：
-- 强制 9×4=36 件分层（前 36 个备件）
-- 截止 2026-06（42 月），无未来测试月
-- 结构性零月 + 更高噪声 → Brier/间歇基线落在论文量级
-- 部分 CZ/BZ 强制高零占比（>50%）供鲁棒性第三档
-- 代表件 FOCUS（AY 槽）可学习但含零月簇
+论文复现造数（仅 scripts/paper 离线导出使用）。
+
+真实实验页已不再读取本脚本、.paper_part_labels.json 或 .paper_focus_part。
+不要用本脚本给「真实实验」灌数。
 """
 from __future__ import annotations
 

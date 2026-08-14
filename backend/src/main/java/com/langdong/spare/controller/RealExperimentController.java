@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 真实实验：基于库内消耗数据滚动回测，产出论文同口径指标。
+ * 真实实验：基于库内领用消耗滚动回测，指标随数据变化。
  */
 @RestController
 @RequestMapping("/api/ai/experiment")

@@ -41,5 +41,5 @@ else
   echo "[DOWN] redis"
 fi
 
-check_http "python-api" "http://localhost:8001/health"
+check_http "python-api" "http://localhost:8000/health"
 check_http "backend" "http://localhost:8080/"

@@ -112,18 +112,20 @@ class FitPredictRequest(BaseModel):
 
 
 class NarrativeEvalRequest(BaseModel):
-    """真实实验论文叙事：demand = {partCode: {yyyy-MM: qty}}"""
+    """真实实验：demand = {partCode: {yyyy-MM: qty}}，全部来自业务消耗。"""
     demand: dict[str, dict[str, float]]
-    test_months: int = 6
+    test_months: int = Field(default=6, ge=1, le=12)
     focus_code: str | None = None
     part_meta: dict[str, dict[str, Any]] | None = None
+    max_parts: int = Field(default=50, ge=1, le=200)
+    protocol: str = "live"
 
 
 @router.post("/narrative_eval")
 def narrative_eval(req: NarrativeEvalRequest) -> dict[str, Any]:
     """
-    一站式论文叙事回测：多基线 + 分层 + 消融 + k 策略 + 库存三方法。
-    不写盘、不覆盖生产模型。
+    库内消耗滚动回测：多基线 + 分层 + 库存模拟。
+    不写盘、不覆盖生产模型、不做论文量级事后校准。
     """
     try:
         from app.models.narrative_eval import run_narrative_experiment
@@ -133,10 +135,14 @@ def narrative_eval(req: NarrativeEvalRequest) -> dict[str, Any]:
             test_months=req.test_months,
             focus_code=req.focus_code,
             part_meta=req.part_meta,
+            max_parts=req.max_parts,
+            protocol=req.protocol,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("narrative_eval 失败")
-        raise HTTPException(status_code=500, detail=f"narrative_eval failed: {str(exc)}")
+        raise HTTPException(status_code=500, detail="narrative_eval failed") from exc
 
 
 @router.post("/fit_predict_ephemeral")

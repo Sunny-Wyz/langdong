@@ -70,6 +70,38 @@ resolve_mvn_command() {
   exit 1
 }
 
+resolve_java21() {
+  local candidate
+  local candidates=(
+    "${JAVA_21_HOME:-}"
+    "$HOME/Library/Java/JavaVirtualMachines/jdk-21.0.11+10/Contents/Home"
+    "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home"
+  )
+
+  if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    candidate="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
+    if [[ -n "$candidate" && -x "$candidate/bin/java" ]]; then
+      export JAVA_HOME="$candidate"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      echo "[OK] Using Java 21 at $JAVA_HOME"
+      return 0
+    fi
+  fi
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -n "$candidate" && -x "$candidate/bin/java" ]]; then
+      export JAVA_HOME="$candidate"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      echo "[OK] Using Java 21 at $JAVA_HOME"
+      return 0
+    fi
+  done
+
+  echo "[ERROR] Java 21 is required (backend class files are 65.0). Current JAVA_HOME=${JAVA_HOME:-unset}"
+  echo "        Install JDK 21 or set JAVA_21_HOME / JAVA_HOME to a 21 runtime, then rerun."
+  exit 1
+}
+
 wait_for_http() {
   local name="$1"
   local url="$2"
@@ -112,6 +144,7 @@ ensure_local_dependencies() {
   require_command "lsof" "lsof not found. Install lsof first."
   require_command "npm" "npm not found. Install Node.js and npm first."
   require_command "conda" "conda not found. Install Conda or add it to PATH first."
+  resolve_java21
   resolve_mvn_command
 }
 
